@@ -1,0 +1,23 @@
+
+# Configuration file for the r_umls tool
+# Normally located in the installation folder 
+# i.e. above the bin folder with the .exe
+
+[data]
+data_version=""
+data_date=""
+
+
+[files]
+data_folder_path="E:\\MDR source data\\UMLS\\data"
+log_folder_path="E:\\MDR source data\\UMLS\\logs"
+output_folder_path="E:\\MDR source data\\UMLS\\outputs"
+src_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
+
+
+[database]
+db_host="localhost"
+db_user="postgres"
+db_password="WinterIsComing!"
+db_port=5433
+db_name=""
