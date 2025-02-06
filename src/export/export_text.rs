@@ -9,8 +9,8 @@ use super::export_structs::{VSummary, TypeRow, DistribRow, RankedRow,
 use log::info;
 
 
-pub async fn generate_text(output_folder : &PathBuf, output_file_name: &PathBuf, 
-            data_version: &String, pool : &Pool<Postgres>) -> Result<(), AppError>
+pub async fn generate_text(output_folder : &PathBuf, data_version: &String, 
+                            pool : &Pool<Postgres>) -> Result<(), AppError>
 {
     // If data version and date not given explicitly derive them from the data version table
     // as being the version, date of the currently stored version
@@ -21,10 +21,11 @@ pub async fn generate_text(output_folder : &PathBuf, output_file_name: &PathBuf,
         vcode = sqlx::query_scalar(sql).fetch_one(pool).await?;
     }
 
-    // Get path and set up file for writing
-    
-    let output_file_path: PathBuf = [output_folder, output_file_name].iter().collect();
-    //let output_file_str = output_file_path.to_str().unwrap();
+    // Get path and set up file for writing.
+
+    let datetime_string = Local::now().format("%m-%d %H%M%S").to_string();
+    let output_file_name = format!("{} summary at {}.txt", &vcode, &datetime_string);
+    let output_file_path: PathBuf = [output_folder, &PathBuf::from(output_file_name)].iter().collect();
             
     let singvals:HashMap<String, Singleton> = collect_singleton_values(&vcode, pool).await?;
     write_header_and_summary(&output_file_path, &vcode, pool).await?;

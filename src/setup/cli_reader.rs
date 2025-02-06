@@ -19,9 +19,6 @@ pub fn fetch_valid_arguments(args: Vec<OsString>) -> Result<CliPars, AppError>
 
     // These parameters guaranteed to unwrap OK as all have a default value of "".
 
-    let data_folder_as_string = parse_result.get_one::<String>("data_folder").unwrap();
-    let data_folder = PathBuf::from(data_folder_as_string.replace("\\", "/"));
-
     let source_file_as_string = parse_result.get_one::<String>("src_file").unwrap();
     let source_file = PathBuf::from(source_file_as_string);
 
@@ -38,17 +35,19 @@ pub fn fetch_valid_arguments(args: Vec<OsString>) -> Result<CliPars, AppError>
     let mut t_flag = parse_result.get_flag("t_flag");
     let x_flag = parse_result.get_flag("x_flag");
     let y_flag = parse_result.get_flag("y_flag");
+    let mut j_flag = parse_result.get_flag("j_flag");
     let mut c_flag = parse_result.get_flag("c_flag");
     let mut m_flag = parse_result.get_flag("m_flag");
     let z_flag = parse_result.get_flag("z_flag");
 
-    // If c, m, or both flags set (may be by using 'i' (initialise) flag)
-    // Only do the c and / or m actions
+    // If c, m, j or all three flags set (may be by using 'i' (initialise) flag)
+    // Only do the j and / or c and / or m actions
   
-    if i_flag || c_flag || m_flag {
+    if i_flag || c_flag || m_flag || j_flag {
         if i_flag {
             c_flag = true;
             m_flag = true;
+            j_flag = true;
         }
         
         let flags = Flags {
@@ -57,13 +56,13 @@ pub fn fetch_valid_arguments(args: Vec<OsString>) -> Result<CliPars, AppError>
             export_text: false,
             export_csv: false,
             export_full_csv: false,
+            create_config: j_flag,
             create_lookups: c_flag,
             create_summary: m_flag,
             test_run: false,
         };
 
         Ok(CliPars {
-            data_folder: PathBuf::new(),
             source_file: PathBuf::new(),
             data_version: "".to_string(),
             data_date: "".to_string(),
@@ -95,13 +94,13 @@ pub fn fetch_valid_arguments(args: Vec<OsString>) -> Result<CliPars, AppError>
             export_text: t_flag,
             export_csv: x_flag,
             export_full_csv: y_flag,
+            create_config: false,
             create_lookups: false,
             create_summary: false,
             test_run: z_flag,
         };
 
         Ok(CliPars {
-            data_folder: data_folder.clone(),
             source_file: source_file.clone(),
             data_version: data_version.clone(),
             data_date: data_date.clone(),
@@ -115,14 +114,6 @@ fn parse_args(args: Vec<OsString>) -> Result<ArgMatches, clap::Error> {
 
     command!()
         .about("Imports data from ROR json file (v2) and imports it into a database")
-        .arg(
-            Arg::new("data_folder")
-           .short('f')
-           .long("folder")
-           .visible_aliases(["data folder"])
-           .help("A string with the data folder path (over-rides environment setting")
-           .default_value("")
-       )
         .arg(
              Arg::new("src_file")
             .short('s')
@@ -204,6 +195,14 @@ fn parse_args(args: Vec<OsString>) -> Result<ArgMatches, clap::Error> {
            .action(clap::ArgAction::SetTrue)
        )
        .arg(
+            Arg::new("j_flag")
+            .short('j')
+            .long("config")
+            .required(false)
+            .help("A flag signifying that a configurastion file needs to be built or edited")
+            .action(clap::ArgAction::SetTrue)
+        )
+       .arg(
             Arg::new("c_flag")
             .short('c')
             .long("context")
@@ -240,15 +239,18 @@ mod tests {
 
     #[test]
     fn check_cli_no_explicit_params() {
-        let target = &"target\\debug\\ror1.exe".replace("\\", "/");
-        let args : Vec<&str> = vec![target];
+        let target = "dummy target";
+        let args: Vec<&str> = vec![target];
         let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
+
         let res = fetch_valid_arguments(test_args).unwrap();
-        assert_eq!(res.data_folder, PathBuf::new());
         assert_eq!(res.source_file, PathBuf::new());
         assert_eq!(res.flags.import_ror, true);
         assert_eq!(res.flags.process_data, false);
         assert_eq!(res.flags.export_text, false);
+        assert_eq!(res.flags.export_csv, false);
+        assert_eq!(res.flags.export_full_csv, false);
+        assert_eq!(res.flags.create_config, false);
         assert_eq!(res.flags.create_lookups, false);
         assert_eq!(res.flags.create_summary, false);
         assert_eq!(res.flags.test_run, false);
@@ -258,16 +260,18 @@ mod tests {
   
     #[test]
     fn check_cli_with_a_flag() {
-        let target = &"target\\debug\\ror1.exe".replace("\\", "/");
+        let target = "dummy target";
         let args : Vec<&str> = vec![target, "-a"];
         let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
 
         let res = fetch_valid_arguments(test_args).unwrap();
-        assert_eq!(res.data_folder, PathBuf::new());
         assert_eq!(res.source_file, PathBuf::new());
         assert_eq!(res.flags.import_ror, true);
         assert_eq!(res.flags.process_data, true);
         assert_eq!(res.flags.export_text, true);
+        assert_eq!(res.flags.export_csv, false);
+        assert_eq!(res.flags.export_full_csv, false);
+        assert_eq!(res.flags.create_config, false);
         assert_eq!(res.flags.create_lookups, false);
         assert_eq!(res.flags.create_summary, false);
         assert_eq!(res.flags.test_run, false);
@@ -277,16 +281,18 @@ mod tests {
 
     #[test]
     fn check_cli_with_i_flag() {
-        let target = &"target\\debug\\ror1.exe".replace("\\", "/");
+        let target = "dummy target";
         let args : Vec<&str> = vec![target, "-i"];
         let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
 
         let res = fetch_valid_arguments(test_args).unwrap();
-        assert_eq!(res.data_folder, PathBuf::new());
         assert_eq!(res.source_file, PathBuf::new());
         assert_eq!(res.flags.import_ror, false);
         assert_eq!(res.flags.process_data, false);
         assert_eq!(res.flags.export_text, false);
+        assert_eq!(res.flags.export_csv, false);
+        assert_eq!(res.flags.export_full_csv, false);
+        assert_eq!(res.flags.create_config, true);
         assert_eq!(res.flags.create_lookups, true);
         assert_eq!(res.flags.create_summary, true);
         assert_eq!(res.flags.test_run, false);
@@ -295,17 +301,19 @@ mod tests {
     }
 
     #[test]
-    fn check_cli_with_c_and_m_flags() {
-        let target = &"target\\debug\\ror1.exe".replace("\\", "/");
-        let args : Vec<&str> = vec![target, "-c", "-m"];
+    fn check_cli_with_jcm_flags() {
+        let target = "dummy target";
+        let args : Vec<&str> = vec![target, "-j", "-c", "-m"];
         let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
 
         let res = fetch_valid_arguments(test_args).unwrap();
-        assert_eq!(res.data_folder, PathBuf::new());
         assert_eq!(res.source_file, PathBuf::new());
         assert_eq!(res.flags.import_ror, false);
         assert_eq!(res.flags.process_data, false);
         assert_eq!(res.flags.export_text, false);
+        assert_eq!(res.flags.export_csv, false);
+        assert_eq!(res.flags.export_full_csv, false);
+        assert_eq!(res.flags.create_config, true);
         assert_eq!(res.flags.create_lookups, true);
         assert_eq!(res.flags.create_summary, true);
         assert_eq!(res.flags.test_run, false);
@@ -313,19 +321,20 @@ mod tests {
         assert_eq!(res.data_version, "");
     }
 
-
     #[test]
     fn check_cli_with_c_and_p_flag() {
-        let target = &"target\\debug\\ror1.exe".replace("\\", "/");
+        let target = "dummy target";
         let args : Vec<&str> = vec![target, "-c", "-p"];
         let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
 
         let res = fetch_valid_arguments(test_args).unwrap();
-        assert_eq!(res.data_folder, PathBuf::new());
         assert_eq!(res.source_file, PathBuf::new());
         assert_eq!(res.flags.import_ror, false);
         assert_eq!(res.flags.process_data, false);
         assert_eq!(res.flags.export_text, false);
+        assert_eq!(res.flags.export_csv, false);
+        assert_eq!(res.flags.export_full_csv, false);
+        assert_eq!(res.flags.create_config, false);
         assert_eq!(res.flags.create_lookups, true);
         assert_eq!(res.flags.create_summary, false);
         assert_eq!(res.flags.test_run, false);
@@ -334,43 +343,157 @@ mod tests {
     }
 
     #[test]
-    fn check_cli_with_explicit_string_pars() {
-        let target = &"target\\debug\\ror1.exe".replace("\\", "/");
-        let args : Vec<&str> = vec![target, "-f", "E:\\ROR\\some data folder", 
-                                    "-s", "schema2 data.json", "-d", "2025-12-25", "-v", "1.62"];
+    fn check_cli_with_j_and_t_flag() {
+        let target = "dummy target";
+        let args : Vec<&str> = vec![target, "-j", "-t"];
         let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
 
         let res = fetch_valid_arguments(test_args).unwrap();
-        assert_eq!(res.data_folder, PathBuf::from("E:/ROR/some data folder"));
-        assert_eq!(res.source_file, PathBuf::from("schema2 data.json"));
-        assert_eq!(res.flags.import_ror, true);
+        assert_eq!(res.source_file, PathBuf::new());
+        assert_eq!(res.flags.import_ror, false);
         assert_eq!(res.flags.process_data, false);
         assert_eq!(res.flags.export_text, false);
+        assert_eq!(res.flags.export_csv, false);
+        assert_eq!(res.flags.export_full_csv, false);
+        assert_eq!(res.flags.create_config, true);
         assert_eq!(res.flags.create_lookups, false);
         assert_eq!(res.flags.create_summary, false);
         assert_eq!(res.flags.test_run, false);
-        assert_eq!(res.data_date, "2025-12-25");
-        assert_eq!(res.data_version, "1.62");
+        assert_eq!(res.data_date, "");
+        assert_eq!(res.data_version, "");
     }
+    
 
     #[test]
-    fn check_cli_with_most_params_explicit() {
-        let target = &"target\\debug\\ror1.exe".replace("\\", "/");
-        let args : Vec<&str> = vec![target, "-f", "E:\\ROR\\some other data folder", 
-        "-s", "schema2.1 data.json", "-d", "2026-12-25", "-v", "1.63", "-r", "-p", "-t", "-z"];
+    fn check_cli_with_m_and_r_flag() {
+        let target = "dummy target";
+        let args : Vec<&str> = vec![target, "-m", "-r"];
         let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
 
         let res = fetch_valid_arguments(test_args).unwrap();
-        assert_eq!(res.data_folder, PathBuf::from("E:/ROR/some other data folder"));
+        assert_eq!(res.source_file, PathBuf::new());
+        assert_eq!(res.flags.import_ror, false);
+        assert_eq!(res.flags.process_data, false);
+        assert_eq!(res.flags.export_text, false);
+        assert_eq!(res.flags.export_csv, false);
+        assert_eq!(res.flags.export_full_csv, false);
+        assert_eq!(res.flags.create_config, false);
+        assert_eq!(res.flags.create_lookups, false);
+        assert_eq!(res.flags.create_summary, true);
+        assert_eq!(res.flags.test_run, false);
+        assert_eq!(res.data_date, "");
+        assert_eq!(res.data_version, "");
+    }
+
+
+    #[test]
+    fn check_cli_with_x_and_y_flag() {
+        let target = "dummy target";
+        let args : Vec<&str> = vec![target, "-x", "-y"];
+        let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
+
+        let res = fetch_valid_arguments(test_args).unwrap();
+        assert_eq!(res.source_file, PathBuf::new());
+        assert_eq!(res.flags.import_ror, false);
+        assert_eq!(res.flags.process_data, false);
+        assert_eq!(res.flags.export_text, false);
+        assert_eq!(res.flags.export_csv, true);
+        assert_eq!(res.flags.export_full_csv, true);
+        assert_eq!(res.flags.create_config, false);
+        assert_eq!(res.flags.create_lookups, false);
+        assert_eq!(res.flags.create_summary, false);
+        assert_eq!(res.flags.test_run, false);
+        assert_eq!(res.data_date, "");
+        assert_eq!(res.data_version, "");
+    }
+
+
+    #[test]
+    fn check_cli_with_rpt_and_x_flag() {
+        let target = "dummy target";
+        let args : Vec<&str> = vec![target, "-r", "-p", "-t", "-x"];
+        let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
+
+        let res = fetch_valid_arguments(test_args).unwrap();
+        assert_eq!(res.source_file, PathBuf::new());
+        assert_eq!(res.flags.import_ror, true);
+        assert_eq!(res.flags.process_data, true);
+        assert_eq!(res.flags.export_text, true);
+        assert_eq!(res.flags.export_csv, true);
+        assert_eq!(res.flags.export_full_csv, false);
+        assert_eq!(res.flags.create_config, false);
+        assert_eq!(res.flags.create_lookups, false);
+        assert_eq!(res.flags.create_summary, false);
+        assert_eq!(res.flags.test_run, false);
+        assert_eq!(res.data_date, "");
+        assert_eq!(res.data_version, "");
+    }
+
+    
+    #[test]
+    fn check_cli_with_z_flag() {
+        let target = "dummy target";
+        let args : Vec<&str> = vec![target, "-z"];
+        let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
+
+        let res = fetch_valid_arguments(test_args).unwrap();
+        assert_eq!(res.source_file, PathBuf::new());
+        assert_eq!(res.flags.import_ror, true);
+        assert_eq!(res.flags.process_data, false);
+        assert_eq!(res.flags.export_text, false);
+        assert_eq!(res.flags.export_csv, false);
+        assert_eq!(res.flags.export_full_csv, false);
+        assert_eq!(res.flags.create_config, false);
+        assert_eq!(res.flags.create_lookups, false);
+        assert_eq!(res.flags.create_summary, false);
+        assert_eq!(res.flags.test_run, true);
+        assert_eq!(res.data_date, "");
+        assert_eq!(res.data_version, "");
+    }
+
+
+    #[test]
+    fn check_cli_with_string_pars() {
+        let target = "dummy target";
+        let args : Vec<&str> = vec![target, "-s", "schema2.1 data.json", "-d", "2026-12-25", "-v", "v1.63"];
+        let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
+
+        let res = fetch_valid_arguments(test_args).unwrap();
+        assert_eq!(res.source_file, PathBuf::from("schema2.1 data.json"));
+        assert_eq!(res.flags.import_ror, true);
+        assert_eq!(res.flags.process_data, false);
+        assert_eq!(res.flags.export_text, false);
+        assert_eq!(res.flags.export_csv, false);
+        assert_eq!(res.flags.export_full_csv, false);
+        assert_eq!(res.flags.create_config, false);
+        assert_eq!(res.flags.create_lookups, false);
+        assert_eq!(res.flags.create_summary, false);
+        assert_eq!(res.flags.test_run, false);
+        assert_eq!(res.data_date, "2026-12-25");
+        assert_eq!(res.data_version, "v1.63");
+    }
+
+
+    #[test]
+    fn check_cli_with_most_params_explicit() {
+        let target = "dummy target";
+        let args : Vec<&str> = vec![target, "-s", "schema2.1 data.json", "-d", "2026-12-25", 
+                                            "-v", "v1.63", "-r", "-p", "-t", "-x", "-y", "-z"];
+        let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
+
+        let res = fetch_valid_arguments(test_args).unwrap();
         assert_eq!(res.source_file, PathBuf::from("schema2.1 data.json"));
         assert_eq!(res.flags.import_ror, true);
         assert_eq!(res.flags.process_data, true);
         assert_eq!(res.flags.export_text, true);
+        assert_eq!(res.flags.export_csv, true);
+        assert_eq!(res.flags.export_full_csv, true);
+        assert_eq!(res.flags.create_config, false);
         assert_eq!(res.flags.create_lookups, false);
         assert_eq!(res.flags.create_summary, false);
         assert_eq!(res.flags.test_run, true);
         assert_eq!(res.data_date, "2026-12-25");
-        assert_eq!(res.data_version, "1.63");
+        assert_eq!(res.data_version, "v1.63");
     }
 
 }

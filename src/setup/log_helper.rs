@@ -97,7 +97,6 @@ pub fn log_startup_params (ip : &InitParams) {
     info!("log_folder: {}", ip.log_folder.display());
     info!("output_folder: {}", ip.output_folder.display());
     info!("source_file_name: {}", ip.source_file_name.display());
-    info!("output_file_name: {}", ip.output_file_name.display());
     info!("data_version: {}", ip.data_version);
     info!("data_date: {}", ip.data_date);
     info!("create look up tables: {}", ip.flags.create_lookups);

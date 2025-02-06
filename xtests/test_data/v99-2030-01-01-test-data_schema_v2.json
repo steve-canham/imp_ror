@@ -1,0 +1,1891 @@
+[
+    {
+        "locations": [
+            {
+                "geonames_id": 2158177,
+                "geonames_details": {
+                    "country_code": "AU",
+                    "country_name": "Australia",
+                    "lat": -37.806748,
+                    "lng": 144.962573,
+                    "name": "Melbourne"
+                }
+            }
+        ],
+        "established": 1887,
+        "external_ids": [
+            {
+                "type": "fundref",
+                "all": [
+                    "501100001780",
+                    "100008690",
+                    "100010552"
+                ],
+                "preferred": "501100001780"
+            },
+            {
+                "type": "grid",
+                "all": [
+                    "grid.1017.7"
+                ],
+                "preferred": "grid.1017.7"
+            },
+            {
+                "type": "isni",
+                "all": [
+                    "0000 0001 2163 3550"
+                ],
+                "preferred": null
+            },
+            {
+                "type": "wikidata",
+                "all": [
+                    "Q1057890"
+                ],
+                "preferred": null
+            }
+        ],
+        "id": "https://ror.org/04ttjf776",
+        "domains": [],
+        "links": [
+            {
+                "type": "website",
+                "value": "https://www.rmit.edu.au/"
+            },
+            {
+                "type": "wikipedia",
+                "value": "http://en.wikipedia.org/wiki/RMIT_University"
+            }
+        ],
+        "names": [
+            {
+                "value": "RMIT",
+                "types": [
+                    "acronym"
+                ],
+                "lang": null
+            },
+            {
+                "value": "RMIT University",
+                "types": [
+                    "ror_display",
+                    "label"
+                ],
+                "lang": "en"
+            },
+            {
+                "value": "Royal Melbourne Institute of Technology University",
+                "types": [
+                    "alias"
+                ],
+                "lang": "en"
+            }
+        ],
+        "relationships": [
+            {
+                "type": "child",
+                "label": "ARC Centre of Excellence for Automated Decision-Making and Society",
+                "id": "https://ror.org/039p7nx39"
+            },
+            {
+                "type": "child",
+                "label": "RMIT Europe",
+                "id": "https://ror.org/03m3ca021"
+            },
+            {
+                "type": "child",
+                "label": "RMIT Vietnam",
+                "id": "https://ror.org/004axh929"
+            },
+            {
+                "type": "related",
+                "label": "Austin Hospital",
+                "id": "https://ror.org/010mv7n52"
+            }
+        ],
+        "status": "active",
+        "types": [
+            "education",
+            "funder"
+        ],
+        "admin": {
+            "created": {
+                "date": "2018-11-14",
+                "schema_version": "1.0"
+            },
+            "last_modified": {
+                "date": "2024-05-13",
+                "schema_version": "2.0"
+            }
+        }
+    },
+    {
+        "locations": [
+            {
+                "geonames_id": 2158177,
+                "geonames_details": {
+                    "country_code": "AU",
+                    "country_name": "Australia",
+                    "lat": -37.72179,
+                    "lng": 145.047909,
+                    "name": "Melbourne"
+                }
+            }
+        ],
+        "established": 1964,
+        "external_ids": [
+            {
+                "type": "fundref",
+                "all": [
+                    "501100001215"
+                ],
+                "preferred": null
+            },
+            {
+                "type": "grid",
+                "all": [
+                    "grid.1018.8"
+                ],
+                "preferred": "grid.1018.8"
+            },
+            {
+                "type": "isni",
+                "all": [
+                    "0000 0001 2342 0938"
+                ],
+                "preferred": null
+            },
+            {
+                "type": "wikidata",
+                "all": [
+                    "Q1478723"
+                ],
+                "preferred": null
+            }
+        ],
+        "id": "https://ror.org/01rxfrp27",
+        "domains": [],
+        "links": [
+            {
+                "type": "website",
+                "value": "http://www.latrobe.edu.au/"
+            },
+            {
+                "type": "wikipedia",
+                "value": "http://en.wikipedia.org/wiki/La_Trobe_University"
+            }
+        ],
+        "names": [
+            {
+                "value": "La Trobe University",
+                "types": [
+                    "ror_display",
+                    "label"
+                ],
+                "lang": "en"
+            }
+        ],
+        "relationships": [
+            {
+                "type": "related",
+                "label": "Austin Hospital",
+                "id": "https://ror.org/010mv7n52"
+            },
+            {
+                "type": "related",
+                "label": "Box Hill Hospital",
+                "id": "https://ror.org/0484pjq71"
+            },
+            {
+                "type": "related",
+                "label": "Royal Women's Hospital",
+                "id": "https://ror.org/03grnna41"
+            }
+        ],
+        "status": "active",
+        "types": [
+            "education",
+            "funder"
+        ],
+        "admin": {
+            "created": {
+                "date": "2018-11-14",
+                "schema_version": "1.0"
+            },
+            "last_modified": {
+                "date": "2024-05-13",
+                "schema_version": "2.0"
+            }
+        }
+    },
+    {
+        "locations": [
+            {
+                "geonames_id": 2151437,
+                "geonames_details": {
+                    "country_code": "AU",
+                    "country_name": "Australia",
+                    "lat": -23.322705,
+                    "lng": 150.520802,
+                    "name": "Rockhampton"
+                }
+            }
+        ],
+        "established": 1967,
+        "external_ids": [
+            {
+                "type": "fundref",
+                "all": [
+                    "501100001790"
+                ],
+                "preferred": null
+            },
+            {
+                "type": "grid",
+                "all": [
+                    "grid.1023.0"
+                ],
+                "preferred": "grid.1023.0"
+            },
+            {
+                "type": "isni",
+                "all": [
+                    "0000 0001 2193 0854"
+                ],
+                "preferred": null
+            },
+            {
+                "type": "wikidata",
+                "all": [
+                    "Q1053985"
+                ],
+                "preferred": null
+            }
+        ],
+        "id": "https://ror.org/023q4bk22",
+        "domains": [],
+        "links": [
+            {
+                "type": "website",
+                "value": "https://www.cqu.edu.au/"
+            },
+            {
+                "type": "wikipedia",
+                "value": "http://en.wikipedia.org/wiki/Central_Queensland_University"
+            }
+        ],
+        "names": [
+            {
+                "value": "CQU",
+                "types": [
+                    "acronym"
+                ],
+                "lang": null
+            },
+            {
+                "value": "CQUniversity",
+                "types": [
+                    "alias"
+                ],
+                "lang": "en"
+            },
+            {
+                "value": "Central Queensland University",
+                "types": [
+                    "ror_display",
+                    "label"
+                ],
+                "lang": "en"
+            }
+        ],
+        "relationships": [],
+        "status": "active",
+        "types": [
+            "education",
+            "funder"
+        ],
+        "admin": {
+            "created": {
+                "date": "2018-11-14",
+                "schema_version": "1.0"
+            },
+            "last_modified": {
+                "date": "2024-05-13",
+                "schema_version": "2.0"
+            }
+        }
+    },
+    {
+        "locations": [
+            {
+                "geonames_id": 2165087,
+                "geonames_details": {
+                    "country_code": "AU",
+                    "country_name": "Australia",
+                    "lat": -28.073983,
+                    "lng": 153.416489,
+                    "name": "Gold Coast"
+                }
+            }
+        ],
+        "established": 1987,
+        "external_ids": [
+            {
+                "type": "fundref",
+                "all": [
+                    "501100001789"
+                ],
+                "preferred": null
+            },
+            {
+                "type": "grid",
+                "all": [
+                    "grid.1033.1"
+                ],
+                "preferred": "grid.1033.1"
+            },
+            {
+                "type": "isni",
+                "all": [
+                    "0000 0004 0405 3820"
+                ],
+                "preferred": null
+            },
+            {
+                "type": "wikidata",
+                "all": [
+                    "Q892188"
+                ],
+                "preferred": null
+            }
+        ],
+        "id": "https://ror.org/006jxzx88",
+        "domains": [],
+        "links": [
+            {
+                "type": "website",
+                "value": "http://bond.edu.au/"
+            },
+            {
+                "type": "wikipedia",
+                "value": "https://en.wikipedia.org/wiki/Bond_University"
+            }
+        ],
+        "names": [
+            {
+                "value": "Bond University",
+                "types": [
+                    "ror_display",
+                    "label"
+                ],
+                "lang": "en"
+            }
+        ],
+        "relationships": [
+            {
+                "type": "related",
+                "label": "Gold Coast Hospital",
+                "id": "https://ror.org/05eq01d13"
+            },
+            {
+                "type": "related",
+                "label": "Robina Hospital",
+                "id": "https://ror.org/0257s2812"
+            }
+        ],
+        "status": "active",
+        "types": [
+            "education",
+            "funder"
+        ],
+        "admin": {
+            "created": {
+                "date": "2018-11-14",
+                "schema_version": "1.0"
+            },
+            "last_modified": {
+                "date": "2024-05-13",
+                "schema_version": "2.0"
+            }
+        }
+    },
+    {
+        "locations": [
+            {
+                "geonames_id": 2176632,
+                "geonames_details": {
+                    "country_code": "AU",
+                    "country_name": "Australia",
+                    "lat": -33.4300248,
+                    "lng": 149.5655646,
+                    "name": "Bathurst"
+                }
+            }
+        ],
+        "established": 1989,
+        "external_ids": [
+            {
+                "type": "fundref",
+                "all": [
+                    "501100001769"
+                ],
+                "preferred": null
+            },
+            {
+                "type": "grid",
+                "all": [
+                    "grid.1037.5"
+                ],
+                "preferred": "grid.1037.5"
+            },
+            {
+                "type": "isni",
+                "all": [
+                    "0000 0004 0368 0777"
+                ],
+                "preferred": null
+            },
+            {
+                "type": "wikidata",
+                "all": [
+                    "Q1066188"
+                ],
+                "preferred": null
+            }
+        ],
+        "id": "https://ror.org/00wfvh315",
+        "domains": [],
+        "links": [
+            {
+                "type": "website",
+                "value": "http://www.csu.edu.au/"
+            },
+            {
+                "type": "wikipedia",
+                "value": "https://en.wikipedia.org/wiki/Charles_Sturt_University"
+            }
+        ],
+        "names": [
+            {
+                "value": "CSU",
+                "types": [
+                    "acronym"
+                ],
+                "lang": null
+            },
+            {
+                "value": "Charles Sturt University",
+                "types": [
+                    "ror_display",
+                    "label"
+                ],
+                "lang": "en"
+            }
+        ],
+        "relationships": [
+            {
+                "type": "related",
+                "label": "Wagga Wagga Base Hospital",
+                "id": "https://ror.org/05newpx76"
+            }
+        ],
+        "status": "active",
+        "types": [
+            "education",
+            "funder"
+        ],
+        "admin": {
+            "created": {
+                "date": "2018-11-14",
+                "schema_version": "1.0"
+            },
+            "last_modified": {
+                "date": "2024-05-13",
+                "schema_version": "2.0"
+            }
+        }
+    },
+    {
+        "locations": [
+            {
+                "geonames_id": 2158177,
+                "geonames_details": {
+                    "country_code": "AU",
+                    "country_name": "Australia",
+                    "lat": -37.845778,
+                    "lng": 144.984225,
+                    "name": "Melbourne"
+                }
+            }
+        ],
+        "established": 1986,
+        "external_ids": [
+            {
+                "type": "fundref",
+                "all": [
+                    "100008561"
+                ],
+                "preferred": null
+            },
+            {
+                "type": "grid",
+                "all": [
+                    "grid.1056.2"
+                ],
+                "preferred": "grid.1056.2"
+            },
+            {
+                "type": "isni",
+                "all": [
+                    "0000 0001 2224 8486"
+                ],
+                "preferred": null
+            },
+            {
+                "type": "wikidata",
+                "all": [
+                    "Q3151717"
+                ],
+                "preferred": null
+            }
+        ],
+        "id": "https://ror.org/05ktbsm52",
+        "domains": [],
+        "links": [
+            {
+                "type": "website",
+                "value": "http://www.burnet.edu.au/"
+            },
+            {
+                "type": "wikipedia",
+                "value": "https://en.wikipedia.org/wiki/Burnet_Institute"
+            }
+        ],
+        "names": [
+            {
+                "value": "Burnet Institute",
+                "types": [
+                    "ror_display",
+                    "label"
+                ],
+                "lang": "en"
+            }
+        ],
+        "relationships": [
+            {
+                "type": "related",
+                "label": "Monash University",
+                "id": "https://ror.org/02bfwt286"
+            },
+            {
+                "type": "related",
+                "label": "University of Melbourne",
+                "id": "https://ror.org/01ej9dk98"
+            }
+        ],
+        "status": "active",
+        "types": [
+            "nonprofit",
+            "funder"
+        ],
+        "admin": {
+            "created": {
+                "date": "2018-11-14",
+                "schema_version": "1.0"
+            },
+            "last_modified": {
+                "date": "2024-05-13",
+                "schema_version": "2.0"
+            }
+        }
+    },
+    {
+        "locations": [
+            {
+                "geonames_id": 2174003,
+                "geonames_details": {
+                    "country_code": "AU",
+                    "country_name": "Australia",
+                    "lat": -27.484697,
+                    "lng": 153.028477,
+                    "name": "Brisbane"
+                }
+            }
+        ],
+        "established": 1998,
+        "external_ids": [
+            {
+                "type": "grid",
+                "all": [
+                    "grid.1064.3"
+                ],
+                "preferred": "grid.1064.3"
+            }
+        ],
+        "id": "https://ror.org/00nx6aa03",
+        "domains": [],
+        "links": [
+            {
+                "type": "website",
+                "value": "http://research.mater.org.au/"
+            }
+        ],
+        "names": [
+            {
+                "value": "Mater Research",
+                "types": [
+                    "ror_display",
+                    "label"
+                ],
+                "lang": "en"
+            }
+        ],
+        "relationships": [],
+        "status": "active",
+        "types": [
+            "facility"
+        ],
+        "admin": {
+            "created": {
+                "date": "2018-11-14",
+                "schema_version": "1.0"
+            },
+            "last_modified": {
+                "date": "2024-05-13",
+                "schema_version": "2.0"
+            }
+        }
+    },
+    {
+        "locations": [
+            {
+                "geonames_id": 264371,
+                "geonames_details": {
+                    "country_code": "GR",
+                    "country_name": "Greece",
+                    "lat": 37.991911,
+                    "lng": 23.786705,
+                    "name": "Athens"
+                }
+            }
+        ],
+        "established": 1989,
+        "external_ids": [
+            {
+                "type": "grid",
+                "all": [
+                    "grid.1088.1"
+                ],
+                "preferred": "grid.1088.1"
+            },
+            {
+                "type": "isni",
+                "all": [
+                    "0000 0004 0622 6844"
+                ],
+                "preferred": null
+            },
+            {
+                "type": "wikidata",
+                "all": [
+                    "Q27982338"
+                ],
+                "preferred": null
+            }
+        ],
+        "id": "https://ror.org/02d439m40",
+        "domains": [],
+        "links": [
+            {
+                "type": "website",
+                "value": "https://www.epipsi.gr/"
+            }
+        ],
+        "names": [
+            {
+                "value": "UMHRI",
+                "types": [
+                    "acronym"
+                ],
+                "lang": null
+            },
+            {
+                "value": "University Mental Health Research Institute",
+                "types": [
+                    "ror_display",
+                    "label"
+                ],
+                "lang": "en"
+            }
+        ],
+        "relationships": [],
+        "status": "active",
+        "types": [
+            "education"
+        ],
+        "admin": {
+            "created": {
+                "date": "2018-11-14",
+                "schema_version": "1.0"
+            },
+            "last_modified": {
+                "date": "2024-05-13",
+                "schema_version": "2.0"
+            }
+        }
+    },
+    {
+        "locations": [
+            {
+                "geonames_id": 2651347,
+                "geonames_details": {
+                    "country_code": "GB",
+                    "country_name": "United Kingdom",
+                    "lat": 52.891039,
+                    "lng": -1.461832,
+                    "name": "Derby"
+                }
+            }
+        ],
+        "established": 1904,
+        "external_ids": [
+            {
+                "type": "fundref",
+                "all": [
+                    "501100000767"
+                ],
+                "preferred": null
+            },
+            {
+                "type": "grid",
+                "all": [
+                    "grid.1121.3"
+                ],
+                "preferred": "grid.1121.3"
+            },
+            {
+                "type": "isni",
+                "all": [
+                    "0000 0004 0396 1069"
+                ],
+                "preferred": null
+            },
+            {
+                "type": "wikidata",
+                "all": [
+                    "Q243278"
+                ],
+                "preferred": null
+            }
+        ],
+        "id": "https://ror.org/04h08p482",
+        "domains": [],
+        "links": [
+            {
+                "type": "website",
+                "value": "https://www.rolls-royce.com/"
+            },
+            {
+                "type": "wikipedia",
+                "value": "http://en.wikipedia.org/wiki/Rolls-Royce_Holdings"
+            }
+        ],
+        "names": [
+            {
+                "value": "Rolls-Royce (United Kingdom)",
+                "types": [
+                    "ror_display",
+                    "label"
+                ],
+                "lang": null
+            }
+        ],
+        "relationships": [
+            {
+                "type": "child",
+                "label": "Rolls-Royce (Canada)",
+                "id": "https://ror.org/01x3p5p96"
+            },
+            {
+                "type": "child",
+                "label": "Rolls-Royce (Germany)",
+                "id": "https://ror.org/05jeza980"
+            },
+            {
+                "type": "child",
+                "label": "Rolls-Royce (Norway)",
+                "id": "https://ror.org/018a0bk66"
+            },
+            {
+                "type": "child",
+                "label": "Rolls-Royce (Sweden)",
+                "id": "https://ror.org/055ef6019"
+            }
+        ],
+        "status": "active",
+        "types": [
+            "company",
+            "funder"
+        ],
+        "admin": {
+            "created": {
+                "date": "2018-11-14",
+                "schema_version": "1.0"
+            },
+            "last_modified": {
+                "date": "2024-04-29",
+                "schema_version": "2.0"
+            }
+        }
+    },
+    {
+        "locations": [
+            {
+                "geonames_id": 2643743,
+                "geonames_details": {
+                    "country_code": "GB",
+                    "country_name": "United Kingdom",
+                    "lat": 51.509316,
+                    "lng": -0.134703,
+                    "name": "London"
+                }
+            }
+        ],
+        "established": 1909,
+        "external_ids": [
+            {
+                "type": "fundref",
+                "all": [
+                    "501100000775"
+                ],
+                "preferred": null
+            },
+            {
+                "type": "grid",
+                "all": [
+                    "grid.1236.6"
+                ],
+                "preferred": "grid.1236.6"
+            },
+            {
+                "type": "isni",
+                "all": [
+                    "0000 0001 0790 9434"
+                ],
+                "preferred": null
+            },
+            {
+                "type": "wikidata",
+                "all": [
+                    "Q152057"
+                ],
+                "preferred": null
+            }
+        ],
+        "id": "https://ror.org/01zctcs90",
+        "domains": [],
+        "links": [
+            {
+                "type": "website",
+                "value": "http://www.bp.com/"
+            },
+            {
+                "type": "wikipedia",
+                "value": "http://en.wikipedia.org/wiki/BP"
+            }
+        ],
+        "names": [
+            {
+                "value": "BP (United Kingdom)",
+                "types": [
+                    "ror_display",
+                    "label"
+                ],
+                "lang": null
+            },
+            {
+                "value": "BP Amoco",
+                "types": [
+                    "alias"
+                ],
+                "lang": null
+            },
+            {
+                "value": "The British Petroleum Company",
+                "types": [
+                    "alias"
+                ],
+                "lang": null
+            }
+        ],
+        "relationships": [
+            {
+                "type": "child",
+                "label": "BP (Canada)",
+                "id": "https://ror.org/051177492"
+            },
+            {
+                "type": "child",
+                "label": "BP (France)",
+                "id": "https://ror.org/03f9m1k43"
+            },
+            {
+                "type": "child",
+                "label": "BP (Germany)",
+                "id": "https://ror.org/048q66y67"
+            },
+            {
+                "type": "child",
+                "label": "BP (Spain)",
+                "id": "https://ror.org/05dfvhh79"
+            },
+            {
+                "type": "child",
+                "label": "BP (United States)",
+                "id": "https://ror.org/051659894"
+            },
+            {
+                "type": "child",
+                "label": "Castrol (United Kingdom)",
+                "id": "https://ror.org/0503ft796"
+            }
+        ],
+        "status": "active",
+        "types": [
+            "company",
+            "funder"
+        ],
+        "admin": {
+            "created": {
+                "date": "2018-11-14",
+                "schema_version": "1.0"
+            },
+            "last_modified": {
+                "date": "2024-04-29",
+                "schema_version": "2.0"
+            }
+        }
+    },
+    {
+        "locations": [
+            {
+                "geonames_id": 323786,
+                "geonames_details": {
+                    "continent_code": "AS",
+                    "continent_name": "Asia",
+                    "country_code": "TR",
+                    "country_name": "Türkiye",
+                    "country_subdivision_code": "06",
+                    "country_subdivision_name": "Ankara",
+                    "lat": 39.91987,
+                    "lng": 32.85427,
+                    "name": "Ankara"
+                }
+            }
+        ],
+        "established": 1931,
+        "external_ids": [
+            {
+                "type": "fundref",
+                "all": [
+                    "100020630"
+                ],
+                "preferred": "100020630"
+            },
+            {
+                "type": "isni",
+                "all": [
+                    "0000 0001 2159 6868"
+                ],
+                "preferred": "0000 0001 2159 6868"
+            },
+            {
+                "type": "wikidata",
+                "all": [
+                    "Q374071"
+                ],
+                "preferred": "Q374071"
+            }
+        ],
+        "id": "https://ror.org/02vsmry93",
+        "domains": [],
+        "links": [
+            {
+                "type": "website",
+                "value": "https://www.ttk.gov.tr"
+            },
+            {
+                "type": "wikipedia",
+                "value": "https://tr.wikipedia.org/wiki/T%C3%BCrk_Tarih_Kurumu"
+            }
+        ],
+        "names": [
+            {
+                "value": "TTK",
+                "types": [
+                    "acronym"
+                ],
+                "lang": null
+            },
+            {
+                "value": "Turkish Historical Society",
+                "types": [
+                    "alias"
+                ],
+                "lang": "en"
+            },
+            {
+                "value": "Türk Tarih Kurumu",
+                "types": [
+                    "ror_display",
+                    "label"
+                ],
+                "lang": "tr"
+            }
+        ],
+        "relationships": [],
+        "status": "active",
+        "types": [
+            "government",
+            "funder"
+        ],
+        "admin": {
+            "created": {
+                "date": "2023-07-27",
+                "schema_version": "1.0"
+            },
+            "last_modified": {
+                "date": "2024-12-11",
+                "schema_version": "2.1"
+            }
+        }
+    },
+    {
+        "locations": [
+            {
+                "geonames_id": 5805734,
+                "geonames_details": {
+                    "continent_code": "NA",
+                    "continent_name": "North America",
+                    "country_code": "US",
+                    "country_name": "United States",
+                    "country_subdivision_code": "WA",
+                    "country_subdivision_name": "Washington",
+                    "lat": 48.41099,
+                    "lng": -119.52755,
+                    "name": "Omak"
+                }
+            }
+        ],
+        "established": 2010,
+        "external_ids": [
+            {
+                "type": "grid",
+                "all": [
+                    "grid.470897.5"
+                ],
+                "preferred": "grid.470897.5"
+            },
+            {
+                "type": "isni",
+                "all": [
+                    "0000 0004 6771 7452"
+                ],
+                "preferred": "0000 0004 6771 7452"
+            }
+        ],
+        "id": "https://ror.org/04pfac868",
+        "domains": [],
+        "links": [
+            {
+                "type": "website",
+                "value": "http://bearfightinstitute.com/"
+            }
+        ],
+        "names": [
+            {
+                "value": "BFI",
+                "types": [
+                    "acronym"
+                ],
+                "lang": null
+            },
+            {
+                "value": "Bear Fight Institute",
+                "types": [
+                    "ror_display",
+                    "label"
+                ],
+                "lang": "en"
+            }
+        ],
+        "relationships": [],
+        "status": "inactive",
+        "types": [
+            "facility"
+        ],
+        "admin": {
+            "created": {
+                "date": "2018-11-14",
+                "schema_version": "1.0"
+            },
+            "last_modified": {
+                "date": "2024-12-11",
+                "schema_version": "2.1"
+            }
+        }
+    },
+    {
+        "locations": [
+            {
+                "geonames_id": 2657896,
+                "geonames_details": {
+                    "continent_code": "EU",
+                    "continent_name": "Europe",
+                    "country_code": "CH",
+                    "country_name": "Switzerland",
+                    "country_subdivision_code": "ZH",
+                    "country_subdivision_name": "Zurich",
+                    "lat": 47.36667,
+                    "lng": 8.55,
+                    "name": "Zurich"
+                }
+            }
+        ],
+        "established": 2012,
+        "external_ids": [
+            {
+                "type": "isni",
+                "all": [
+                    "0000 0005 0682 8287"
+                ],
+                "preferred": "0000 0005 0682 8287"
+            },
+            {
+                "type": "wikidata",
+                "all": [
+                    "Q30588346"
+                ],
+                "preferred": "Q30588346"
+            }
+        ],
+        "id": "https://ror.org/05s6t3255",
+        "domains": [],
+        "links": [
+            {
+                "type": "website",
+                "value": "https://www.foodpackagingforum.org"
+            },
+            {
+                "type": "wikipedia",
+                "value": "https://en.wikipedia.org/wiki/Food_Packaging_Forum"
+            }
+        ],
+        "names": [
+            {
+                "value": "FPF",
+                "types": [
+                    "acronym"
+                ],
+                "lang": null
+            },
+            {
+                "value": "Food Packaging Forum",
+                "types": [
+                    "alias"
+                ],
+                "lang": "en"
+            },
+            {
+                "value": "Food Packaging Forum Foundation",
+                "types": [
+                    "ror_display",
+                    "label"
+                ],
+                "lang": "en"
+            }
+        ],
+        "relationships": [],
+        "status": "active",
+        "types": [
+            "nonprofit"
+        ],
+        "admin": {
+            "created": {
+                "date": "2023-07-27",
+                "schema_version": "1.0"
+            },
+            "last_modified": {
+                "date": "2024-12-11",
+                "schema_version": "2.1"
+            }
+        }
+    },
+    {
+        "locations": [
+            {
+                "geonames_id": 2956715,
+                "geonames_details": {
+                    "continent_code": "EU",
+                    "continent_name": "Europe",
+                    "country_code": "DE",
+                    "country_name": "Germany",
+                    "country_subdivision_code": "BY",
+                    "country_subdivision_name": "Bavaria",
+                    "lat": 50.0888,
+                    "lng": 9.06455,
+                    "name": "Alzenau in Unterfranken"
+                }
+            }
+        ],
+        "established": 2011,
+        "external_ids": [
+            {
+                "type": "grid",
+                "all": [
+                    "grid.506229.a"
+                ],
+                "preferred": "grid.506229.a"
+            },
+            {
+                "type": "isni",
+                "all": [
+                    "0000 0004 8389 0036"
+                ],
+                "preferred": "0000 0004 8389 0036"
+            },
+            {
+                "type": "wikidata",
+                "all": [
+                    "Q77075635"
+                ],
+                "preferred": null
+            }
+        ],
+        "id": "https://ror.org/02s7vm534",
+        "domains": [],
+        "links": [
+            {
+                "type": "website",
+                "value": "https://www.iwks.fraunhofer.de/"
+            }
+        ],
+        "names": [
+            {
+                "value": "Fraunhofer IWKS",
+                "types": [
+                    "alias"
+                ],
+                "lang": "de"
+            },
+            {
+                "value": "Fraunhofer Research Institution for Materials Recycling and Resource Strategies",
+                "types": [
+                    "alias"
+                ],
+                "lang": "en"
+            },
+            {
+                "value": "Fraunhofer Research Institution for Materials Recycling and Resource Strategies IWKS",
+                "types": [
+                    "ror_display",
+                    "label"
+                ],
+                "lang": "en"
+            },
+            {
+                "value": "Fraunhofer-Einrichtung für Wertstoffkreisläufe und Ressourcenstrategie",
+                "types": [
+                    "alias"
+                ],
+                "lang": "de"
+            },
+            {
+                "value": "Fraunhofer-Einrichtung für Wertstoffkreisläufe und Ressourcenstrategie IWKS",
+                "types": [
+                    "label"
+                ],
+                "lang": "de"
+            },
+            {
+                "value": "IWKS",
+                "types": [
+                    "acronym"
+                ],
+                "lang": null
+            }
+        ],
+        "relationships": [
+            {
+                "label": "Fraunhofer Institute for Silicate Research",
+                "type": "parent",
+                "id": "https://ror.org/05gnv4a66"
+            }
+        ],
+        "status": "active",
+        "types": [
+            "facility"
+        ],
+        "admin": {
+            "created": {
+                "date": "2019-11-07",
+                "schema_version": "1.0"
+            },
+            "last_modified": {
+                "date": "2024-12-11",
+                "schema_version": "2.1"
+            }
+        }
+    },
+    {
+        "locations": [
+            {
+                "geonames_id": 4828890,
+                "geonames_details": {
+                    "continent_code": "NA",
+                    "continent_name": "North America",
+                    "country_code": "US",
+                    "country_name": "United States",
+                    "country_subdivision_code": "OH",
+                    "country_subdivision_name": "Ohio",
+                    "lat": 39.33312,
+                    "lng": -82.9824,
+                    "name": "Chillicothe"
+                }
+            }
+        ],
+        "established": 1946,
+        "external_ids": [
+            {
+                "type": "grid",
+                "all": [
+                    "grid.431218.d"
+                ],
+                "preferred": "grid.431218.d"
+            },
+            {
+                "type": "isni",
+                "all": [
+                    "0000 0004 0633 6357"
+                ],
+                "preferred": null
+            },
+            {
+                "type": "wikidata",
+                "all": [
+                    "Q7081006"
+                ],
+                "preferred": null
+            }
+        ],
+        "id": "https://ror.org/05fxqx152",
+        "domains": [],
+        "links": [
+            {
+                "type": "website",
+                "value": "https://www.ohio.edu/chillicothe/"
+            },
+            {
+                "type": "wikipedia",
+                "value": "https://en.wikipedia.org/wiki/Ohio_University_%E2%80%93_Chillicothe"
+            }
+        ],
+        "names": [
+            {
+                "value": "OUC",
+                "types": [
+                    "acronym"
+                ],
+                "lang": null
+            },
+            {
+                "value": "Ohio University Chillicothe",
+                "types": [
+                    "ror_display",
+                    "label"
+                ],
+                "lang": "en"
+            }
+        ],
+        "relationships": [
+            {
+                "label": "Ohio University",
+                "type": "parent",
+                "id": "https://ror.org/01jr3y717"
+            }
+        ],
+        "status": "active",
+        "types": [
+            "education"
+        ],
+        "admin": {
+            "created": {
+                "date": "2018-11-14",
+                "schema_version": "1.0"
+            },
+            "last_modified": {
+                "date": "2024-12-11",
+                "schema_version": "2.1"
+            }
+        }
+    },
+    {
+        "locations": [
+            {
+                "geonames_id": 3181928,
+                "geonames_details": {
+                    "continent_code": "EU",
+                    "continent_name": "Europe",
+                    "country_code": "IT",
+                    "country_name": "Italy",
+                    "country_subdivision_code": "45",
+                    "country_subdivision_name": "Emilia-Romagna",
+                    "lat": 44.49381,
+                    "lng": 11.33875,
+                    "name": "Bologna"
+                }
+            }
+        ],
+        "established": null,
+        "external_ids": [
+            {
+                "type": "fundref",
+                "all": [
+                    "501100009879"
+                ],
+                "preferred": "501100009879"
+            },
+            {
+                "type": "isni",
+                "all": [
+                    "0000 0001 0723 3489"
+                ],
+                "preferred": "0000 0001 0723 3489"
+            },
+            {
+                "type": "wikidata",
+                "all": [
+                    "Q1263"
+                ],
+                "preferred": "Q1263"
+            }
+        ],
+        "id": "https://ror.org/02k57f568",
+        "domains": [],
+        "links": [
+            {
+                "type": "website",
+                "value": "http://www.regione.emilia-romagna.it"
+            },
+            {
+                "type": "wikipedia",
+                "value": "https://en.wikipedia.org/wiki/Emilia-Romagna"
+            }
+        ],
+        "names": [
+            {
+                "value": "Emilia-Romagna Region",
+                "types": [
+                    "label"
+                ],
+                "lang": "en"
+            },
+            {
+                "value": "Regione Emilia-Romagna",
+                "types": [
+                    "ror_display",
+                    "label"
+                ],
+                "lang": "it"
+            }
+        ],
+        "relationships": [],
+        "status": "active",
+        "types": [
+            "government",
+            "funder"
+        ],
+        "admin": {
+            "created": {
+                "date": "2023-05-11",
+                "schema_version": "1.0"
+            },
+            "last_modified": {
+                "date": "2024-12-11",
+                "schema_version": "2.1"
+            }
+        }
+    },
+    {
+        "locations": [
+            {
+                "geonames_id": 1258847,
+                "geonames_details": {
+                    "continent_code": "AS",
+                    "continent_name": "Asia",
+                    "country_code": "IN",
+                    "country_name": "India",
+                    "country_subdivision_code": "GJ",
+                    "country_subdivision_name": "Gujarat",
+                    "lat": 22.29161,
+                    "lng": 70.79322,
+                    "name": "Rajkot"
+                }
+            }
+        ],
+        "established": 1984,
+        "external_ids": [
+            {
+                "type": "isni",
+                "all": [
+                    "0000 0005 1233 2667"
+                ],
+                "preferred": "0000 0005 1233 2667"
+            }
+        ],
+        "id": "https://ror.org/00k7kt283",
+        "domains": [],
+        "links": [
+            {
+                "type": "website",
+                "value": "http://www.bkmp.cteguj.in"
+            }
+        ],
+        "names": [
+            {
+                "value": "B. K. Mody Government Pharmacy College",
+                "types": [
+                    "ror_display",
+                    "label"
+                ],
+                "lang": "en"
+            },
+            {
+                "value": "BKMGPC",
+                "types": [
+                    "acronym"
+                ],
+                "lang": null
+            },
+            {
+                "value": "Bhagwanlal K. Mody Government Pharmacy College",
+                "types": [
+                    "alias"
+                ],
+                "lang": "en"
+            }
+        ],
+        "relationships": [],
+        "status": "active",
+        "types": [
+            "education"
+        ],
+        "admin": {
+            "created": {
+                "date": "2023-07-27",
+                "schema_version": "1.0"
+            },
+            "last_modified": {
+                "date": "2024-12-11",
+                "schema_version": "2.1"
+            }
+        }
+    },
+    {
+        "locations": [
+            {
+                "geonames_id": 1863967,
+                "geonames_details": {
+                    "continent_code": "AS",
+                    "continent_name": "Asia",
+                    "country_code": "JP",
+                    "country_name": "Japan",
+                    "country_subdivision_code": "40",
+                    "country_subdivision_name": "Fukuoka",
+                    "lat": 33.6,
+                    "lng": 130.41667,
+                    "name": "Fukuoka"
+                }
+            }
+        ],
+        "established": 2006,
+        "external_ids": [
+            {
+                "type": "isni",
+                "all": [
+                    "0000 0005 1172 4722"
+                ],
+                "preferred": "0000 0005 1172 4722"
+            }
+        ],
+        "id": "https://ror.org/052rpwb50",
+        "domains": [],
+        "links": [
+            {
+                "type": "website",
+                "value": "https://www.kojosen.com"
+            }
+        ],
+        "names": [
+            {
+                "value": "YTH",
+                "types": [
+                    "acronym"
+                ],
+                "lang": null
+            },
+            {
+                "value": "Yamashita Kojosen Byouin",
+                "types": [
+                    "alias"
+                ],
+                "lang": null
+            },
+            {
+                "value": "Yamashita Kōjōsen Byōin",
+                "types": [
+                    "alias"
+                ],
+                "lang": null
+            },
+            {
+                "value": "Yamashita Thyroid Hospital",
+                "types": [
+                    "ror_display",
+                    "label"
+                ],
+                "lang": "en"
+            },
+            {
+                "value": "やまし た こうじょう せん びょう いん",
+                "types": [
+                    "alias"
+                ],
+                "lang": "ja"
+            },
+            {
+                "value": "やました甲状腺病院",
+                "types": [
+                    "label"
+                ],
+                "lang": "ja"
+            },
+            {
+                "value": "ヤマシタ コージョーセン ビョーイン",
+                "types": [
+                    "alias"
+                ],
+                "lang": "ja"
+            }
+        ],
+        "relationships": [],
+        "status": "active",
+        "types": [
+            "healthcare"
+        ],
+        "admin": {
+            "created": {
+                "date": "2023-07-27",
+                "schema_version": "1.0"
+            },
+            "last_modified": {
+                "date": "2024-12-11",
+                "schema_version": "2.1"
+            }
+        }
+    },
+    {
+        "locations": [
+            {
+                "geonames_id": 703448,
+                "geonames_details": {
+                    "continent_code": "EU",
+                    "continent_name": "Europe",
+                    "country_code": "UA",
+                    "country_name": "Ukraine",
+                    "country_subdivision_code": "30",
+                    "country_subdivision_name": "Kyiv City",
+                    "lat": 50.45466,
+                    "lng": 30.5238,
+                    "name": "Kyiv"
+                }
+            }
+        ],
+        "established": 1991,
+        "external_ids": [],
+        "id": "https://ror.org/0198t0w55",
+        "domains": [],
+        "links": [
+            {
+                "type": "website",
+                "value": "http://iris-psy.org.ua"
+            }
+        ],
+        "names": [
+            {
+                "value": "IRIS",
+                "types": [
+                    "acronym"
+                ],
+                "lang": null
+            },
+            {
+                "value": "Institute of Reflective Investigation and Specialization",
+                "types": [
+                    "ror_display",
+                    "label"
+                ],
+                "lang": "en"
+            },
+            {
+                "value": "ІРІС",
+                "types": [
+                    "acronym"
+                ],
+                "lang": null
+            },
+            {
+                "value": "Інститут Рефлексивних Досліджень & Спеціалізації",
+                "types": [
+                    "label"
+                ],
+                "lang": "uk"
+            },
+            {
+                "value": "Інститутрефлексивних досліджень та спеціалізації",
+                "types": [
+                    "alias"
+                ],
+                "lang": "uk"
+            },
+            {
+                "value": "ИРИС",
+                "types": [
+                    "acronym"
+                ],
+                "lang": null
+            },
+            {
+                "value": "Институт рефлексивных исследований и специализаций",
+                "types": [
+                    "label"
+                ],
+                "lang": "ru"
+            }
+        ],
+        "relationships": [],
+        "status": "active",
+        "types": [
+            "facility"
+        ],
+        "admin": {
+            "created": {
+                "date": "2023-07-27",
+                "schema_version": "1.0"
+            },
+            "last_modified": {
+                "date": "2024-12-11",
+                "schema_version": "2.1"
+            }
+        }
+    },
+    {
+        "locations": [
+            {
+                "geonames_id": 2655095,
+                "geonames_details": {
+                    "continent_code": "EU",
+                    "continent_name": "Europe",
+                    "country_code": "GB",
+                    "country_name": "United Kingdom",
+                    "country_subdivision_code": "ENG",
+                    "country_subdivision_name": "England",
+                    "lat": 50.72048,
+                    "lng": -1.8795,
+                    "name": "Bournemouth"
+                }
+            }
+        ],
+        "established": 1965,
+        "external_ids": [
+            {
+                "type": "grid",
+                "all": [
+                    "grid.417783.e"
+                ],
+                "preferred": "grid.417783.e"
+            },
+            {
+                "type": "isni",
+                "all": [
+                    "0000 0004 0489 9631"
+                ],
+                "preferred": null
+            },
+            {
+                "type": "wikidata",
+                "all": [
+                    "Q4763618"
+                ],
+                "preferred": null
+            }
+        ],
+        "id": "https://ror.org/03rd8mf35",
+        "domains": [],
+        "links": [
+            {
+                "type": "website",
+                "value": "http://www.aecc.ac.uk/"
+            },
+            {
+                "type": "wikipedia",
+                "value": "https://en.wikipedia.org/wiki/Anglo-European_College_of_Chiropractic"
+            }
+        ],
+        "names": [
+            {
+                "value": "AECC",
+                "types": [
+                    "acronym"
+                ],
+                "lang": null
+            },
+            {
+                "value": "AECC University College",
+                "types": [
+                    "ror_display",
+                    "label"
+                ],
+                "lang": "en"
+            },
+            {
+                "value": "Anglo European College of Chiropractic",
+                "types": [
+                    "alias"
+                ],
+                "lang": "en"
+            }
+        ],
+        "relationships": [
+            {
+                "label": "Bournemouth University",
+                "type": "parent",
+                "id": "https://ror.org/05wwcw481"
+            }
+        ],
+        "status": "active",
+        "types": [
+            "education"
+        ],
+        "admin": {
+            "created": {
+                "date": "2018-11-14",
+                "schema_version": "1.0"
+            },
+            "last_modified": {
+                "date": "2024-12-11",
+                "schema_version": "2.1"
+            }
+        }
+    }
+ ]

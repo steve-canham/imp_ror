@@ -49,6 +49,11 @@ pub async fn run(args: Vec<OsString>) -> Result<(), AppError> {
     // If combined with data import / processing they will obviously 
     // occur before that import / processing.
 
+    if flags.create_config
+    {  
+        setup::edit_config().await?;
+    }
+
     if flags.create_lookups
     {  
         setup::create_lup_tables(&pool).await?;
@@ -85,8 +90,7 @@ pub async fn run(args: Vec<OsString>) -> Result<(), AppError> {
 
         if flags.export_text  // write out summary data from data in smm tables
         { 
-            export::export_as_text(&params.output_folder, &params.output_file_name, 
-                    &params.data_version, &pool).await?;
+            export::export_as_text(&params.output_folder, &params.data_version, &pool).await?;
         }
 
         if flags.export_csv  // write out summary data from data in smm tables

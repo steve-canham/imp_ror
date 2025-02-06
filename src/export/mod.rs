@@ -7,15 +7,14 @@ use sqlx::{Pool, Postgres};
 use std::path::PathBuf;
 use crate::error_defs::{AppError, CustomError};
 
-pub async fn export_as_text(output_folder : &PathBuf, output_file_name: &PathBuf, 
-               data_version: &String, pool : &Pool<Postgres>) -> Result<(), AppError>
+pub async fn export_as_text(output_folder : &PathBuf, data_version: &String, 
+                            pool : &Pool<Postgres>) -> Result<(), AppError>
 {
     // Write out summary data for this dataset into the designated file
 
     check_data_version_present_in_summ_data(data_version, pool).await?;
 
-    let r = export_text::generate_text(output_folder, output_file_name, 
-            data_version, pool).await;
+    let r = export_text::generate_text(output_folder, data_version, pool).await;
     match r {
         Ok(()) => {
             info!("Data summary generated as text file"); 
