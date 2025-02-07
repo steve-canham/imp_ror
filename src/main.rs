@@ -7,5 +7,4 @@ async fn main() -> Result<(), AppError> {
 
     let args: Vec<_> = env::args_os().collect();
     run(args).await
-    
 }
