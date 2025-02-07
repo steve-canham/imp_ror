@@ -33,7 +33,7 @@ anomalies in the data (to help with possible feedback to ROR).
 
 c) To become more familiar with Rust, by using the language in a small but realistic development scenario, 
 implementing features that would be necessary in most similar CLIs. These include data access and 
-manipulation, processing of command line arguments and environmental variables (and interactions 
+manipulation, processing of command line arguments and configuration file variables (and interactions 
 between the two), logging, file handling (of both JSON and text files), and unit and integration tests. 
 The system is still 'basic' Rust, however, and does not use more advanced features of the language.
 
@@ -43,16 +43,16 @@ The system is designed to be flexible, but has reasonable defaults to make routi
 For the moment, it does require some basic familiarity with running Rust and Postgres, and with using a development environment.
 
 <h4>Installing the system and pre-requisites</h4>
-a) Download and install Rust, and download the code from this GitHub page, accessing it within a Rust development environment - e.g. VS Code with Rust linked extensions installed.<br/>
+a) Download and install Rust, and download the code from this GitHub page, accessing it within a Rust development environment - e.g. VS Code with Rust extensions installed.<br/>
 b) Install Postgres if not already available and establish an empty database (by default called 'ror', though this can be changed). The database must be
 created prior to the intial run of the system, but all other database operations are handled by the system.<br/>
-c) Set up an .env file with the database connection settings and a few key file parameters (see Operations and Arguments for details).<br/>
+c) Set up a configuration file with the database connection settings and a few key file parameters (see Operations and Arguments for details).<br/>
 d) Download the ror files required, from Zenodo, and place the V2 json files in the folder to be used as the source data folder.<br/>
 
 <h4>Initialising and running the system</h4>
 a) All Rust development environments use a program called <i>cargo</i> to manage code. To run ror1, use 'cargo run' followed by command line parameters, input in a terminal linked to the editor. The parameters are preceded by a double hyphen, to separate them from the cargo run command itself, e.g. cargo run -- -a.<br/>
 b) <b>The initial run should be <i>cargo run -- -i</i></b> This initialises the system by creating the permanent schema and tables, that hold the lookup and summary data tables.<br/>
-c) Further runs are most easily done by running <b><i>cargo run -- -a -s "&lt;source-file-name&gt;"</i></b>, e.g. <i>cargo run -- -a -s "v1.59-2025-01-23-ror-data_schema_v2.json"</i>. Alternatively the source file name can be provided within the .env file, when <i>cargo run -- -a </i> is sufficient.<br/>
+c) Further runs are most easily done by running <b><i>cargo run -- -a -s "&lt;source-file-name&gt;"</i></b>, e.g. <i>cargo run -- -a -s "v1.59-2025-01-23-ror-data_schema_v2.json"</i>. Alternatively the source file name can be provided within the configuration file, when <i>cargo run -- -a </i> is sufficient.<br/>
 d) The -a command will take the data in the json file through a four stage pipeline: 
 <ul>
 <li>importing it into a set of 'ror' schema tables, with very little change;</li>
@@ -60,7 +60,7 @@ d) The -a command will take the data in the json file through a four stage pipel
 <li>summarising statistics of the data set and storing those in 'smm' schema tables.</li>
 <li>generating a text file presenting the summary data from the imported version, in a series of tables.</li>
 </ul>
-d) Note that successive use of the -a command will overwrite the data in the ror and src schema tables, with data from whatever is the most recently imported version, but that the smm schema data is stored permanently.<br/>
+d) Note that successive use of the -a command will overwrite the data in the ror and src schema tables, with data from whatever is the most recently imported version, but that the smm schema data for each version is stored permanently.<br/>
 e) <i>cargo run -- -x</i> will generate a set of 7 csv files with the summary data linked to the current (most recently imported) version. Specifying a different version is also possible as long as it has been previously imported and summarised.<br/>
 f) <i>cargo run -- -y</i> will generate a set of 7 csv files with the summary data from all the versions imported to that point.<br/>
 Further details on the command line options available are in Operations and Arguments below.
@@ -173,7 +173,7 @@ same table, because that data has the same structure. The tables are:
 
 <h4>Configuration using Environmental varables</h4>
 
-Once the pre-requisites are installed and the source code is downloaded, a .env file, simply called ".env", must be added to the system's source folder, i.e. in the same folder as the cargo.toml file. This .env file, which should not be added to any public source control system, acts as a configuration file for the system (it does not change the system's environmental values). It must contain values against the following settings, though in several cases sensible defaults are provided:
+Once the pre-requisites are installed and the source code is downloaded, a .toml configuration file, called "imp_ror.toml", must be added to the system's source folder, i.e. in the same folder as the cargo.toml file. This .toml file should not be added to any public source control system, as it will include sensitive information such as database crdentials. It must contain values against the following settings, though in several cases sensible defaults are provided:
 <ul>
 <li>The database server name, as 'db_host'. This defaults to 'localhost'</li>
 <li>The database user name, as 'db_user'. No default value.</li>
@@ -188,20 +188,16 @@ Once the pre-requisites are installed and the source code is downloaded, a .env 
 The following are normally supplied by command line arguments, which will always over-write values in the configuration file. During testing and development however, against a fixed source file, it can be easier to include them in the .env file instead.
 <ul>
 <li>The name of the souce JSON file, as 'src_file_name'.</li>
-<li>The name of the output file, as 'output_file_name'. If missing the system will construct a name based on the source file and date-time.</li>
 <li>The version of the file to be imported, as 'data_version'. A string, with a 'v' followed by a set of numbers in a semantic versioning format, e.g. 'v1.45.1', 'v1.57'.
 <li>The date of the file to be imported, as 'data_date'. This should be in the YYYY-mm-DD ISO format. 
 </ul>
 As explained below, in practice the version and data can usually be obtained from the file name.<br/>
-In future versions the configuration file will be installed in an OS-specific configuration folder.
 
 <h4>Command line arguments</h4>
 
 The folowing command line arguments are available:
 
 <i><b>-s</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -source]. Followed by a double quoted string representing the source file name, including the '.json' extension.
-
-<i><b>-f</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -folder]. Followed by a double quoted string representing the full path to the source data folder. Usually provided as a configuration variable, but the CLI argument will over-write that if present.
 
 <i><b>-v</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -data_version]. Followed by a double quoted string representing a version number, e.g. "v1.52". In many circumstances can be derived from the source file name.
 

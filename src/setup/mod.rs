@@ -344,7 +344,6 @@ fn get_data_date(input: &str) -> String {
 
 
 
-/* 
 // Tests
 #[cfg(test)]
 
@@ -418,7 +417,7 @@ mod tests {
         assert_eq!(is_compliant_file_name(&test_file_name), false);
     }
 }
-    */
+ 
     // Ensure the parameters are being correctly extracted from the CLI arguments
     // The testing functions need to be async because of the call to get_params.
     // the test therefore uses the async version of the temp_env::with_vars function.
