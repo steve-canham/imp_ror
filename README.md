@@ -1,3 +1,7 @@
+**** TO REPLACE ROR1... **** TO REPLACE ROR1... **** TO REPLACE ROR1... 
+******* HAS SAME FUNCTIONALITY BUT SLIGHTLY SIMPLER TO USE ************
+********* BUT N.B. ROR1 IS STABLE - IMP_ROR STILL EVOLVING ************
+
 A small program to process and summarise ROR organisation data, as made available by ROR 
 on Zenodo (see https://ror.readme.io/docs/data-dump). A new version of the data is posted 
 on a roughly monthly basis. The program processes and retains a single version at a time, 
@@ -18,7 +22,7 @@ source code to be downloaded from GitHub, and then run within a Rust development
 
 <h3>Purpose</h3>
 
-ror1 was developed for three main reasons:
+imp_ror was developed for three main reasons:
 
 a) To provide a mechanism to quickly download and integrate ROR data within other 
 systems, on a regular basis (e.g. as each new version is published). The ROR data is available
@@ -50,7 +54,7 @@ c) Set up a configuration file with the database connection settings and a few k
 d) Download the ror files required, from Zenodo, and place the V2 json files in the folder to be used as the source data folder.<br/>
 
 <h4>Initialising and running the system</h4>
-a) All Rust development environments use a program called <i>cargo</i> to manage code. To run ror1, use 'cargo run' followed by command line parameters, input in a terminal linked to the editor. The parameters are preceded by a double hyphen, to separate them from the cargo run command itself, e.g. cargo run -- -a.<br/>
+a) All Rust development environments use a program called <i>cargo</i> to manage code. To run imp_ror, use 'cargo run' followed by command line parameters, input in a terminal linked to the editor. The parameters are preceded by a double hyphen, to separate them from the cargo run command itself, e.g. cargo run -- -a.<br/>
 b) <b>The initial run should be <i>cargo run -- -i</i></b> This initialises the system by creating the permanent schema and tables, that hold the lookup and summary data tables.<br/>
 c) Further runs are most easily done by running <b><i>cargo run -- -a -s "&lt;source-file-name&gt;"</i></b>, e.g. <i>cargo run -- -a -s "v1.59-2025-01-23-ror-data_schema_v2.json"</i>. Alternatively the source file name can be provided within the configuration file, when <i>cargo run -- -a </i> is sufficient.<br/>
 d) The -a command will take the data in the json file through a four stage pipeline: 
