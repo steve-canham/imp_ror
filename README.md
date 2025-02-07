@@ -1,6 +1,6 @@
-**** TO REPLACE ROR1... **** TO REPLACE ROR1... **** TO REPLACE ROR1... 
-******* HAS SAME FUNCTIONALITY BUT SLIGHTLY SIMPLER TO USE ************
-********* BUT N.B. ROR1 IS STABLE - IMP_ROR STILL EVOLVING ************
+**** TO REPLACE ROR1... **** TO REPLACE ROR1... **** TO REPLACE ROR1... <br>
+******* HAS SAME FUNCTIONALITY BUT SLIGHTLY SIMPLER TO USE ************ <br>
+********* BUT N.B. ROR1 IS STABLE - IMP_ROR STILL EVOLVING ************ <br>
 
 A small program to process and summarise ROR organisation data, as made available by ROR 
 on Zenodo (see https://ror.readme.io/docs/data-dump). A new version of the data is posted 
