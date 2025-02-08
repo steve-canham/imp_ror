@@ -1,9 +1,5 @@
 /**********************************************************************************
-* The setup module. Referenced in main by 'mod setup'.
-* The two public modules allow integration tests to call into them, to give those
-* tests the same DB conection pool and logging capability as the main library.
-* The log established by log_helper seems to be available throughout the program
-* via a suitable 'use' statement.
+
 ***********************************************************************************/
 
 pub mod config_reader;
@@ -14,18 +10,10 @@ mod lup_create_tables;
 mod lup_fill_tables;
 
 /**********************************************************************************
-* This over-arching 'mod' setup module 
-* a) establishes the final collection of parameters, taking into account both 
-* environmental and CLI values. 
-* b) Unpacks the file name to obtain data version and date, if possible, 
-* c) Obtains a database connection pool 
-* d) Orchestrates the creation of the lookup and summary schemas.
-* It has a collection of unit tests ensuring that the parameter generatiuon process 
-* is correct as well as some tests on the regex expression used on the source file.
+
 ***********************************************************************************/
 
 use crate::error_defs::{AppError, CustomError};
-//use crate::error_defs::AppError;
 use chrono::NaiveDate;
 use sqlx::postgres::{PgPoolOptions, PgConnectOptions, PgPool};
 use sqlx::{Postgres, Pool};
@@ -37,27 +25,7 @@ use std::time::Duration;
 use regex::Regex;
 use sqlx::ConnectOptions;
 use config_reader::Config;
-
-#[derive(Debug)]
-pub struct CliPars {
-    pub source_file: PathBuf,
-    pub data_version: String,
-    pub data_date: String,
-    pub flags: Flags, 
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct Flags {
-    pub import_ror: bool,
-    pub process_data: bool,
-    pub export_text: bool,
-    pub export_csv: bool,
-    pub export_full_csv: bool,
-    pub create_config: bool,
-    pub create_lookups: bool,
-    pub create_summary: bool,
-    pub test_run: bool,
-}
+use cli_reader::Flags;
 
 pub struct InitParams {
     pub data_folder: PathBuf,
@@ -69,7 +37,7 @@ pub struct InitParams {
     pub flags: Flags,
 }
 
-pub async fn get_params(args: Vec<OsString>) -> Result<InitParams, AppError> {
+pub fn get_params(args: Vec<OsString>, config_string: String) -> Result<InitParams, AppError> {
 
     // Called from main as the initial task of the program.
     // Returns a struct that contains the program's parameters.
@@ -97,9 +65,6 @@ pub async fn get_params(args: Vec<OsString>) -> Result<InitParams, AppError> {
 
         // Normal import and / or processing and / or outputting
         // If folder name also given in CL args the CL version takes precedence
-
-        let config_file_path = "./config_imp_ror.toml".to_string();
-        let config_string: String = fs::read_to_string(config_file_path)?;
 
         let config_file: Config = config_reader::populate_config_vars(&config_string)?; 
         let file_pars = config_file.files;  // guaranteed to exist
@@ -342,8 +307,6 @@ fn get_data_date(input: &str) -> String {
 }
 
 
-
-
 // Tests
 #[cfg(test)]
 
@@ -418,55 +381,61 @@ mod tests {
     }
 }
  
-    // Ensure the parameters are being correctly extracted from the CLI arguments
+    // Ensure the parameters are being correctly combined.
     // The testing functions need to be async because of the call to get_params.
-    // the test therefore uses the async version of the temp_env::with_vars function.
     // This function needs to be awaited to execute.
+
     // The closure is replaced by an explicitly async block rather than
     // a normal closure. Inserting '||' before or after the 'async' results
     // in multiple complaints from the compiler. The async block can also
     // be replaced by a separate async function and called explicitly.
  
- /* 
+
     #[tokio::test]
-    async fn check_env_vars_overwrite_blank_cli_values() {
+    async fn check_config_vars_overwrite_blank_cli_values() {
 
         // Note that in most cases the folder path given must exist, and be 
         // accessible, or get_params will panic and an error will be thrown. 
 
-        temp_env::async_with_vars(
-        [
-            ("data_folder_path", Some("E:/ROR/data")),
-            ("src_file_name", Some("v1.58 20241211.json")),
-            ("output_file_name", Some("results 25.json")),
-            ("data_version", Some("v1.60")),
-            ("data_date", Some("2025-12-11")),
+        let config = r#"
+    [data]
+    data_version="v1.60"
+    data_date="2025-12-11"
 
-        ],
-        async { 
+    [files]
+    data_folder_path="E:\\MDR source data\\ROR\\data"
+    log_folder_path="E:\\MDR source data\\ROR\\logs"
+    output_folder_path="E:\\MDR source data\\ROR\\outputs"
+    src_file_name="v1.58 20241211.json"
+
+    [database]
+    db_host="localhost"
+    db_user="user_name"
+    db_password="password"
+    db_port="5433"
+    db_name="ror"
+    "#;
+            let config_string = config.to_string();
+            config_reader::populate_config_vars(&config_string).unwrap();
             let args : Vec<&str> = vec!["target/debug/ror1.exe"];
             let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
-            let res = get_params(test_args).await.unwrap();
-    
+
+            let res = get_params(test_args, config_string).unwrap();
+
             assert_eq!(res.flags.import_ror, true);
             assert_eq!(res.flags.process_data, false);
             assert_eq!(res.flags.export_text, false);
             assert_eq!(res.flags.create_lookups, false);
             assert_eq!(res.flags.create_summary, false);
-            assert_eq!(res.data_folder, PathBuf::from("E:/ROR/data"));
-            assert_eq!(res.log_folder, PathBuf::from("E:/ROR/logs"));
-            assert_eq!(res.output_folder, PathBuf::from("E:/ROR/outputs"));
-            assert_eq!(res.source_file_name, "v1.58 20241211.json");
-            let lt = Local::now().format("%m-%d %H%M%S").to_string();
-            assert_eq!(res.output_file_name, format!("results 25.json at {}.txt", lt));
+            assert_eq!(res.data_folder, PathBuf::from("E:\\MDR source data\\ROR\\data"));
+            assert_eq!(res.log_folder, PathBuf::from("E:\\MDR source data\\ROR\\logs"));
+            assert_eq!(res.output_folder, PathBuf::from("E:\\MDR source data\\ROR\\outputs"));
+            assert_eq!(res.source_file_name, PathBuf::from("v1.58 20241211.json"));
             assert_eq!(res.data_version, "v1.58");
             assert_eq!(res.data_date, "2024-12-11");
         }
-       ).await;
 
-    }
-
-
+ /* 
     #[tokio::test]
     async fn check_cli_vars_overwrite_env_values() {
 

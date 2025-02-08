@@ -18,6 +18,7 @@ pub mod error_defs;
 use error_defs::AppError;
 use setup::log_helper;
 use std::ffi::OsString;
+use std::fs;
 
 pub async fn run(args: Vec<OsString>) -> Result<(), AppError> {
     
@@ -30,7 +31,9 @@ pub async fn run(args: Vec<OsString>) -> Result<(), AppError> {
     // The initial parameters are recorded as the initial part of the log.
     // 3) The database connection pool is established for the database "ror".
 
-    let params = setup::get_params(args).await?;
+    let config_string: String = fs::read_to_string("./app_config.toml".to_string())?;
+    let params = setup::get_params(args, config_string)?;
+
     let flags = params.flags;
     let test_run = flags.test_run;
 
@@ -106,8 +109,6 @@ pub async fn run(args: Vec<OsString>) -> Result<(), AppError> {
         if test_run {
             summarise::smm_helper::delete_any_existing_data(&"v99".to_string(), &pool).await?; // Clear any test data from the smm tables.
         }
-
-
     }
 
     Ok(())  
