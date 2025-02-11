@@ -110,7 +110,8 @@ pub async fn create_tables(pool: &Pool<Postgres>) -> Result<(), AppError> {
     
     SET client_min_messages TO NOTICE;"#;
 
-    sqlx::raw_sql(sql).execute(pool).await?;
+    sqlx::raw_sql(sql).execute(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     Ok(())
     
 }

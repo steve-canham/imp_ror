@@ -7,7 +7,7 @@
  ***************************************************************************/
 
 use clap::{command, Arg, ArgMatches};
-use crate::error_defs::AppError;
+use crate::err::AppError;
 use std::ffi::OsString;
 use std::path::PathBuf;
 

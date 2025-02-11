@@ -213,7 +213,8 @@ pub async fn fill_tables(pool: &Pool<Postgres>) -> Result<(), AppError> {
          ('Wara', 'Warang Citi', 'Warang Citi (Varang Kshiti)', 'LtR', 84, 'Used in parts of India', '118A0', '118FF', 71840, 71935, 'ISO 15924'), 
          ('Yiii', 'Yi', 'Yi', 'LtR', 1220, 'Used in parts of China', 'A000', 'A48F', 40960, 42127, 'ISO 15924');"#;
 
-    sqlx::raw_sql(sql).execute(pool).await?;
-    Ok(())
+    sqlx::raw_sql(sql).execute(pool).await 
+    .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     
+    Ok(())
 }

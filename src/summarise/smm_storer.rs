@@ -12,7 +12,8 @@ pub async fn store_summary_data (pool: &Pool<Postgres>) -> Result<(), AppError> 
 
     let sql = r#"SELECT version as vcode, data_date as vdate_as_string, 
                data_days as vdays from src.version_details;"#;
-    let fp: FileParams = sqlx::query_as(sql).fetch_one(pool).await?;
+    let fp: FileParams = sqlx::query_as(sql).fetch_one(pool).await
+            .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     let vcode = fp.vcode;
     let vdate = NaiveDate::parse_from_str(&fp.vdate_as_string, "%Y-%m-%d").unwrap();
     let vdays = fp.vdays;
@@ -36,11 +37,11 @@ pub async fn store_summary_data (pool: &Pool<Postgres>) -> Result<(), AppError> 
                       num_types, num_links, num_ext_ids, num_rels, num_locations , num_domains)
                       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"#;
     sqlx::query(sql).bind(&vcode).bind(vdate).bind(vdays)
-    .bind(num_orgs).bind(num_names).bind(num_types).bind(num_links)
-    .bind(num_ext_ids).bind(num_rels).bind(num_locations).bind(num_domains)
-    .execute(pool)
-    .await?;
-
+        .bind(num_orgs).bind(num_names).bind(num_types).bind(num_links)
+        .bind(num_ext_ids).bind(num_rels).bind(num_locations).bind(num_domains)
+        .execute(pool)
+        .await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     info!("Version summary record created");
 
     // Summarise the data in the groups represented by the functions below.

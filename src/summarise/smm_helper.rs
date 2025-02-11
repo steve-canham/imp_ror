@@ -1,8 +1,9 @@
 use sqlx::{Pool, Postgres};
+use sqlx::postgres::PgQueryResult;
 use crate::AppError;
 use super::smm_structs::{DistribRow, RankedRow, TypeRow, OrgRow};
 
-pub async fn delete_any_existing_data(vcode: &String, pool: &Pool<Postgres>) -> Result<(), AppError> {
+pub async fn delete_any_existing_data(vcode: &String, pool: &Pool<Postgres>) -> Result<PgQueryResult, AppError> {
    
     // format!() macro does not seem to recognise apostrophes, even when escaped (???)
 
@@ -17,13 +18,13 @@ pub async fn delete_any_existing_data(vcode: &String, pool: &Pool<Postgres>) -> 
                 DELETE from smm.org_type_and_relationships {}"#
                 , wc, wc, wc, wc, wc, wc, wc);
 
-   sqlx::raw_sql(&del_sql).execute(pool).await?;
-   Ok(())
+   sqlx::raw_sql(&del_sql).execute(pool).await
+         .map_err(|e| AppError::SqlxError(e, del_sql))
 }
 
 
 pub async fn create_name_attributes(sdv: &str, vcode: &String, num_orgs_str: &String, num_names: &String, 
-    pool: &Pool<Postgres>) ->  Result<(), AppError> {
+    pool: &Pool<Postgres>) ->  Result<PgQueryResult, AppError> {
 
     // Name attributes summary     
 
@@ -42,7 +43,8 @@ pub async fn create_name_attributes(sdv: &str, vcode: &String, num_orgs_str: &St
             ("# + sdv + r#"22, 'nacro (excl. cmps)', sum(n_nacro), 0::float, count(id), 0::float
             from src.admin_data t where n_nacro > 0 and is_company = false)
             order by id"#;
-    let rows: Vec<TypeRow> = sqlx::query_as(&sql).fetch_all(pool).await?;
+    let rows: Vec<TypeRow> = sqlx::query_as(&sql).fetch_all(pool).await
+             .map_err(|e| AppError::SqlxError(e, sql))?;
     store_summary(rows, pool, 1, "name types").await?;
 
     let sql  = r#"select * from
@@ -62,7 +64,8 @@ pub async fn create_name_attributes(sdv: &str, vcode: &String, num_orgs_str: &St
             ("# + sdv + r#"122, 'nacro_wolc (excl. cmps)', sum(n_nacro_wolc), 0::float, count(id), 0::float
             from src.admin_data t where n_nacro_wolc > 0 and is_company = false) 
             order by id"#;
-    let rows: Vec<TypeRow> = sqlx::query_as(&sql).fetch_all(pool).await?;
+    let rows: Vec<TypeRow> = sqlx::query_as(&sql).fetch_all(pool).await
+            .map_err(|e| AppError::SqlxError(e, sql))?;
     store_summary(rows, pool, 11, "name types wolc").await?;
 
 
@@ -70,8 +73,8 @@ pub async fn create_name_attributes(sdv: &str, vcode: &String, num_orgs_str: &St
             pc_of_atts = round(number_atts * 10000::float / "# + num_names + r#"::float)/100::float,
             pc_of_orgs = round(number_orgs * 10000::float / "# + num_orgs_str + r#"::float)/100::float
             where vcode = '"# + vcode + r#"' and att_type in (1, 11) "#;
-    sqlx::raw_sql(&sql).execute(pool).await?;
-    Ok(())
+    sqlx::raw_sql(&sql).execute(pool).await
+            .map_err(|e| AppError::SqlxError(e, sql))
 }
 
 
@@ -89,7 +92,8 @@ num_ext_ids: &String, num_links: &String, num_rels: &String, pool: &Pool<Postgre
             on gt.id = t.org_type 
             group by gt.id, gt.name
             order by gt.id;"#;
-    let rows: Vec<TypeRow> = sqlx::query_as(&sql).fetch_all(pool).await?;
+    let rows: Vec<TypeRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql))?;
     store_summary(rows, pool, 2, "org types").await?;
 
     // External ids attributes summary
@@ -103,7 +107,8 @@ num_ext_ids: &String, num_links: &String, num_rels: &String, pool: &Pool<Postgre
             on it.id = t.id_type 
             group by it.id, it.name
             order by it.id;"#;
-    let rows: Vec<TypeRow> = sqlx::query_as(&sql).fetch_all(pool).await?;
+    let rows: Vec<TypeRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql))?;
     store_summary(rows, pool, 3, "external id types").await?;
 
     // Links attributes summary
@@ -117,7 +122,8 @@ num_ext_ids: &String, num_links: &String, num_rels: &String, pool: &Pool<Postgre
             on lt.id = t.link_type 
             group by lt.id, lt.name
             order by lt.id;"#;
-    let rows: Vec<TypeRow> = sqlx::query_as(&sql).fetch_all(pool).await?;
+    let rows: Vec<TypeRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql))?;
     store_summary(rows, pool, 4, "link types").await?;
 
     // Relationships attributes summary
@@ -131,7 +137,8 @@ num_ext_ids: &String, num_links: &String, num_rels: &String, pool: &Pool<Postgre
             on rr.id = t.rel_type 
             group by rr.id, rr.name
             order by rr.id;"#;
-    let rows: Vec<TypeRow> = sqlx::query_as(&sql).fetch_all(pool).await?;
+    let rows: Vec<TypeRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql))?;
     store_summary(rows, pool, 5, "rel types").await?;
 
     Ok(())
@@ -147,7 +154,8 @@ pub async fn create_count_distributions(sdv: &str, num_orgs_str: &String, pool: 
             from src.admin_data
             group by n_names
             order by n_names;"#;
-    let rows: Vec<DistribRow> = sqlx::query_as(&sql).fetch_all(pool).await?;
+    let rows: Vec<DistribRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql))?;
     store_distrib(rows, "names", pool).await?;
 
     // Labels count distribution
@@ -157,7 +165,8 @@ pub async fn create_count_distributions(sdv: &str, num_orgs_str: &String, pool: 
             from src.admin_data
             group by n_labels
             order by n_labels;"#;
-    let rows: Vec<DistribRow> = sqlx::query_as(&sql).fetch_all(pool).await?;
+    let rows: Vec<DistribRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql))?;
     store_distrib(rows, "labels", pool).await?;
 
     // Aliases count distribution
@@ -167,7 +176,8 @@ pub async fn create_count_distributions(sdv: &str, num_orgs_str: &String, pool: 
             from src.admin_data
             group by n_aliases
             order by n_aliases;"#;
-    let rows: Vec<DistribRow> = sqlx::query_as(&sql).fetch_all(pool).await?;
+    let rows: Vec<DistribRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql))?;
     store_distrib(rows, "aliases", pool).await?;
 
     // Acronyms count distribution
@@ -177,7 +187,8 @@ pub async fn create_count_distributions(sdv: &str, num_orgs_str: &String, pool: 
             from src.admin_data
             group by n_acronyms
             order by n_acronyms;"#;
-    let rows: Vec<DistribRow> = sqlx::query_as(&sql).fetch_all(pool).await?;
+    let rows: Vec<DistribRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql))?;
     store_distrib(rows, "acronyms", pool).await?;
 
     // Locations count distribution
@@ -187,7 +198,8 @@ pub async fn create_count_distributions(sdv: &str, num_orgs_str: &String, pool: 
             from src.admin_data
             group by n_locs
             order by n_locs;"#;
-    let rows: Vec<DistribRow> = sqlx::query_as(&sql).fetch_all(pool).await?;
+    let rows: Vec<DistribRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql))?;
     store_distrib(rows, "locs", pool).await?;
 
     // Org types count distribution
@@ -197,7 +209,8 @@ pub async fn create_count_distributions(sdv: &str, num_orgs_str: &String, pool: 
             from src.admin_data
             group by n_types
             order by n_types;"#;
-    let rows: Vec<DistribRow> = sqlx::query_as(&sql).fetch_all(pool).await?;
+    let rows: Vec<DistribRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql))?;
     store_distrib(rows, "org_types", pool).await?;
 
     // External ids count distribution
@@ -207,7 +220,8 @@ pub async fn create_count_distributions(sdv: &str, num_orgs_str: &String, pool: 
             from src.admin_data
             group by n_ext_ids
             order by n_ext_ids;"#;
-    let rows: Vec<DistribRow> = sqlx::query_as(&sql).fetch_all(pool).await?;
+    let rows: Vec<DistribRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql))?;
     store_distrib(rows, "ext_ids", pool).await?;
 
     // Links count distribution
@@ -217,7 +231,8 @@ pub async fn create_count_distributions(sdv: &str, num_orgs_str: &String, pool: 
             from src.admin_data
             group by n_links
             order by n_links;"#;
-    let rows: Vec<DistribRow> = sqlx::query_as(&sql).fetch_all(pool).await?;
+    let rows: Vec<DistribRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql))?;
     store_distrib(rows, "links", pool).await?;
 
     // Parent count distribution
@@ -227,7 +242,8 @@ pub async fn create_count_distributions(sdv: &str, num_orgs_str: &String, pool: 
             from src.admin_data
             group by n_parrels
             order by n_parrels;"#;
-    let rows: Vec<DistribRow> = sqlx::query_as(&sql).fetch_all(pool).await?;
+    let rows: Vec<DistribRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql))?;
     store_distrib(rows, "parent orgs", pool).await?;
 
     // Child count distribution
@@ -237,7 +253,8 @@ pub async fn create_count_distributions(sdv: &str, num_orgs_str: &String, pool: 
             from src.admin_data
             group by n_chrels
             order by n_chrels;"#;
-    let rows: Vec<DistribRow> = sqlx::query_as(&sql).fetch_all(pool).await?;
+    let rows: Vec<DistribRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql))?;
     store_distrib(rows, "child orgs", pool).await?;
 
     // Related orgs
@@ -247,7 +264,8 @@ pub async fn create_count_distributions(sdv: &str, num_orgs_str: &String, pool: 
             from src.admin_data
             group by n_relrels
             order by n_relrels;"#;
-    let rows: Vec<DistribRow> = sqlx::query_as(&sql).fetch_all(pool).await?;
+    let rows: Vec<DistribRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql))?;
     store_distrib(rows, "related orgs", pool).await?;
 
     // Successor count distribution
@@ -257,7 +275,8 @@ pub async fn create_count_distributions(sdv: &str, num_orgs_str: &String, pool: 
             from src.admin_data
             group by n_sucrels
             order by n_sucrels;"#;
-    let rows: Vec<DistribRow> = sqlx::query_as(&sql).fetch_all(pool).await?;
+    let rows: Vec<DistribRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql))?;
     store_distrib(rows, "successor orgs", pool).await?;
 
     // Predeccessor orgs
@@ -267,7 +286,8 @@ pub async fn create_count_distributions(sdv: &str, num_orgs_str: &String, pool: 
             from src.admin_data
             group by n_predrels
             order by n_predrels;"#;
-    let rows: Vec<DistribRow> = sqlx::query_as(&sql).fetch_all(pool).await?;
+    let rows: Vec<DistribRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql))?;
     store_distrib(rows, "predecessor orgs", pool).await?;
 
 
@@ -278,10 +298,12 @@ pub async fn create_count_distributions(sdv: &str, num_orgs_str: &String, pool: 
             from src.admin_data
             group by n_doms
             order by n_doms;"#;
-    let rows: Vec<DistribRow> = sqlx::query_as(&sql).fetch_all(pool).await?;
+    let rows: Vec<DistribRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql))?;
     store_distrib(rows, "domains", pool).await?;
 
     Ok(())
+    
 }
 
 pub async fn create_ranked_count_distributions(vcode: &String, sdv: &str, num_names: i64, 
@@ -298,7 +320,8 @@ num_locs: i64, pool: &Pool<Postgres>) ->  Result<(), AppError> {
             where name_type <> 10 and lang_code <> 'en'
             group by lc.name
             order by count(n.id) desc;"#;
-    let rows: Vec<RankedRow> = sqlx::query_as(&sql).fetch_all(pool).await?;
+    let rows: Vec<RankedRow> = sqlx::query_as(&sql).fetch_all(pool).await
+            .map_err(|e| AppError::SqlxError(e, sql))?;
     store_ranked_distrib(&vcode, &rows, pool, "Remaining languages", 1, 
     num_nacne, num_names).await?;
 
@@ -312,7 +335,8 @@ num_locs: i64, pool: &Pool<Postgres>) ->  Result<(), AppError> {
             where script_code <> 'Latn'
             group by ls.iso_name
             order by count(n.id) desc; "#;
-    let rows: Vec<RankedRow> = sqlx::query_as(&sql).fetch_all(pool).await?;
+    let rows: Vec<RankedRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql))?;
     store_ranked_distrib(&vcode, &rows, pool, "Remaining scripts", 2,
     num_nltn, num_names).await?;
 
@@ -325,7 +349,8 @@ num_locs: i64, pool: &Pool<Postgres>) ->  Result<(), AppError> {
             from src.locations c
             group by country_name
             order by count(country_name) desc;"#;
-    let rows: Vec<RankedRow> = sqlx::query_as(&sql).fetch_all(pool).await?;
+    let rows: Vec<RankedRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql))?;
     store_ranked_distrib(&vcode, &rows, pool, "Remaining countries", 3,
     num_nus, num_locs).await?;
 
@@ -344,10 +369,12 @@ pub async fn create_type_linked_tables(sdv: &str, pool: &Pool<Postgres>) ->  Res
             on t.org_type = p.id
             group by org_type, p.name
             order by org_type;"#;
-    let rows: Vec<OrgRow> = sqlx::query_as(org_sql).fetch_all(pool).await?;
+    let rows: Vec<OrgRow> = sqlx::query_as(org_sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, org_sql.to_string()))?;
     store_types_with_lang_code(sdv, rows, pool).await?;
 
-    let rows: Vec<OrgRow> = sqlx::query_as(org_sql).fetch_all(pool).await?;
+    let rows: Vec<OrgRow> = sqlx::query_as(org_sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, org_sql.to_string()))?;
     store_types_and_relationships(sdv, rows, pool).await?;
 
     Ok(())
@@ -396,18 +423,21 @@ pub async fn store_types_with_lang_code(sdv: &str, rows: Vec<OrgRow>, pool: &Poo
                     where t.org_type = "# + &t.type_id.to_string() + r#") ns
                 group by ns.name_type 
                 order by ns.name_type;"#;
-        let rows: Vec<NameLCRow> = sqlx::query_as(&lc_sql).fetch_all(pool).await?;
+        let rows: Vec<NameLCRow> = sqlx::query_as(&lc_sql).fetch_all(pool).await        
+            .map_err(|e| AppError::SqlxError(e, lc_sql))?;
 
         // Store the individual rows.
 
         for r in rows {
-            sqlx::query(r#"INSERT INTO smm.org_type_and_lang_code (vcode, org_type, name_type, 
+            let sql = r#"INSERT INTO smm.org_type_and_lang_code (vcode, org_type, name_type, 
                         names_num, names_wlc, names_wolc, names_wlc_pc, names_wolc_pc) 
-                        values($1, $2, $3, $4, $5, $6, $7, $8)"#)
+                        values($1, $2, $3, $4, $5, $6, $7, $8)"#;
+            sqlx::query(sql)
             .bind(r.vcode).bind(t.name.clone()).bind(r.ntype).bind(r.total)
             .bind(r.names_wlc).bind(r.names_wolc).bind(r.names_wlc_pc).bind(r.names_wolc_pc)
             .execute(pool)
-            .await?;
+            .await        
+            .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
         }
     }
 
@@ -453,18 +483,21 @@ pub async fn store_types_and_relationships(sdv: &str, rows: Vec<OrgRow>, pool: &
             group by rs.rel_type 
             order by rs.rel_type;"#;
 
-        let rows: Vec<TypeRelRow> = sqlx::query_as(&tr_sql).fetch_all(pool).await?;
+        let rows: Vec<TypeRelRow> = sqlx::query_as(&tr_sql).fetch_all(pool).await 
+            .map_err(|e| AppError::SqlxError(e, tr_sql))?;
 
         // Store the individual rows.
 
         for r in rows {
-            sqlx::query(r#"INSERT INTO smm.org_type_and_relationships (vcode, org_type, 
+            let sql = r#"INSERT INTO smm.org_type_and_relationships (vcode, org_type, 
                     rel_type, num_links, num_orgs, num_orgs_total, num_orgs_pc) 
-                    values($1, $2, $3, $4, $5, $6, $7)"#)
+                    values($1, $2, $3, $4, $5, $6, $7)"#;
+            sqlx::query(sql)
             .bind(r.vcode).bind(t.name.clone()).bind(r.rtype).bind(r.num_rels)
             .bind(r.num_orgs).bind(t.org_num).bind(r.num_orgs_pc)
             .execute(pool)
-            .await?;
+            .await 
+            .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
         }
     }
 
@@ -623,10 +656,9 @@ pub async fn store_singletons(vcode: &String, num_orgs: i64, num_names: i64, poo
 
 
 pub async fn get_count (sql_string: &str, pool: &Pool<Postgres>) -> Result<i64, AppError> {
-    let res = sqlx::query_scalar(sql_string)
-    .fetch_one(pool)
-    .await?;
-    Ok(res)
+     sqlx::query_scalar(sql_string)
+    .fetch_one(pool).await
+    .map_err(|e| AppError::SqlxError(e, sql_string.to_string()))
 }
 
 
@@ -640,28 +672,29 @@ fn get_pc (top:i64, bottom:i64) -> f64 {
 }
 
 
-async fn store_singleton(vcode: &String, id: &str, description: &str, number: i64, pc: Option<f64>, pool: &Pool<Postgres>)-> Result<(), AppError> {
+async fn store_singleton(vcode: &String, id: &str, description: &str, number: i64, pc: Option<f64>, pool: &Pool<Postgres>)-> Result<PgQueryResult, AppError> {
 
     let sql = format!(r#"INSERT INTO smm.singletons (vcode, id, 
     description, number, pc) values($1, $2, $3, $4, $5)"#);
+
     sqlx::query(&sql)
     .bind(vcode.clone()).bind(id).bind(description).bind(number).bind(pc)
-    .execute(pool).await?;
-    Ok(())
+    .execute(pool).await
+    .map_err(|e| AppError::SqlxError(e, sql.to_string()))
 }
 
 
 async fn store_summary(rows: Vec<TypeRow>, pool: &Pool<Postgres>, att_type: i32, att_name: &str) -> Result<(), AppError> {
+    
+    let sql = r#"INSERT into smm.attributes_summary (vcode, att_type, att_name, 
+    id, name, number_atts, pc_of_atts, number_orgs, pc_of_orgs)
+    values ($1, $2, $3, $4, $5, $6, $7, $8, $9)"#;
 
     for t in rows {
-        let sql = r#"INSERT into smm.attributes_summary (vcode, att_type, att_name, 
-        id, name, number_atts, pc_of_atts, number_orgs, pc_of_orgs)
-        values ($1, $2, $3, $4, $5, $6, $7, $8, $9)"#;
-        sqlx::query(sql)
-        .bind(t.vcode).bind(att_type).bind(att_name).bind(t.id).bind(t.name)
+        sqlx::query(sql).bind(t.vcode).bind(att_type).bind(att_name).bind(t.id).bind(t.name)
         .bind(t.number_atts).bind(t.pc_of_atts).bind(t.number_orgs).bind(t.pc_of_orgs)
-        .execute(pool)
-        .await?;
+        .execute(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     }
     Ok(())
 }
@@ -669,14 +702,15 @@ async fn store_summary(rows: Vec<TypeRow>, pool: &Pool<Postgres>, att_type: i32,
 
 async fn store_distrib(rows: Vec<DistribRow>, count_type: &str, pool: &Pool<Postgres>)-> Result<(), AppError> {
 
-    let sql = format!(r#"INSERT INTO smm.count_distributions (vcode, 
-    count_type, count, num_of_orgs, pc_of_orgs) values($1, $2, $3, $4, $5)"#);
+    let sql = r#"INSERT INTO smm.count_distributions (vcode, 
+    count_type, count, num_of_orgs, pc_of_orgs) values($1, $2, $3, $4, $5)"#;
+
     for r in rows {
         sqlx::query(&sql)
         .bind(r.vcode).bind(count_type)
         .bind(r.count).bind(r.num_of_orgs).bind(r.pc_of_orgs)
-        .execute(pool)
-        .await?;
+        .execute(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     }
     Ok(())
 }
@@ -687,17 +721,17 @@ async fn store_ranked_distrib(vcode: &String, rows: &Vec<RankedRow>, pool: &Pool
 
     let mut i = 0;
     let mut rest_total = 0;
+    let sql = r#"INSERT INTO smm.ranked_distributions (vcode, dist_type, rank, entity, 
+    number, pc_of_entities, pc_of_base_set) 
+    values($1, $2, $3, $4, $5, $6, $7)"#;
 
     for r in rows {
         i += 1;
         if i < 26 {
-            sqlx::query(r#"INSERT INTO smm.ranked_distributions (vcode, dist_type, rank, entity, 
-            number, pc_of_entities, pc_of_base_set) 
-            values($1, $2, $3, $4, $5, $6, $7)"#)
-            .bind(r.vcode.clone()).bind(dist_type).bind(i)
+            sqlx::query(sql).bind(r.vcode.clone()).bind(dist_type).bind(i)
             .bind(r.entity.clone()).bind(r.number).bind(r.pc_of_entities).bind(r.pc_of_base_set)
-            .execute(pool)
-            .await?;
+            .execute(pool).await
+            .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
         }
         else {
             rest_total += r.number;
@@ -707,14 +741,14 @@ async fn store_ranked_distrib(vcode: &String, rows: &Vec<RankedRow>, pool: &Pool
 
         let rest_ent_pc: f64 = get_pc(rest_total, entity_total).into();
         let rest_bs_pc: f64 = get_pc(rest_total, base_set_total).into();
-
-        sqlx::query(r#"INSERT INTO smm.ranked_distributions (vcode, dist_type, rank, entity, 
+        let sql = r#"INSERT INTO smm.ranked_distributions (vcode, dist_type, rank, entity, 
         number, pc_of_entities, pc_of_base_set) 
-        values($1, $2, $3, $4, $5, $6, $7)"#)
-        .bind(vcode).bind(dist_type).bind(26)
+        values($1, $2, $3, $4, $5, $6, $7)"#;
+
+        sqlx::query(sql).bind(vcode).bind(dist_type).bind(26)
         .bind(remainder_name).bind(rest_total).bind(rest_ent_pc).bind(rest_bs_pc)
-        .execute(pool)
-        .await?;
+        .execute(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     }
     Ok(())
 }
@@ -730,9 +764,9 @@ async fn get_rel_imbalance(f1_type: u8, f2_type: u8, pool: &Pool<Postgres>) -> R
           and f1.related_id = f2.id
           where f2.id is null;", f1_type, f2_type);
            
-    let res = sqlx::query_scalar(&sql)
+    sqlx::query_scalar(&sql)
     .fetch_one(pool)
-    .await?;
+    .await
+    .map_err(|e| AppError::SqlxError(e, sql.to_string()))
 
-    Ok(res)
   }

@@ -1,6 +1,6 @@
 use sqlx::{Pool, Postgres};
 use std::path::PathBuf;
-use crate::error_defs::{AppError, CustomError};
+use crate::err::AppError;
 use chrono::Local;
 
 pub async fn generate_csv(output_folder : &PathBuf, data_version: &String, pool : &Pool<Postgres>) -> Result<(), AppError>
@@ -146,19 +146,19 @@ pub async fn generate_all_versions_csv(output_folder : &PathBuf, pool : &Pool<Po
 
 async fn  generate_file(output_folder: &PathBuf, data_version: &String, select_statement: &String,
                     datetime_string: &String, table_type: &String, pool : &Pool<Postgres>) -> Result<(), AppError> {
-
-    let output_file_name = PathBuf::from(format!("{} {} {}.csv", data_version, table_type, datetime_string));
-    let output_file_path: PathBuf = [output_folder, &output_file_name].iter().collect();
+    
+    let output_file_name = format!("{} {} {}.csv", data_version, table_type, datetime_string);
+    let output_file_path: PathBuf = [output_folder,  &PathBuf::from(&output_file_name)].iter().collect();
     let output_file = match output_file_path.to_str() {
         Some(s) => s.to_string(),
         None => {
-            let msg = "Unable to construct the output file name";
-            let cf_err = CustomError::new(msg);
-            return Err(AppError::CsErr(cf_err))
+            return Err(AppError::FileSystemError("Unable to construct the output file name".to_string(), 
+                       format!("File name was: {},", output_file_name)))
         },
     };
     let sql = r#"copy ("#.to_string() + select_statement + r#") to '"# + &output_file + r#"' DELIMITER ',' CSV HEADER"#;
-    sqlx::raw_sql(&sql).execute(pool).await?;
-    Ok(())
+    sqlx::raw_sql(&sql).execute(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
+    Ok(())
 }

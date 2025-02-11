@@ -5,7 +5,7 @@ mod export_structs;
 use log::{info, error};
 use sqlx::{Pool, Postgres};
 use std::path::PathBuf;
-use crate::error_defs::{AppError, CustomError};
+use crate::err::AppError;
 
 pub async fn export_as_text(output_folder : &PathBuf, data_version: &String, 
                             pool : &Pool<Postgres>) -> Result<(), AppError>
@@ -68,14 +68,12 @@ pub async fn export_all_as_csv(output_folder : &PathBuf, pool : &Pool<Postgres>)
 
 async fn check_data_version_present_in_summ_data(data_version: &String, pool: &Pool<Postgres>)-> Result<(), AppError> {
     
-    let sql = r#"SELECT EXISTS(select vcode from smm.version_summaries where vcode = '"#.to_string() + &data_version + r#"')"#;
-    let check_result: bool  = sqlx::query_scalar(&sql).fetch_one(pool).await?;
+    let sql = r#"SELECT EXISTS(select vcode from smm.version_summaries where vcode = '"#.to_string() + data_version + r#"')"#;
+    let check_result: bool  = sqlx::query_scalar(&sql).fetch_one(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     if !check_result
     {
-        let mut msg = format!("\n\nData from the version specified ({}) does not currently exist \nin the summary table.\n\n", data_version);
-        msg += "You will need to run -a (or -p if the data has just been imported) \nagainst this version, to populate the summary tables\nwith the required data.";
-        let cf_err = CustomError::new(&msg);
-        return Result::Err(AppError::CsErr(cf_err));
+        return Result::Err(AppError::MissingVersion(data_version.to_string()));
     }
     else {
         Ok(())

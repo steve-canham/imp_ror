@@ -1,7 +1,3 @@
-// The transform module. Referenced in main by 'mod transform'.
-// It makes use of the other modules in the folder, each corresponding to a file of the same name.
-// The folder modules do not need to be public - they are referenced only within this module.
-
 mod src_data_importer;
 mod src_data_processor;
 mod src_create_tables;
@@ -71,7 +67,7 @@ pub async fn process_data(data_version: &String, pool : &Pool<Postgres>) -> Resu
         },
         Err(e) => {
             error!("An error occured while adding the script codes: {}", e);
-            return Err(AppError::SqErr(e))
+            return Err(e)
             },
     }
 

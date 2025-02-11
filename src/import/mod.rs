@@ -41,7 +41,8 @@ pub async fn import_data(data_folder : &PathBuf, source_file_name: &PathBuf,
     let sql = r#"INSERT into ror.version_details (version, data_date, data_days)
                     values ($1, $2, $3);"#;
     sqlx::query(&sql).bind(data_version).bind(data_date).bind(duration.num_days())
-    .execute(pool).await?;
+    .execute(pool).await
+    .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
     // Import data into matching tables. First obtain the raw data as text
     // This also checks the file exists...by opening it and checking no error
@@ -53,10 +54,7 @@ pub async fn import_data(data_folder : &PathBuf, source_file_name: &PathBuf,
             info!("Got the data from the file");
             d
         }, 
-        Err(e) => {
-            error!("An error occured while opening or reading from the source file: {}", e);
-            return Err(AppError::IoErr(e))
-            },
+        Err(e) => return Err(AppError::IoReadErrorWithPath(e, source_file_name.to_owned())),
     };
 
     // Parse into an internal JSON structure
@@ -67,10 +65,7 @@ pub async fn import_data(data_folder : &PathBuf, source_file_name: &PathBuf,
             info!("Parsed the data into ROR json objects");
             r
         }, 
-        Err(e) => {
-            error!("An error occured while attempting tp parse the source data into json: {}", e);
-            return Err(AppError::SdErr(e))
-            },
+        Err(e) => return Err(AppError::SerdeError(e)), 
     };
     
     info!("{} records found", res.len());
@@ -156,11 +151,12 @@ pub async fn summarise_import(pool : &Pool<Postgres>) -> Result<(), AppError>
 }
 
   
-pub async fn write_record_num (table_name: &str, pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
+pub async fn write_record_num (table_name: &str, pool: &Pool<Postgres>) -> Result<(), AppError> {
     let sql = "SELECT COUNT(*) FROM ror.".to_owned() + table_name;
     let res: i64 = sqlx::query_scalar(&sql)
-    .fetch_one(pool)
-    .await?;
+    .fetch_one(pool).await
+    .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+   
     info!("Total records in ror.{}: {}", table_name, res);
     Ok(())
 }

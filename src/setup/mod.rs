@@ -1,5 +1,15 @@
 /**********************************************************************************
-
+The setup module, and the get_params function in this file in particular, 
+orchestrates the collection and fusion of parameters as provided in 
+1) a config toml file, and 
+2) command line arguments. 
+Where a parameter may be given in either the config file or command line, the 
+command line version always over-writes anything from the file.
+The module also checks the parameters for completeness (those required will vary, 
+depending on the activity specified). If possible, defaults are used to stand in for 
+mising parameters. If not possible the program stops with a message explaining the 
+problem.
+The module also provides a database connection pool on demand.
 ***********************************************************************************/
 
 pub mod config_reader;
@@ -9,11 +19,7 @@ mod cli_reader;
 mod lup_create_tables;
 mod lup_fill_tables;
 
-/**********************************************************************************
-
-***********************************************************************************/
-
-use crate::error_defs::{AppError, CustomError};
+use crate::err::AppError;
 use chrono::NaiveDate;
 use sqlx::postgres::{PgPoolOptions, PgConnectOptions, PgPool};
 use sqlx::{Postgres, Pool};
@@ -39,10 +45,6 @@ pub struct InitParams {
 
 pub fn get_params(args: Vec<OsString>, config_string: String) -> Result<InitParams, AppError> {
 
-    // Called from main as the initial task of the program.
-    // Returns a struct that contains the program's parameters.
-    // Start by obtaining CLI arguments and reading parameters from .env file.
-      
     let cli_pars = cli_reader::fetch_valid_arguments(args)?;
     let flags = cli_pars.flags;
 
@@ -70,6 +72,7 @@ pub fn get_params(args: Vec<OsString>, config_string: String) -> Result<InitPara
         let file_pars = config_file.files;  // guaranteed to exist
         let data_pars = config_file.data_details; 
         let empty_pb = PathBuf::from("");
+
         let data_folder  =  file_pars.data_folder_path;
 
         // Does this folder exist and is it accessible? - If not and the 
@@ -82,10 +85,7 @@ pub fn get_params(args: Vec<OsString>, config_string: String) -> Result<InitPara
         }
 
         if !data_folder_good && flags.import_ror { 
-
-            let msg = "Required data folder does not exists or is not accessible";
-            let cf_err = CustomError::new(msg);
-            return Result::Err(AppError::CsErr(cf_err));
+            return Result::Err(AppError::MissingProgramParameter("data_folder".to_string()));
         }
 
         let mut log_folder = file_pars.log_folder_path;
@@ -113,10 +113,8 @@ pub fn get_params(args: Vec<OsString>, config_string: String) -> Result<InitPara
         let mut source_file_name= cli_pars.source_file;
         if source_file_name == empty_pb {
             source_file_name =  file_pars.src_file_name;
-            if source_file_name == empty_pb && flags.import_ror {   // Required data is missing - Raise error and exit program.
-                 let msg = "Source file name not provided in either command line or environment file";
-                 let cf_err = CustomError::new(msg);
-                 return Result::Err(AppError::CsErr(cf_err));
+            if source_file_name == empty_pb && flags.import_ror {   // Required data is missing
+                return Result::Err(AppError::MissingProgramParameter("src_file_name".to_string()));
             }
         }
          
@@ -152,9 +150,7 @@ pub fn get_params(args: Vec<OsString>, config_string: String) -> Result<InitPara
             if data_version == "" {
                 data_version = data_pars.data_version;
                 if data_version == "" && flags.import_ror {   // Required data is missing - Raise error and exit program.
-                    let msg = "Data version not provided in either command line or environment file";
-                    let cf_err = CustomError::new(msg);
-                    return Result::Err(AppError::CsErr(cf_err));
+                    return Result::Err(AppError::MissingProgramParameter("data_version".to_string()));
                 }
             }
         
@@ -171,9 +167,7 @@ pub fn get_params(args: Vec<OsString>, config_string: String) -> Result<InitPara
                 };
 
                 if data_date == "" && flags.import_ror {   // Raise an AppError...required data is missing.
-                    let msg = "Data date not provided";
-                    let cf_err = CustomError::new(msg);
-                    return Result::Err(AppError::CsErr(cf_err));
+                    return Result::Err(AppError::MissingProgramParameter("data_date".to_string()));
                 }
             }
         }
@@ -218,22 +212,18 @@ pub async fn get_db_pool() -> Result<PgPool, AppError> {
         Err(e) => return Err(e),
     };
 
-    let db_conn_string = config_reader::fetch_db_conn_string(db_name)?;  
+    let db_conn_string = config_reader::fetch_db_conn_string(&db_name)?;  
    
-    let mut opts: PgConnectOptions = db_conn_string.parse()?;
+    let mut opts: PgConnectOptions = db_conn_string.parse()
+                    .map_err(|e| AppError::DBPoolError("Problem with parsing conection string".to_string(), e))?;
     opts = opts.log_slow_statements(log::LevelFilter::Warn, Duration::from_secs(3));
 
-    match PgPoolOptions::new()
-    .max_connections(5) 
-    .connect_with(opts).await {
-        Ok(p) => Ok(p),
-        Err(e) => {
-            error!("An error occured while creating the DB pool: {}", e);
-            error!("Check the DB credentials and confirm the database is available");
-            return Err(AppError::SqErr(e))
-        },
-    }
+    PgPoolOptions::new()
+        .max_connections(5) 
+        .connect_with(opts).await
+        .map_err(|e| AppError::DBPoolError(format!("Problem with connecting to database {} and obtaining Pool", db_name), e))
 }
+
 
 pub async fn edit_config() -> Result<(), AppError>
 {

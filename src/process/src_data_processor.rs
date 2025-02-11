@@ -1,6 +1,6 @@
-use sqlx::{Pool, Postgres};
+use sqlx::{postgres::PgQueryResult, Pool, Postgres};
 use crate::AppError;
-use log::{info, error};
+use log::info;
 
 pub async fn store_org_attribute_numbers (pool: &Pool<Postgres>) -> Result<(), AppError> {
         
@@ -49,16 +49,11 @@ pub async fn store_org_attribute_numbers (pool: &Pool<Postgres>) -> Result<(), A
     Ok(())
 }
 
-async fn execute_sql(sql: &str, pool: &Pool<Postgres>) -> Result<(), AppError> {
-    match sqlx::query(&sql).execute(pool).await
-    {
-        Ok(_) => Ok(()),
-        Err(e) => {
-            error!("An error occured, {}, while adding attribute numbers to src.admin_data with sql code {}", 
-                    e, &sql);
-            return Err(AppError::SqErr(e))
-        },
-    }
+async fn execute_sql(sql: &str, pool: &Pool<Postgres>) -> Result<PgQueryResult, AppError> {
+    
+    sqlx::query(&sql).execute(pool)
+        .await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))
 }
 
 fn get_name_data_sql <'a>() -> &'a str {
@@ -299,7 +294,7 @@ fn get_domains_data_sql <'a>() -> &'a str {
 }
 
 
-pub async fn add_script_codes (pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
+pub async fn add_script_codes (pool: &Pool<Postgres>) -> Result<(), AppError> {
 
     // Examines the names and looks at the Unicode value of its first character. Uses that to 
     // determine the script (but checks for leading bracket - if present use the second character)
@@ -317,7 +312,8 @@ pub async fn add_script_codes (pool: &Pool<Postgres>) -> Result<(), sqlx::Error>
     from lup.lang_scripts
     where ascii_end <> 0
     order by ascii_start;"#;
-    let rows: Vec<Script> = sqlx::query_as(sql).fetch_all(pool).await?;
+    let rows: Vec<Script> = sqlx::query_as(sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     info!("Unicode script characteristics obtained");
 
     // Update names records by testing against each unicode entry.
@@ -332,7 +328,8 @@ pub async fn add_script_codes (pool: &Pool<Postgres>) -> Result<(), sqlx::Error>
         .bind(r.ascii_start)
         .bind(r.ascii_end)
         .execute(pool)
-        .await?;
+        .await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
         
         // Correct for any bracketed names
 
@@ -345,7 +342,8 @@ pub async fn add_script_codes (pool: &Pool<Postgres>) -> Result<(), sqlx::Error>
         .bind(r.ascii_start)
         .bind(r.ascii_end)
         .execute(pool)
-        .await?;
+        .await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
         n +=1;
         if n % 20 == 0 {

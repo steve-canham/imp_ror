@@ -1,4 +1,4 @@
-use crate::error_defs::AppError;
+use crate::err::AppError;
 
 
 pub async fn edit_config_file() -> Result<(), AppError>

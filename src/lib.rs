@@ -1,44 +1,32 @@
-/**********************************************************
- * A small library to import ror data from the ror data 
- * dump, maintained on Zenodo, process that data (lightly),
- * and summarise key features of it. The summaries for each 
- * version are retained, whilst the base data is replaced 
- * each time the program is run. The system can also output 
- * a report summarising the key features of the data set. 
- * See the read.me file for further details.
- **********************************************************/
-
 pub mod setup;
 mod import;
 mod process;
 mod summarise;
 mod export;
-pub mod error_defs;
+pub mod err;
 
-use error_defs::AppError;
+use std::sync::OnceLock;
+use err::AppError;
 use setup::log_helper;
 use std::ffi::OsString;
 use std::fs;
+use std::path::PathBuf;
+
+pub static LOG_RUNNING: OnceLock<bool> = OnceLock::new();
 
 pub async fn run(args: Vec<OsString>) -> Result<(), AppError> {
     
-    // Important that there are no errors in the intial three steps.
-    // If one does occur the program exits.
-    // 1) Collect initial parameters such as file names and CLI flags. 
-    // CLI arguments are collected explicitly to facilitate unit testing. 
-    // of 'get_params'. Relevant environmental variables are also read.
-    // 2) Establish a log file, in the specified data folder.
-    // The initial parameters are recorded as the initial part of the log.
-    // 3) The database connection pool is established for the database "ror".
-
-    let config_string: String = fs::read_to_string("./app_config.toml".to_string())?;
+    let config_file = PathBuf::from("./app_config.toml");
+    let config_string: String = fs::read_to_string(&config_file)
+                    .map_err(|e| AppError::IoReadErrorWithPath(e, config_file))?;
+    
     let params = setup::get_params(args, config_string)?;
-
     let flags = params.flags;
     let test_run = flags.test_run;
 
     if !test_run {
        log_helper::setup_log(&params.log_folder, &params.source_file_name)?;
+       LOG_RUNNING.set(true).unwrap();   // no other thread - therefore should always work
        log_helper::log_startup_params(&params);
     }
             

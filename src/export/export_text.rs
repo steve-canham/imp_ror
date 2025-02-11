@@ -18,7 +18,8 @@ pub async fn generate_text(output_folder : &PathBuf, data_version: &String,
     let mut vcode: String = data_version.clone();
     if vcode == "" {
         let sql = "SELECT version as vcode from src.version_details;";
-        vcode = sqlx::query_scalar(sql).fetch_one(pool).await?;
+        vcode = sqlx::query_scalar(sql).fetch_one(pool).await
+            .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     }
 
     // Get path and set up file for writing.
@@ -48,7 +49,8 @@ async fn collect_singleton_values(vcode: &String, pool: &Pool<Postgres>) -> Resu
 
     let mut sstructs = HashMap::new();
     let sql = r#"SELECT id, description, number, pc from smm.singletons WHERE vcode = '"#.to_string() + vcode  + r#"';"#;
-    let srows: Vec<SingletonRow> = sqlx::query_as(&sql).fetch_all(pool).await?;
+    let srows: Vec<SingletonRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     for r in srows { 
         let s = Singleton {
             description: r.description,
@@ -63,12 +65,15 @@ async fn collect_singleton_values(vcode: &String, pool: &Pool<Postgres>) -> Resu
 
 async fn write_header_and_summary(output_file_path: &PathBuf, vcode: &String, pool: &Pool<Postgres>) -> Result<(), AppError> {
     
-    // get import date from the ror table
+    // Get import date from the ror table, other summary detrails from the smm.version_summaries table
+
     let sql = "SELECT import_datetime from ror.version_details;";
-    let import_dt: NaiveDateTime = sqlx::query_scalar(sql).fetch_one(pool).await?;
+    let import_dt: NaiveDateTime = sqlx::query_scalar(sql).fetch_one(pool).await 
+           .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
     let sql = "SELECT * from smm.version_summaries WHERE vcode = \'".to_string() + &vcode  + "\' ;";
-    let summ: VSummary = sqlx::query_as(&sql).fetch_one(pool).await?;
+    let summ: VSummary = sqlx::query_as(&sql).fetch_one(pool).await
+           .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     let header_txt = get_hdr_line("SUMMARY OF ROR DATASET")
                    + "\n\n\tVersion: " + vcode  
                    + "\n\tDate: " + &summ.vdate.to_string() 
@@ -170,7 +175,8 @@ async fn write_name_wolc_info(output_file_path: &PathBuf, vcode: &String, pool: 
     let sql = r#"select org_type, name_type, names_num, names_wolc, names_wolc_pc 
                  from smm.org_type_and_lang_code where vcode = '"#.to_string() + vcode + r#"' order by 
                  org_type, name_type;"#;
-    let rows: Vec<OrgAndLangCode> = sqlx::query_as(&sql).fetch_all(pool).await?;
+    let rows: Vec<OrgAndLangCode> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     let mut tbl_text = "\n\n\tNumbers of name types without language codes for different organisational types:".to_string() 
                      + "\n\n\t                                           number          names           %age"
                        + "\n\torg type               name type            names           wolc           wolc"
@@ -192,7 +198,7 @@ async fn write_ranked_name_info(output_file_path: &PathBuf, vcode: &String, pool
     let s1 = &singvals["names_ne"]; 
     let s2 = &singvals["acro_ne"];
     let s3 = &singvals["nacro_ne"];
-    let s_text =get_sing_hdr() + &get_singleton_line(&s1.description, s1.number, s1.pc)
+    let s_text = get_sing_hdr() + &get_singleton_line(&s1.description, s1.number, s1.pc)
                    + &get_singleton_line(&s2.description, s2.number, s2.pc)
                    + &get_singleton_line(&s3.description, s3.number, s3.pc);
     append_to_file(output_file_path, &s_text)?;
@@ -361,7 +367,9 @@ async fn write_relationship_details(output_file_path: &PathBuf, vcode: &String, 
                  from smm.org_type_and_relationships 
                  where vcode = '"#.to_string() + vcode + r#"' order by org_type, rel_type;"#;
 
-    let rows: Vec<OrgAndRel> = sqlx::query_as(&sql).fetch_all(pool).await?;
+    let rows: Vec<OrgAndRel> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;                               
+                                        
     let mut tbl_text = "\n\n\tNumbers of relationship links for different organisational types:".to_string() 
                      + "\n\n\t                                             number        number          %age"
                        + "\n\torg type               relationship          links          orgs         org type"
@@ -391,7 +399,8 @@ async fn get_attrib_table(att_type: i32, header_type: &str, total_text: &str,
 
     let sql = r#"select name, number_atts, pc_of_atts, number_orgs, pc_of_orgs from smm.attributes_summary
     where vcode = '"#.to_string() + vcode + r#"' and att_type = "# + &att_type.to_string() + " order by id;";
-    let rows: Vec<TypeRow> = sqlx::query_as(&sql).fetch_all(pool).await?;
+    let rows: Vec<TypeRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     let mut tbl_text = "\n\n\t".to_string() + header_type + ", categories and numbers:"
           + "\n\n\t                              number         %age         number          %age"
             + "\n\tCategory                      in cat       all cats        orgs        total orgs"
@@ -434,7 +443,8 @@ async fn get_distrib_table(count_type: &str, header_type: &str, vcode: &String,
 let sql = r#"select count, num_of_orgs, pc_of_orgs from smm.count_distributions
                  where vcode = '"#.to_string() + vcode + r#"' and count_type = '"# + count_type + r#"' 
                  order by count;"#;
-    let rows: Vec<DistribRow> = sqlx::query_as(&sql).fetch_all(pool).await?;
+    let rows: Vec<DistribRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
     let hdr_spacer = " ".repeat(33 - header_type.len());
     let mut tbl_text = "\n\n\tNumbers of organisations with specified       count        number         %age".to_string()
@@ -472,7 +482,8 @@ async fn get_ranked_distrib_table(dist_type: i32, vcode: &String, pool: &Pool<Po
     let sql = r#"SELECT entity, number, pc_of_entities, pc_of_base_set from smm.ranked_distributions 
                  where vcode = '"#.to_string() + vcode + r#"' and dist_type = "# + 
                  &dist_type.to_string() + " order by rank";
-    let lang_rows: Vec<RankedRow> = sqlx::query_as(&sql).fetch_all(pool).await?;
+    let lang_rows: Vec<RankedRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     let mut tbl_text = "".to_string();
     let mut rt_numberents: i32 = 0;
     let mut rt_numberents_pc: f32 = 0.0;
@@ -565,10 +576,7 @@ fn append_to_file(output_file_path: &PathBuf, contents: &str) -> Result<(), AppE
         .append(true)
         .open(output_file_path)?;
 
-    match file.write_all(contents.as_bytes())
-    {
-        Ok(_) => Ok(()),
-        Err(e) => Err(AppError::IoErr(e)),
-    }
+    file.write_all(contents.as_bytes())
+        .map_err(|e| AppError::IoWriteErrorWithPath(e, output_file_path.to_owned()))
     
 }

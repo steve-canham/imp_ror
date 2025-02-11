@@ -1,6 +1,6 @@
-use sqlx::{Pool, Postgres};
-use log::{info, error};
-use crate::error_defs::{AppError, CustomError};
+use sqlx::{postgres::PgQueryResult, Pool, Postgres};
+use log::info;
+use crate::err::AppError;
 use super::src_rmv_dup_names;
 
 pub async fn import_data (data_version: &String, pool: &Pool<Postgres>) -> Result<(), AppError> {
@@ -34,30 +34,23 @@ pub async fn import_data (data_version: &String, pool: &Pool<Postgres>) -> Resul
 async fn check_data_version_matches_ror_schema_data(data_version: &String, pool: &Pool<Postgres>)-> Result<(), AppError> {
     
     let sql = "select version from ror.version_details";
-    let stored_version: String  = sqlx::query_scalar(sql).fetch_one(pool).await?;
+    let stored_version: String  = sqlx::query_scalar(sql).fetch_one(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+
     if stored_version != data_version.to_string()
     {
-        let mut msg = format!("\n\nThe version specified ({}), does not match \nthe data stored in the ror schema ({}).\n\n",
-                               data_version, stored_version);
-        msg += "You will need to run -r (or -a) with the specified version, \nto re-import the data and allow processing \nand summarising to occur.";
-        let cf_err = CustomError::new(&msg);
-        return Result::Err(AppError::CsErr(cf_err));
+        Err(AppError::IncompatibleVersions(data_version.to_string(), stored_version))
     }
     else {
         Ok(())
     }
 }
 
-async fn execute_sql(sql: &str, pool: &Pool<Postgres>) -> Result<(), AppError> {
-    match sqlx::query(&sql).execute(pool).await
-    {
-        Ok(_) => Ok(()),
-        Err(e) => {
-            error!("An error occured, {}, while transferring data to the src tables with sql code {}", 
-                    e, &sql);
-            return Err(AppError::SqErr(e))
-        },
-    }
+async fn execute_sql(sql: &str, pool: &Pool<Postgres>) -> Result<PgQueryResult, AppError> {
+    
+    sqlx::query(&sql).execute(pool)
+        .await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))
 }
 
 fn get_version_details_sql <'a>() -> &'a str {

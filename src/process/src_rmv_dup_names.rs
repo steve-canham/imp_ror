@@ -1,5 +1,5 @@
-use sqlx::{Pool, Postgres};
-use log::{info, error};
+use sqlx::{postgres::PgQueryResult, Pool, Postgres};
+use log::info;
 use crate::AppError;
 
 pub async fn remove_dups (pool: &Pool<Postgres>) -> Result<(), AppError> {
@@ -51,16 +51,12 @@ pub async fn remove_dups (pool: &Pool<Postgres>) -> Result<(), AppError> {
     Ok(())
 }
 
-async fn execute_sql(sql: &str, pool: &Pool<Postgres>) -> Result<(), AppError> {
-    match sqlx::query(&sql).execute(pool).await
-    {
-        Ok(_) => Ok(()),
-        Err(e) => {
-            error!("An error occured, {}, in the name duplicates removal code, with the sql {}", 
-                    e, &sql);
-            return Err(AppError::SqErr(e))
-        },
-    }
+async fn execute_sql(sql: &str, pool: &Pool<Postgres>) -> Result<PgQueryResult, AppError> {
+    
+    sqlx::query(&sql).execute(pool)
+        .await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))
+   
 }
 
 fn get_dup_names_with_2_name_types_sql <'a>() -> &'a str {

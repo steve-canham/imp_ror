@@ -7,7 +7,7 @@
 
 use chrono::Local;
 use std::path::PathBuf;
-use crate::error_defs::AppError;
+use crate::err::AppError;
 use crate::setup::InitParams;
 
 use log::{info, LevelFilter};
@@ -56,13 +56,10 @@ fn config_log (log_file_path: &PathBuf) -> Result<log4rs::Handle, AppError> {
 
     // Define a second logging sink or 'appender' - to a log file (provided path will place it in the current data folder).
 
-    let try_logfile = FileAppender::builder().encoder(Box::new(PatternEncoder::new(log_pattern)))
-        .build(log_file_path);
-    let logfile = match try_logfile {
-        Ok(lf) => lf,
-        Err(e) => return Err(AppError::IoErr(e)),
-    };
-
+    let logfile = FileAppender::builder().encoder(Box::new(PatternEncoder::new(log_pattern)))
+            .build(log_file_path)
+            .map_err(|e| AppError::IoWriteErrorWithPath(e, log_file_path.to_owned()))?;
+    
     // Configure and build log4rs instance, using the two appenders described above
 
     let config = Config::builder()
@@ -74,13 +71,11 @@ fn config_log (log_file_path: &PathBuf) -> Result<log4rs::Handle, AppError> {
                 .appender("logfile")
                 .appender("stderr")
                 .build(LevelFilter::Info),
-        ).unwrap();
+        )
+        .map_err(|e| AppError::LogSetupError("Error when creating log4rs configuration".to_string(), e.to_string()))?;
 
-    match log4rs::init_config(config)
-    {
-        Ok(h) => return Ok(h),
-        Err(e) => return Err(AppError::LgErr(e)),
-    };
+    log4rs::init_config(config)
+        .map_err(|e| AppError::LogSetupError("Error when creating log4rs handle".to_string(), e.to_string()))
 
 }
 
