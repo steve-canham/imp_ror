@@ -10,42 +10,25 @@ use std::path::PathBuf;
 use std::thread;
 use std::time::Duration;
 use chrono::NaiveDate;
-
-use sqlx::{Postgres, Pool};
-use imp_ror::error_defs::AppError;
 use imp_ror::setup::get_db_pool;
-use imp_ror::setup::config_reader;
-
+use super::ror_data_access;
 use super::ror_record_structs::{RorCoreData, RorRelationship, RorExternalId, 
                             RorName, RorLocation, RorLink, RorType, RorAdminData};
-use super::ror_data_access;
-
-
-pub async fn fetch_db_pool() -> Result<Pool<Postgres>, AppError>  {
-    
-    // Use the process set up in the library under test
-    // Helps to ensure exactly the same database connections are used
-    let config_file_path = "./config_imp_ror.toml".to_string();
-    config_reader::populate_config_vars(&config_file_path)?; 
-    get_db_pool().await
-}
 
 
 #[tokio::test] 
 async fn import_v2_0_data_to_ror_and_check_org_numbers() {
 
-    let pool = fetch_db_pool().await.unwrap();
-
     let cd_path = env::current_dir().unwrap();
     let target_path : PathBuf = [cd_path, PathBuf::from("tests\\test_data\\")].iter().collect();
     let target_folder = target_path.to_str().unwrap();
     let target_file = "v99-2030-01-01-test-data_schema_v2.json";
-    let tdate = "2030-01-01";
-    let args : Vec<&str> = vec!["target/debug/ror1.exe", "-f", target_folder, "-s", target_file, "-v", "v99", "-d", tdate, "-r", "-z"];
+    let args : Vec<&str> = vec!["target/debug/ror1.exe", "-f", target_folder, "-s", target_file, "-r", "-z"];
 
     let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
     run(test_args).await.unwrap();
 
+    let pool = get_db_pool().await.unwrap();
     let rec_number = ror_data_access::fetch_ror_record_num("core_data", &pool).await;
     assert_eq!(rec_number, 20);
 }
@@ -55,7 +38,7 @@ async fn import_v2_0_data_to_ror_and_check_org_numbers() {
 async fn check_numbers_in_each_ror_table() {
 
     thread::sleep(Duration::from_secs(1));
-    let pool = fetch_db_pool().await.unwrap();
+    let pool = get_db_pool().await.unwrap();
 
     let rec_number = ror_data_access::fetch_ror_record_num("names", &pool).await;
     assert_eq!(rec_number, 56);
@@ -74,7 +57,7 @@ async fn check_numbers_in_each_ror_table() {
 async fn check_ror_first_and_last_ids() {
 
     thread::sleep(Duration::from_secs(1));
-    let pool = fetch_db_pool().await.unwrap();
+    let pool = get_db_pool().await.unwrap();
 
     // Check first and last record Ids
     let first_id = ror_data_access::fetch_ror_first_record_id(&pool).await;
@@ -89,7 +72,7 @@ async fn check_ror_first_and_last_ids() {
 async fn check_ror_core_data() {
 
     thread::sleep(Duration::from_secs(1));
-    let pool = fetch_db_pool().await.unwrap();
+    let pool = get_db_pool().await.unwrap();
 
     let id = "006jxzx88";
 
@@ -125,7 +108,7 @@ async fn check_ror_core_data() {
 async fn check_ror_relationship_data() {
 
     thread::sleep(Duration::from_secs(2));
-    let pool = fetch_db_pool().await.unwrap();
+    let pool = get_db_pool().await.unwrap();
 
     let id = "03rd8mf35";
     let rels:Vec<RorRelationship> = ror_data_access::fetch_ror_relationship_records(id, &pool).await;
@@ -150,7 +133,7 @@ async fn check_ror_relationship_data() {
 async fn check_ror_external_id_data() {
 
     thread::sleep(Duration::from_secs(2));
-    let pool = fetch_db_pool().await.unwrap();
+    let pool = get_db_pool().await.unwrap();
 
     let id = "04ttjf776";
     let extids:Vec<RorExternalId> = ror_data_access::fetch_ror_external_id_records(id, &pool).await;
@@ -178,7 +161,7 @@ async fn check_ror_external_id_data() {
 async fn check_ror_location_data() {
 
     thread::sleep(Duration::from_secs(2));
-    let pool = fetch_db_pool().await.unwrap();
+    let pool = get_db_pool().await.unwrap();
 
     let id = "006jxzx88";
     let locs:Vec<RorLocation> = ror_data_access::fetch_ror_location_records(id, &pool).await;
@@ -206,7 +189,7 @@ async fn check_ror_location_data() {
 async fn check_ror_link_data() {
 
     thread::sleep(Duration::from_secs(2));
-    let pool = fetch_db_pool().await.unwrap();
+    let pool = get_db_pool().await.unwrap();
 
     let id = "006jxzx88";
     let links:Vec<RorLink> = ror_data_access::fetch_ror_link_records(id, &pool).await;
@@ -230,7 +213,7 @@ async fn check_ror_link_data() {
 async fn check_ror_type_data() {
 
     thread::sleep(Duration::from_secs(2));
-    let pool = fetch_db_pool().await.unwrap();
+    let pool = get_db_pool().await.unwrap();
 
     let id = "006jxzx88";
     let types:Vec<RorType> = ror_data_access::fetch_ror_type_records(id, &pool).await;
@@ -249,7 +232,7 @@ async fn check_ror_type_data() {
 async fn check_ror_name_data() {
 
     thread::sleep(Duration::from_secs(2));
-    let pool = fetch_db_pool().await.unwrap();
+    let pool = get_db_pool().await.unwrap();
 
     let id = "0198t0w55";
     let names:Vec<RorName> = ror_data_access::fetch_ror_name_records(id, &pool).await;

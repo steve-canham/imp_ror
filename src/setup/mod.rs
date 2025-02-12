@@ -72,20 +72,22 @@ pub fn get_params(args: Vec<OsString>, config_string: String) -> Result<InitPara
         let file_pars = config_file.files;  // guaranteed to exist
         let data_pars = config_file.data_details; 
         let empty_pb = PathBuf::from("");
-
-        let data_folder  =  file_pars.data_folder_path;
-
-        // Does this folder exist and is it accessible? - If not and the 
-        // 'R' (import ror) option is active, raise error and exit program.
-
+        let data_folder: PathBuf;
         let mut data_folder_good = true;
-        if !folder_exists (&data_folder) 
-        {   
-            data_folder_good = false;
-        }
 
-        if !data_folder_good && flags.import_ror { 
-            return Result::Err(AppError::MissingProgramParameter("data_folder".to_string()));
+        if cli_pars.flags.test_run {
+            data_folder  =  cli_pars.test_folder;
+        }
+        else {
+            data_folder  =  file_pars.data_folder_path;
+            if !folder_exists (&data_folder) 
+            {   
+                data_folder_good = false;
+            }
+
+            if !data_folder_good && flags.import_ror { 
+                return Result::Err(AppError::MissingProgramParameter("data_folder".to_string()));
+            }
         }
 
         let mut log_folder = file_pars.log_folder_path;

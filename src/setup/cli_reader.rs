@@ -17,6 +17,7 @@ pub struct CliPars {
     pub data_version: String,
     pub data_date: String,
     pub flags: Flags, 
+    pub test_folder: PathBuf,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -40,6 +41,9 @@ pub fn fetch_valid_arguments(args: Vec<OsString>) -> Result<CliPars, AppError>
 
     let source_file_as_string = parse_result.get_one::<String>("src_file").unwrap();
     let source_file = PathBuf::from(source_file_as_string);
+
+    let test_folder_as_string = parse_result.get_one::<String>("test_folder").unwrap();
+    let test_folder = PathBuf::from(test_folder_as_string);
 
     let data_version = parse_result.get_one::<String>("data_version").unwrap();
     let data_date = parse_result.get_one::<String>("data_date").unwrap();
@@ -85,6 +89,7 @@ pub fn fetch_valid_arguments(args: Vec<OsString>) -> Result<CliPars, AppError>
             source_file: PathBuf::new(),
             data_version: "".to_string(),
             data_date: "".to_string(),
+            test_folder: PathBuf::new(),
             flags: flags,
         })
     }
@@ -123,6 +128,7 @@ pub fn fetch_valid_arguments(args: Vec<OsString>) -> Result<CliPars, AppError>
             source_file: source_file.clone(),
             data_version: data_version.clone(),
             data_date: data_date.clone(),
+            test_folder: test_folder.clone(),
             flags: flags,
         })
     }
@@ -245,6 +251,13 @@ fn parse_args(args: Vec<OsString>) -> Result<ArgMatches, clap::Error> {
             .help("A flag signifying that this is part of an integration test run - suppresses logs")
             .action(clap::ArgAction::SetTrue)
        )
+       .arg(
+            Arg::new("test_folder")
+            .short('f')
+            .long("folder")
+            .help("A CLI derived source folder for testing purposes")
+            .default_value("")
+        )
     .try_get_matches_from(args)
 
 }

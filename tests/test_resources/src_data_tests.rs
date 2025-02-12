@@ -3,34 +3,15 @@ use std::ffi::OsString;
 use std::thread;
 use std::time::Duration;
 use chrono::NaiveDate;
-
-use sqlx::{Postgres, Pool};
-use imp_ror::error_defs::AppError;
 use imp_ror::setup::get_db_pool;
-use imp_ror::setup::config_reader;
-
 use super::src_data_access;
 use super::src_record_structs::{SrcCoreData, SrcRelationship, SrcExternalId, 
     SrcName, SrcLocation, SrcLink, SrcType, SrcAdminData};
 
-pub async fn fetch_db_pool() -> Result<Pool<Postgres>, AppError>  {
-
-    // Use the process set up in the library under test
-    // Helps to ensure exactly the same database connections are used.
-
-    let config_file_path = "./config_imp_ror.toml".to_string();
-    config_reader::populate_config_vars(&config_file_path)?; 
-    get_db_pool().await
-}
 
 #[tokio::test] 
 async fn process_v2_0_data_to_src_and_summarise() {
-
-    // Arrange     
-    // Get database pool to allow interrogation of the DB
-    let pool = fetch_db_pool().await.unwrap();
-  
-    // Act 
+ 
     // Run the program with v2.0 test data
     thread::sleep(Duration::from_secs(4));
     let args : Vec<&str> = vec!["target/debug/src1.exe", "-p", "-z"];
@@ -39,6 +20,7 @@ async fn process_v2_0_data_to_src_and_summarise() {
 
     // Assert     
     // Check numbers of records
+    let pool = get_db_pool().await.unwrap();
     let rec_number = src_data_access::fetch_src_record_num("core_data", &pool).await;
     assert_eq!(rec_number, 20);
 }
@@ -48,7 +30,7 @@ async fn process_v2_0_data_to_src_and_summarise() {
 async fn check_numbers_in_each_src_table() {
 
     thread::sleep(Duration::from_secs(6));
-    let pool = fetch_db_pool().await.unwrap();
+    let pool = get_db_pool().await.unwrap();
 
     let rec_number = src_data_access::fetch_src_record_num("names", &pool).await;
     assert_eq!(rec_number, 56);
@@ -67,7 +49,7 @@ async fn check_numbers_in_each_src_table() {
 async fn check_src_first_and_last_ids() {
 
     thread::sleep(Duration::from_secs(6));
-    let pool = fetch_db_pool().await.unwrap();
+    let pool = get_db_pool().await.unwrap();
 
     // Check first and last record Ids
     let first_id = src_data_access::fetch_src_first_record_id(&pool).await;
@@ -82,7 +64,7 @@ async fn check_src_first_and_last_ids() {
 async fn check_src_core_data() {
 
     thread::sleep(Duration::from_secs(6));
-    let pool = fetch_db_pool().await.unwrap();
+    let pool = get_db_pool().await.unwrap();
 
     let id = "006jxzx88";
 
@@ -136,7 +118,7 @@ async fn check_src_core_data() {
 async fn check_src_relationship_data() {
 
     thread::sleep(Duration::from_secs(7));
-    let pool = fetch_db_pool().await.unwrap();
+    let pool = get_db_pool().await.unwrap();
 
     let id = "03rd8mf35";
     let rels:Vec<SrcRelationship> = src_data_access::fetch_src_relationship_records(id, &pool).await;
@@ -161,7 +143,7 @@ async fn check_src_relationship_data() {
 async fn check_src_external_id_data() {
 
     thread::sleep(Duration::from_secs(7));
-    let pool = fetch_db_pool().await.unwrap();
+    let pool = get_db_pool().await.unwrap();
 
     let id = "04ttjf776";
     let extids:Vec<SrcExternalId> = src_data_access::fetch_src_external_id_records(id, &pool).await;
@@ -190,7 +172,7 @@ async fn check_src_external_id_data() {
 async fn check_src_location_data() {
 
     thread::sleep(Duration::from_secs(7));
-    let pool = fetch_db_pool().await.unwrap();
+    let pool = get_db_pool().await.unwrap();
 
     let id = "006jxzx88";
     let locs:Vec<SrcLocation> = src_data_access::fetch_src_location_records(id, &pool).await;
@@ -219,7 +201,7 @@ async fn check_src_location_data() {
 async fn check_src_link_data() {
 
     thread::sleep(Duration::from_secs(7));
-    let pool = fetch_db_pool().await.unwrap();
+    let pool = get_db_pool().await.unwrap();
 
     let id = "006jxzx88";
     let links:Vec<SrcLink> = src_data_access::fetch_src_link_records(id, &pool).await;
@@ -247,7 +229,7 @@ async fn check_src_link_data() {
 async fn check_src_type_data() {
 
     thread::sleep(Duration::from_secs(7));
-    let pool = fetch_db_pool().await.unwrap();
+    let pool = get_db_pool().await.unwrap();
 
     let id = "006jxzx88";
     let types:Vec<SrcType> = src_data_access::fetch_src_type_records(id, &pool).await;
@@ -267,7 +249,7 @@ async fn check_src_type_data() {
 async fn check_src_name_data() {
 
     thread::sleep(Duration::from_secs(7));
-    let pool = fetch_db_pool().await.unwrap();
+    let pool = get_db_pool().await.unwrap();
 
     let id = "0198t0w55";
     let names:Vec<SrcName> = src_data_access::fetch_src_name_records(id, &pool).await;
