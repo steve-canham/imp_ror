@@ -35,7 +35,7 @@ pub struct Flags {
 
 pub fn fetch_valid_arguments(args: Vec<OsString>) -> Result<CliPars, AppError>
 { 
-    let parse_result = parse_args(args)?;
+    let parse_result = parse_args(args.to_vec())?;
 
     // These parameters guaranteed to unwrap OK as all have a default value of "".
 

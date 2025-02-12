@@ -5,6 +5,7 @@ mod summarise;
 mod export;
 pub mod err;
 
+use setup::cli_reader;
 use std::sync::OnceLock;
 use err::AppError;
 use setup::log_helper;
@@ -16,11 +17,18 @@ pub static LOG_RUNNING: OnceLock<bool> = OnceLock::new();
 
 pub async fn run(args: Vec<OsString>) -> Result<(), AppError> {
     
+    let cli_pars = cli_reader::fetch_valid_arguments(args)?;
+    let flags = cli_pars.flags;
+
+    if flags.create_config {
+        setup::edit_config().await?;  // If set, must be done before anything else
+    }
+
     let config_file = PathBuf::from("./app_config.toml");
     let config_string: String = fs::read_to_string(&config_file)
                     .map_err(|e| AppError::IoReadErrorWithPath(e, config_file))?;
     
-    let params = setup::get_params(args, config_string)?;
+    let params = setup::get_params(cli_pars, config_string)?;
     let flags = params.flags;
     let test_run = flags.test_run;
 
@@ -32,13 +40,8 @@ pub async fn run(args: Vec<OsString>) -> Result<(), AppError> {
             
     let pool = setup::get_db_pool().await?;
 
-    // The first three routines below normally run only as an initial 
+    // The first two routines below normally run only as an initial 
     // 'setup' of the program's config file and DB, but can be repeated later if required.
-
-    if flags.create_config
-    {  
-        setup::edit_config().await?;
-    }
 
     if flags.create_lookups
     {  

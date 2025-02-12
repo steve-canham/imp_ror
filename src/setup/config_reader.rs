@@ -33,7 +33,6 @@ pub struct TomlFilePars {
     pub log_folder_path: Option<String>,
     pub output_folder_path: Option<String>,
     pub src_file_name: Option<String>,
-    pub output_file_name: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -85,7 +84,7 @@ pub fn populate_config_vars(config_string: &String) -> Result<Config, AppError> 
     let toml_data_details = match toml_config.data {
         Some(d) => d,
         None => {
-            println!("Data detals section not found in config file.");
+            println!("Data details section not found in config file.");
             TomlDataPars {
                 data_version: None,
                 data_date: None,
@@ -210,7 +209,7 @@ fn check_defaulted_string (src_name: Option<String>, value_name: &str, default_n
 
     if s == "none".to_string() || s.trim() == "".to_string()
     {
-        println!("No value found for {} path in config file - 
+        println!("No value found for the {} in config file - 
         using the provided default value ('{}') instead.", value_name, default_name);
         default.to_owned()
     }

@@ -13,10 +13,10 @@ The module also provides a database connection pool on demand.
 ***********************************************************************************/
 
 pub mod config_reader;
-mod config_writer;
 pub mod log_helper;
-mod cli_reader;
+pub mod cli_reader;
 mod lup_create_tables;
+mod config_writer;
 mod lup_fill_tables;
 
 use crate::err::AppError;
@@ -25,13 +25,12 @@ use sqlx::postgres::{PgPoolOptions, PgConnectOptions, PgPool};
 use sqlx::{Postgres, Pool};
 use log::{info, error};
 use std::path::PathBuf;
-use std::ffi::OsString;
 use std::fs;
 use std::time::Duration;
 use regex::Regex;
 use sqlx::ConnectOptions;
 use config_reader::Config;
-use cli_reader::Flags;
+use cli_reader::{CliPars, Flags};
 
 pub struct InitParams {
     pub data_folder: PathBuf,
@@ -43,10 +42,10 @@ pub struct InitParams {
     pub flags: Flags,
 }
 
-pub fn get_params(args: Vec<OsString>, config_string: String) -> Result<InitParams, AppError> {
+pub fn get_params(cli_pars: CliPars, config_string: String) -> Result<InitParams, AppError> {
 
-    let cli_pars = cli_reader::fetch_valid_arguments(args)?;
     let flags = cli_pars.flags;
+    let config_file: Config = config_reader::populate_config_vars(&config_string)?; 
 
     if flags.create_lookups || flags.create_summary 
        || flags.create_config {
@@ -67,8 +66,7 @@ pub fn get_params(args: Vec<OsString>, config_string: String) -> Result<InitPara
 
         // Normal import and / or processing and / or outputting
         // If folder name also given in CL args the CL version takes precedence
-
-        let config_file: Config = config_reader::populate_config_vars(&config_string)?; 
+        
         let file_pars = config_file.files;  // guaranteed to exist
         let data_pars = config_file.data_details; 
         let empty_pb = PathBuf::from("");
@@ -229,7 +227,7 @@ pub async fn get_db_pool() -> Result<PgPool, AppError> {
 
 pub async fn edit_config() -> Result<(), AppError>
 {
-    match config_writer::edit_config_file().await {
+    match config_writer::create_config_file().await {
         Ok(()) => info!("Configuration file edits completed"),
         Err(e) => {
             error!("An error occured while editing the configuration file: {}", e);
@@ -389,6 +387,7 @@ mod tests {
         // Note that in most cases the folder path given must exist, and be 
         // accessible, or get_params will panic and an error will be thrown. 
 
+        use std::ffi::OsString;
         let config = r#"
     [data]
     data_version="v1.60"
@@ -409,10 +408,12 @@ mod tests {
     "#;
             let config_string = config.to_string();
             config_reader::populate_config_vars(&config_string).unwrap();
+
             let args : Vec<&str> = vec!["target/debug/ror1.exe"];
             let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
+            let cli_pars = cli_reader::fetch_valid_arguments(test_args).unwrap();
 
-            let res = get_params(test_args, config_string).unwrap();
+            let res = get_params(cli_pars, config_string).unwrap();
 
             assert_eq!(res.flags.import_ror, true);
             assert_eq!(res.flags.process_data, false);
