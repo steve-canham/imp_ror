@@ -8,64 +8,63 @@ use chrono::NaiveDate;
 
 pub async fn create_config_file() -> Result<(), AppError>
 {
-    let prompt1 = " WELCOME TO IMP_ROR ";
-    let star_line = "********************";
-    let prompt2 = "The initial task is to set up an app_config file, to hold the details needed";
-    let prompt3 = "to connect to the database, and some required folder paths.";
-    let section = format!("\n\n{}\n{}\n{}\n{}\n{}\n", star_line, prompt1, star_line, prompt2, prompt3);
+    let p1 = "        WELCOME TO IMP_ROR               CONFIGURATION SET UP";
+    let star_line = "****************************************************************************";
+    let p2 = "The initial task is to set up an app_config file, to hold the details needed";
+    let p3 = "to connect to the database, and some required folder paths.";
+    let section = format!("\n\n{}\n{}\n{}\n{}\n{}\n", star_line, p1, star_line, p2, p3);
     println!("{}", section);
 
 
-    let prompt4 = "Section 1: DATABASE PARAMETERS";
-    let prompt5h = "DATABASE HOST";
-    let prompt5 = "Please input the name of your database host (usually the server name or IP address).";
-    let prompt7 = "To accept the default ('localhost') simply press enter, otherwise type the name and press enter.";
-    let section = format!("\n{}\n\n{}\n{}\n{}\n", prompt4, prompt5h, prompt5, prompt7);
+    let p1 = "Section 1: DATABASE PARAMETERS";
+    let p2 = "DATABASE HOST";
+    let p3 = "Please input the name of your database host (usually the server name or IP address).";
+    let p4 = "To accept the default ('localhost') simply press enter, otherwise type the name and press enter.";
+    let section = format!("\n{}\n\n{}\n{}\n{}\n", p1, p2, p3, p4);
     println!("{}", section);
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let mut host = input.trim();
+ 
+    let mut host = user_input();
+    let mut suffix = "";
     if host == "" {
-        host = "localhost";
+        host = "localhost".to_string();
+        suffix = " (= default)";
     }
     let db_host = format!("db_host=\"{}\"", host);
-    println!("{}", db_host);
-
-    let prompt8h = "USER NAME";
-    let prompt8 = "Please input the name of the user account being used to access the database.";
-    let prompt9 = "No default is available, type the name and press enter.";
-    let section = format!("\n{}\n{}\n{}\n", prompt8h, prompt8, prompt9);
+    println!("{}{}", db_host, suffix);
+    
+    let p1 = "USER NAME";
+    let p2 = "Please input the name of the user account being used to access the database.";
+    let p3 = "No default is available, type the name and press enter.";
+    let section = format!("\n{}\n{}\n{}\n", p1, p2, p3);
     println!("{}", section);
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let user = input.trim();
+
+    let user = user_input();
     let db_user = format!("db_user=\"{}\"", user);
     println!("{}", db_user);
 
-    let prompt10h = "USER PASSWORD";
-    let prompt10 = "Please input the name of the user password being used to access the database.";
-    let prompt11 = "No default is available, type the password and press enter.";
-    let section = format!("\n{}\n{}\n{}\n", prompt10h, prompt10, prompt11);
+    let p1 = "USER PASSWORD";
+    let p2 = "Please input the name of the user password being used to access the database.";
+    let p3 = "No default is available, type the password and press enter.";
+    let section = format!("\n{}\n{}\n{}\n", p1, p2, p3);
     println!("{}", section);
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let password = input.trim();
+
+    let password = user_input();
     let db_password = format!("db_password=\"{}\"", password);
     println!("{}", db_password);
 
-    let prompt12h = "PORT";
-    let prompt12 = "Please input the port number being used to access the database.";
-    let prompt13 = "To accept the default ('5432') simply press enter, otherwise type the number and press enter.";
-    let section = format!("\n{}\n{}\n{}\n", prompt12h, prompt12, prompt13);
+    let p1 = "PORT";
+    let p2 = "Please input the port number being used to access the database.";
+    let p3 = "To accept the default ('5432') simply press enter, otherwise type the number and press enter.";
+    let section = format!("\n{}\n{}\n{}\n", p1, p2, p3);
     println!("{}", section);
 
     let mut port = -1;
+    let mut suffix = "";
     while port < 0 {
-        let mut input = String::new();
-        io::stdin().read_line(&mut input).expect("Failed to read line");
-        let try_port = input.trim();
+        let try_port = user_input();
         if try_port == "" {
             port = 5432;
+            suffix = " (= default)";
         }
         else {
             port = match try_port.parse()
@@ -79,35 +78,34 @@ pub async fn create_config_file() -> Result<(), AppError>
         }
     }
     let db_port = format!("db_port=\"{}\"", port);
-    println!("{}", db_port);
+    println!("{}{}", db_port, suffix);
 
-    let prompt14h = "DATABASE NAME";
-    let prompt14 = "Please input the name of the database.";
-    let prompt15 = "To accept the default ('ror') simply press enter, otherwise type the name and press enter.";
-    let section = format!("\n{}\n{}\n{}\n", prompt14h, prompt14, prompt15);
+    let p1 = "DATABASE NAME";
+    let p2 = "Please input the name of the database.";
+    let p3 = "To accept the default ('ror') simply press enter, otherwise type the name and press enter.";
+    let section = format!("\n{}\n{}\n{}\n", p1, p2, p3);
     println!("{}", section);
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let mut dname = input.trim();
+
+    let mut suffix = "";
+    let mut dname = user_input();
     if dname == "" {
-        dname = "ror";
+        dname = "ror".to_string();
+        suffix = " (= default)";
     }
     let db_name = format!("db_name=\"{}\"", dname);
-    println!("{}", db_name);
+    println!("{}{}", db_name, suffix);
 
 
-    let prompt16 = "Section 2: FOLDERS";
-    let prompt17h = "DATA FOLDER";
-    let prompt17 = "Please input the full path of the folder where the ROR JSON source file is to be found.";
-    let prompt18 = "No default is available, type the path and press enter.";
-    let section = format!("\n{}\n\n{}\n{}\n{}\n", prompt16, prompt17h, prompt17, prompt18);
+    let p1 = "Section 2: FOLDERS";
+    let p2 = "DATA FOLDER";
+    let p3 = "Please input the full path of the folder where the ROR JSON source file is to be found.";
+    let p4 = "No default is available, type the path and press enter.";
+    let section = format!("\n{}\n\n{}\n{}\n{}\n", p1, p2, p3, p4);
     println!("{}", section);
 
     let mut df = "".to_string();
     while df == "".to_string() {
-        let mut input = String::new();
-        io::stdin().read_line(&mut input).expect("Failed to read line");
-        let try_df = input.trim().replace("\\", "\\\\");
+        let try_df = user_input().replace("\\", "\\\\");
         if folder_exists(&PathBuf::from(&try_df))
         {
             df = try_df;
@@ -124,14 +122,13 @@ pub async fn create_config_file() -> Result<(), AppError>
     // check is a valid path - repeat request if not
     // change single to dounble slashes
    
-    let prompt19h = "OUTPUTS FOLDER";
-    let prompt19 = "Please input the full path of the folder where the outputs from the program should be placed.";
-    let prompt20 = "To accept the default (the 'DATA FOLDER') simply press enter, otherwise type the path and press enter.";
-    let section = format!("\n{}\n{}\n{}\n", prompt19h, prompt19, prompt20);
+    let p1 = "OUTPUTS FOLDER";
+    let p2 = "Please input the full path of the folder where the outputs from the program should be placed.";
+    let p3 = "To accept the default (the 'DATA FOLDER') simply press enter, otherwise type the path and press enter.";
+    let section = format!("\n{}\n{}\n{}\n", p1, p2, p3);
     println!("{}", section);
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let output_folder = input.trim();
+
+    let output_folder = user_input();
     let output_folder_path: String;
     if output_folder == "" {
         output_folder_path = format!("output_folder_path=\"{}\"", data_folder);
@@ -142,14 +139,13 @@ pub async fn create_config_file() -> Result<(), AppError>
     }
     println!("{}", output_folder_path);
 
-    let prompt21h = "LOG FOLDER";
-    let prompt21 = "Please input the full path of the folder where the logs from the program should be placed.";
-    let prompt22 = "To accept the default (the 'DATA FOLDER') simply press enter, otherwise type the path and press enter.";
-    let section = format!("\n{}\n{}\n{}\n", prompt21h, prompt21, prompt22);
+    let p1 = "LOG FOLDER";
+    let p2 = "Please input the full path of the folder where the logs from the program should be placed.";
+    let p3 = "To accept the default (the 'DATA FOLDER') simply press enter, otherwise type the path and press enter.";
+    let section = format!("\n{}\n{}\n{}\n", p1, p2, p3);
     println!("{}", section);
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let log_folder = input.trim();
+
+    let log_folder = user_input();
     let log_folder_path: String;
     if log_folder == "" {
         log_folder_path = format!("log_folder_path=\"{}\"", data_folder);
@@ -161,17 +157,16 @@ pub async fn create_config_file() -> Result<(), AppError>
     println!("{}", log_folder_path);
 
 
-    let prompt23 = "Section 3: SOURCE FILE";
-    let prompt24h = "SOURCE FILE NAME";
-    let prompt24 = "Normally the source file is provided as a command line argument.";
-    let prompt25 = "You can define it in the configuration, however, which means it does not have to be given in the command line.";
-    let prompt26 = "Note that any source file provided in the command line will over-write the value in the config file.";
-    let prompt27 = "To always use the command line simply press enter, otherwise type the source file name and press enter.";
-    let section = format!("\n{}\n\n{}\n{}\n{}\n{}\n{}\n", prompt23, prompt24h, prompt24, prompt25, prompt26, prompt27);
+    let p1 = "Section 3: SOURCE FILE";
+    let p2 = "SOURCE FILE NAME";
+    let p3 = "The source file can be provided as a command line argument, or in the configuration file, or in both.";
+    let p4 = "NOTE that any source file name provided in the command line will over-write the value in the config file.";
+    let p5 = "NOTE also that without a source file named in the configuration file, i.e. if enter is pressed without ";
+    let p6 = "entering a value, a source file name will ALWAYS have to be provided in the command line.";
+    let section = format!("\n{}\n\n{}\n{}\n\n{}\n{}\n{}\n{}\n{}\n", p1, p2, p3, star_line, p4, p5, p6, star_line);
     println!("{}", section);
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    let src_file = input.trim();
+
+    let src_file = user_input();
     let src_file_name = format!("src_file_name=\"{}\"", src_file);
     println!("{}", src_file_name);
 
@@ -180,68 +175,70 @@ pub async fn create_config_file() -> Result<(), AppError>
 
     if src_file != "" {
 
-        let prompt28 = "As you have stored a source file name in the configuration you may need to also store";
-        let prompt29 = "the associated data version and date. These can be left as the defaults (empty strings)";
-        let prompt30 = "if the version and date can be parsed from the source file name (see documentation for the required pattern).";
-        let section = format!("\n{}\n{}\n{}\n", prompt28, prompt29, prompt30);
+        let p1 = "As you have stored a source file name in the configuration you may need to also store";
+        let p2 = "the associated data version and date. These can be left as the defaults (empty strings)";
+        let p3 = "if the version and date can be derived from the source file name (see documentation for the required pattern).";
+        let section = format!("\n{}\n{}\n{}\n", p1, p2, p3);
         println!("{}", section);
 
 
-        let prompt31h = "DATA VERSION";
-        let prompt31 = "Please input the data version, as a 'v' followed by the version number, e.g. '1.56.1'.";
-        let prompt32 = "To accept the default (an empty string) simply press enter, otherwise type the version and press enter.";
-        let section = format!("\n{}\n{}\n{}\n\n", prompt31h, prompt31, prompt32);
+        let p1 = "DATA VERSION";
+        let p2 = "Please input the data version, as a 'v' followed by the version number, e.g. '1.56.1'.";
+        let p3 = "To accept the default (an empty string) simply press enter, otherwise type the version and press enter.";
+        let section = format!("\n{}\n{}\n{}\n\n", p1, p2, p3);
         println!("{}", section);
 
+        let mut suffix = "";
         let mut d_version = "zzzz".to_string();
         while d_version == "zzzz".to_string() {
-            let mut input = String::new();
-            io::stdin().read_line(&mut input).expect("Failed to read line");
-            let d_v = input.trim();
-            if d_v == "" || is_compliant_version(d_v) {
-                d_version = d_v.to_string();
+            let d_v = user_input();
+            if d_v == "".to_string()  {
+                d_version = d_v;
+                suffix = " (= default)";
+            }
+            else if is_compliant_version(&d_v) {
+                d_version = d_v;
             }
             else {
                 println!("{}", "The version entered does not conform to the pattern required - please try again");
             }
         }
         data_version = format!("data_version=\"{}\"", d_version);
-        println!("{}", data_version);
+        println!("{}{}", data_version, suffix);
 
         // check starts with a v and has following digits / decimal points
        
-        let prompt33h = "DATA DATE";
-        let prompt33 = "Please input the data date as an ISO string, yyyy-MM-dd, e.g. '2025-07-22'.";
-        let prompt34 = "To accept the default (an empty string) simply press enter, otherwise type the date and press enter.";
-        let section = format!("\n{}\n{}\n{}\n", prompt33h, prompt33, prompt34);
+        let p1 = "DATA DATE";
+        let p2 = "Please input the data date as an ISO string, yyyy-MM-dd, e.g. '2025-07-22'.";
+        let p3 = "To accept the default (an empty string) simply press enter, otherwise type the date and press enter.";
+        let section = format!("\n{}\n{}\n{}\n", p1, p2, p3);
         println!("{}", section);
 
+        let mut suffix = "";
         let mut d_date = "zzzz".to_string();
         while d_date == "zzzz".to_string() {
-            let mut input = String::new();
-            io::stdin().read_line(&mut input).expect("Failed to read line");
-            let d_d = input.trim();
-            if d_d == "" || NaiveDate::parse_from_str(d_d, "%Y-%m-%d").is_ok() {
-                d_date = d_d.to_string();
+            let d_d = user_input();
+            if d_d == "".to_string() {
+                d_date = d_d;
+                suffix = " (= default)";
+            }
+            else if NaiveDate::parse_from_str(&d_d, "%Y-%m-%d").is_ok() {
+                d_date = d_d;
             }
             else {
                 println!("{}", "The date entered does not conform to the ISO pattern (yyyy-MM-dd) required - please try again");
             }
         }
         data_date = format!("data_date=\"{}\"", d_date);
-        println!("{}", data_date);
+        println!("{}{}", data_date, suffix);
 
         // check is a date
     }
 
     let database_section = format!("[database]\n{}\n{}\n{}\n{}\n{}\n", db_host, db_user, db_password, db_port, db_name);
-
     let files_section = format!("[files]\n{}\n{}\n{}\n{}\n", data_folder_path, output_folder_path, log_folder_path, src_file_name);
-
     let data_section = format!("[data]\n{}\n{}", data_version, data_date);
-       
     let config_string = format!("\n{}\n\n{}\n\n{}\n", data_section, files_section, database_section);
-
     println!("{}", config_string);
 
     let mut file = File::create("./app_config.toml")     // creates new or truncates existing
@@ -256,6 +253,15 @@ pub async fn create_config_file() -> Result<(), AppError>
 }
 
 
+fn user_input() -> String {
+    print!(">>");
+    io::stdout().flush().unwrap(); 
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    input.trim().to_string()
+}
+
+
 fn folder_exists(folder_name: &PathBuf) -> bool {
     let xres = folder_name.try_exists();
     let res = match xres {
@@ -267,7 +273,7 @@ fn folder_exists(folder_name: &PathBuf) -> bool {
 }
 
 
-fn is_compliant_version(input: &str) -> bool {
+fn is_compliant_version(input: &String) -> bool {
     let version_pattern = r#"^v[0-9]+(\.[0-9]+){0,2}"#;
     let re = Regex::new(version_pattern).unwrap();
     re.is_match(&input) 

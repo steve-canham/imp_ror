@@ -138,11 +138,12 @@ fn verify_data_parameters(toml_data_pars: TomlDataPars) -> Result<DataPars, AppE
 
 fn verify_file_parameters(toml_files: TomlFilePars) -> Result<FilePars, AppError> {
 
-    // Check data folder and source file first as there are no defaults for these values.
-    // They must therefore be present.
     let data_folder_string = check_essential_string (toml_files.data_folder_path, "data path folder", "data_folder_path")?;
 
-    let src_file_string = check_essential_string (toml_files.src_file_name, "source file name", "src_file_name")?;
+    let src_file_string =  match toml_files.src_file_name {
+        Some(s) => s.trim().to_string(),
+        None => "".to_string(),
+    };
 
     let log_folder_string = check_defaulted_string (toml_files.log_folder_path, "log folder", "data_folder_path", &data_folder_string);
 
@@ -209,8 +210,8 @@ fn check_defaulted_string (src_name: Option<String>, value_name: &str, default_n
 
     if s == "none".to_string() || s.trim() == "".to_string()
     {
-        println!("No value found for the {} in config file - 
-        using the provided default value ('{}') instead.", value_name, default_name);
+        println!("No value found for the {} in config file - using the provided default value ('{}') instead.", 
+        value_name, default_name);
         default.to_owned()
     }
     else {

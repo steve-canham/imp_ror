@@ -83,48 +83,27 @@ fn config_log (log_file_path: &PathBuf) -> Result<log4rs::Handle, AppError> {
 pub fn log_startup_params (ip : &InitParams) {
     
     // Called at the end of set up to record the input parameters
+    
+    info!("PROGRAM START");
+    info!("");
+    info!("************************************");
+    info!("");
+    info!("data_folder: {}", ip.data_folder.display());
+    info!("log_folder: {}", ip.log_folder.display());
+    info!("output_folder: {}", ip.output_folder.display());
+    info!("source_file_name: {}", ip.source_file_name.display());
+    info!("data_version: {}", ip.data_version);
+    info!("data_date: {}", ip.data_date);
+    info!("create config table: {}", ip.flags.create_config);
+    info!("create look up tables: {}", ip.flags.create_lookups);
+    info!("create summary tables: {}", ip.flags.create_summary);
+    info!("import_ror: {}", ip.flags.import_ror);
+    info!("process_data: {}", ip.flags.process_data);
+    info!("export_text: {}", ip.flags.export_text);
+    info!("export_csv: {}", ip.flags.export_csv);
+    info!("export_all_csv: {}", ip.flags.export_full_csv);
+    info!("");
+    info!("************************************");
+    info!("");
 
-    if ip.flags.create_config || ip.flags.create_lookups || ip.flags.create_summary {
-
-        info!("PROGRAM START");
-        info!("(flags only, as setup routine(s) selected)");
-        info!("");
-        info!("************************************");
-        info!("");
-        info!("create config table: {}", ip.flags.create_config);
-        info!("create look up tables: {}", ip.flags.create_lookups);
-        info!("create summary tables: {}", ip.flags.create_summary);
-        info!("import_ror: {}", ip.flags.import_ror);
-        info!("process_data: {}", ip.flags.process_data);
-        info!("export_text: {}", ip.flags.export_text);
-        info!("export_csv: {}", ip.flags.export_csv);
-        info!("export_all_csv: {}", ip.flags.export_full_csv);
-        info!("");
-        info!("************************************");
-        info!("");
-
-    } else {
-
-        info!("PROGRAM START");
-        info!("");
-        info!("************************************");
-        info!("");
-        info!("data_folder: {}", ip.data_folder.display());
-        info!("log_folder: {}", ip.log_folder.display());
-        info!("output_folder: {}", ip.output_folder.display());
-        info!("source_file_name: {}", ip.source_file_name.display());
-        info!("data_version: {}", ip.data_version);
-        info!("data_date: {}", ip.data_date);
-        info!("create config table: {}", ip.flags.create_config);
-        info!("create look up tables: {}", ip.flags.create_lookups);
-        info!("create summary tables: {}", ip.flags.create_summary);
-        info!("import_ror: {}", ip.flags.import_ror);
-        info!("process_data: {}", ip.flags.process_data);
-        info!("export_text: {}", ip.flags.export_text);
-        info!("export_csv: {}", ip.flags.export_csv);
-        info!("export_all_csv: {}", ip.flags.export_full_csv);
-        info!("");
-        info!("************************************");
-        info!("");
-    }
 }

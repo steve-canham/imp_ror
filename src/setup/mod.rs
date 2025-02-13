@@ -46,145 +46,125 @@ pub fn get_params(cli_pars: CliPars, config_string: String) -> Result<InitParams
 
     let flags = cli_pars.flags;
     let config_file: Config = config_reader::populate_config_vars(&config_string)?; 
+    
+    let file_pars = config_file.files;  // guaranteed to exist
+    let data_pars = config_file.data_details; 
 
-    if flags.create_lookups || flags.create_summary 
-       || flags.create_config {
+    let empty_pb = PathBuf::from("");
+    let data_folder: PathBuf;
+    let mut data_folder_good = true;
 
-       // Any ror data and any other flags or arguments are ignored.
-
-        Ok(InitParams {
-            data_folder: PathBuf::new(),
-            log_folder: PathBuf::new(),
-            output_folder: PathBuf::new(),
-            source_file_name: PathBuf::new(),
-            data_version: "".to_string(),
-            data_date: "".to_string(),
-            flags: cli_pars.flags,
-        })
+    if cli_pars.flags.test_run {
+        data_folder  =  cli_pars.test_folder;
     }
     else {
+        data_folder  =  file_pars.data_folder_path;
+        if !folder_exists (&data_folder) 
+        {   
+            data_folder_good = false;
+        }
 
-        // Normal import and / or processing and / or outputting
-        // If folder name also given in CL args the CL version takes precedence
+        if !data_folder_good && flags.import_ror { 
+            return Result::Err(AppError::MissingProgramParameter("data_folder".to_string()));
+        }
+    }
+
+    let mut log_folder = file_pars.log_folder_path;
+    if log_folder == empty_pb && data_folder_good {
+        log_folder = data_folder.clone();
+    }
+    else {
+        if !folder_exists (&log_folder) { 
+            fs::create_dir_all(&log_folder)?;
+        }
+    }
+
+    let mut output_folder = file_pars.output_folder_path;
+    if output_folder == empty_pb && data_folder_good {
+        output_folder = data_folder.clone();
+    }
+    else {
+        if !folder_exists (&output_folder) { 
+            fs::create_dir_all(&output_folder)?;
+        }
+    }
+
+    // If source file name given in CL args the CL version takes precedence.
+
+    let mut source_file_name = cli_pars.source_file;
+    if source_file_name == empty_pb {
+        source_file_name =  file_pars.src_file_name;
+        if source_file_name == empty_pb && flags.import_ror {   // Required data is missing
+            return Result::Err(AppError::MissingProgramParameter("src_file_name".to_string()));
+        }
+    }
         
-        let file_pars = config_file.files;  // guaranteed to exist
-        let data_pars = config_file.data_details; 
-        let empty_pb = PathBuf::from("");
-        let data_folder: PathBuf;
-        let mut data_folder_good = true;
+    // get the output file name - from the config variables (may be a default)
 
-        if cli_pars.flags.test_run {
-            data_folder  =  cli_pars.test_folder;
-        }
-        else {
-            data_folder  =  file_pars.data_folder_path;
-            if !folder_exists (&data_folder) 
-            {   
-                data_folder_good = false;
-            }
+    let mut data_version = "".to_string();
+    let mut data_date = "".to_string();
 
-            if !data_folder_good && flags.import_ror { 
-                return Result::Err(AppError::MissingProgramParameter("data_folder".to_string()));
-            }
-        }
-
-        let mut log_folder = file_pars.log_folder_path;
-        if log_folder == empty_pb && data_folder_good {
-            log_folder = data_folder.clone();
-        }
-        else {
-            if !folder_exists (&log_folder) { 
-                fs::create_dir_all(&log_folder)?;
-            }
-        }
-
-        let mut output_folder = file_pars.output_folder_path;
-        if output_folder == empty_pb && data_folder_good {
-            output_folder = data_folder.clone();
-        }
-        else {
-            if !folder_exists (&output_folder) { 
-                fs::create_dir_all(&output_folder)?;
-            }
-        }
-
-        // If source file name given in CL args the CL version takes precedence.
+    // If file name conforms to the correct pattern data version and data date can be derived.
     
-        let mut source_file_name= cli_pars.source_file;
-        if source_file_name == empty_pb {
-            source_file_name =  file_pars.src_file_name;
-            if source_file_name == empty_pb && flags.import_ror {   // Required data is missing
-                return Result::Err(AppError::MissingProgramParameter("src_file_name".to_string()));
-            }
-        }
-         
-        // get the output file name - from the config variables (may be a default)
-
-        let mut data_version = "".to_string();
-        let mut data_date = "".to_string();
-
-        // If file name conforms to the correct pattern data version and data date can be derived.
-        
-        if cli_pars.flags.test_run {
-            data_version = "v99".to_string();
-            data_date = "2030-01-01".to_string()
-        }
-        else {
-            match source_file_name.to_str() {
-                Some(s_file) => {
-                    if is_compliant_file_name(s_file) {
-                        data_version = get_data_version(s_file);
-                        data_date = get_data_date(s_file);
-                 }
-                },
-                None => {},
-            }
-        }
-
-        if data_version == "".to_string() ||  data_date == "".to_string()     
-        {
-            // Parsing of file name has not been completely successful, so get the version and date 
-            // of the data from the CLI, or failing that the config file.
-
-            data_version= cli_pars.data_version;
-            if data_version == "" {
-                data_version = data_pars.data_version;
-                if data_version == "" && flags.import_ror {   // Required data is missing - Raise error and exit program.
-                    return Result::Err(AppError::MissingProgramParameter("data_version".to_string()));
+    if cli_pars.flags.test_run {
+        data_version = "v99".to_string();
+        data_date = "2030-01-01".to_string()
+    }
+    else {
+        match source_file_name.to_str() {
+            Some(s_file) => {
+                if is_compliant_file_name(s_file) {
+                    data_version = get_data_version(s_file);
+                    data_date = get_data_date(s_file);
                 }
+            },
+            None => {},
+        }
+    }
+
+    if data_version == "".to_string() ||  data_date == "".to_string()     
+    {
+        // Parsing of file name has not been completely successful, so get the version and date 
+        // of the data from the CLI, or failing that the config file.
+
+        data_version= cli_pars.data_version;
+        if data_version == "" {
+            data_version = data_pars.data_version;
+            if data_version == "" && flags.import_ror {   // Required data is missing - Raise error and exit program.
+                return Result::Err(AppError::MissingProgramParameter("data_version".to_string()));
             }
-        
-            data_date = match NaiveDate::parse_from_str(&cli_pars.data_date, "%Y-%m-%d") {
-                Ok(_) => cli_pars.data_date,
+        }
+    
+        data_date = match NaiveDate::parse_from_str(&cli_pars.data_date, "%Y-%m-%d") {
+            Ok(_) => cli_pars.data_date,
+            Err(_) => "".to_string(),
+        };
+
+        if data_date == "" {  
+                let config_date = &data_pars.data_date;
+                data_date = match NaiveDate::parse_from_str(config_date, "%Y-%m-%d") {
+                Ok(_) => config_date.to_string(),
                 Err(_) => "".to_string(),
             };
 
-            if data_date == "" {  
-                    let config_date = &data_pars.data_date;
-                    data_date = match NaiveDate::parse_from_str(config_date, "%Y-%m-%d") {
-                    Ok(_) => config_date.to_string(),
-                    Err(_) => "".to_string(),
-                };
-
-                if data_date == "" && flags.import_ror {   // Raise an AppError...required data is missing.
-                    return Result::Err(AppError::MissingProgramParameter("data_date".to_string()));
-                }
+            if data_date == "" && flags.import_ror {   // Raise an AppError...required data is missing.
+                return Result::Err(AppError::MissingProgramParameter("data_date".to_string()));
             }
         }
-
-        // For execution flags read from the environment variables
-       
-        Ok(InitParams {
-            data_folder,
-            log_folder,
-            output_folder,
-            source_file_name,
-            data_version,
-            data_date,
-            flags: cli_pars.flags,
-        })
-
     }
+
+    // For execution flags read from the environment variables
+    
+    Ok(InitParams {
+        data_folder,
+        log_folder,
+        output_folder,
+        source_file_name,
+        data_version,
+        data_date,
+        flags: cli_pars.flags,
+    })
+
 }
 
 
@@ -302,7 +282,8 @@ fn get_data_date(input: &str) -> String {
 
 mod tests {
     use super::*;
-   
+    use std::ffi::OsString;
+
    // regex tests
    #[test]
    fn check_file_name_regex_works_1 () {
@@ -369,282 +350,318 @@ mod tests {
         let test_file_name = "v1.50.20241211.json".to_string();
         assert_eq!(is_compliant_file_name(&test_file_name), false);
     }
-}
  
     // Ensure the parameters are being correctly combined.
-    // The testing functions need to be async because of the call to get_params.
-    // This function needs to be awaited to execute.
 
-    // The closure is replaced by an explicitly async block rather than
-    // a normal closure. Inserting '||' before or after the 'async' results
-    // in multiple complaints from the compiler. The async block can also
-    // be replaced by a separate async function and called explicitly.
- 
+    #[test]
+    fn check_config_vars_overwrite_blank_cli_values() {
 
-    #[tokio::test]
-    async fn check_config_vars_overwrite_blank_cli_values() {
-
-        // Note that in most cases the folder path given must exist, and be 
+        // Note that in most cases the data folder path given must exist, and be 
         // accessible, or get_params will panic and an error will be thrown. 
-
-        use std::ffi::OsString;
+        
         let config = r#"
-    [data]
-    data_version="v1.60"
-    data_date="2025-12-11"
+[data]
+data_version="v1.60"
+data_date="2025-12-11"
 
-    [files]
-    data_folder_path="E:\\MDR source data\\ROR\\data"
-    log_folder_path="E:\\MDR source data\\ROR\\logs"
-    output_folder_path="E:\\MDR source data\\ROR\\outputs"
-    src_file_name="v1.58 20241211.json"
+[files]
+data_folder_path="E:\\MDR source data\\ROR\\data"
+log_folder_path="E:\\MDR source data\\ROR\\logs"
+output_folder_path="E:\\MDR source data\\ROR\\outputs"
+src_file_name="v1.58 20241211.json"
 
-    [database]
-    db_host="localhost"
-    db_user="user_name"
-    db_password="password"
-    db_port="5433"
-    db_name="ror"
-    "#;
-            let config_string = config.to_string();
-            config_reader::populate_config_vars(&config_string).unwrap();
+[database]
+db_host="localhost"
+db_user="user_name"
+db_password="password"
+db_port="5433"
+db_name="ror"
+"#;
+        let config_string = config.to_string();
+        config_reader::populate_config_vars(&config_string).unwrap();
 
-            let args : Vec<&str> = vec!["target/debug/ror1.exe"];
-            let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
-            let cli_pars = cli_reader::fetch_valid_arguments(test_args).unwrap();
+        let args : Vec<&str> = vec!["dummy target"];
+        let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
+        let cli_pars = cli_reader::fetch_valid_arguments(test_args).unwrap();
 
-            let res = get_params(cli_pars, config_string).unwrap();
+        let res = get_params(cli_pars, config_string).unwrap();
 
-            assert_eq!(res.flags.import_ror, true);
-            assert_eq!(res.flags.process_data, false);
-            assert_eq!(res.flags.export_text, false);
-            assert_eq!(res.flags.create_lookups, false);
-            assert_eq!(res.flags.create_summary, false);
-            assert_eq!(res.data_folder, PathBuf::from("E:\\MDR source data\\ROR\\data"));
-            assert_eq!(res.log_folder, PathBuf::from("E:\\MDR source data\\ROR\\logs"));
-            assert_eq!(res.output_folder, PathBuf::from("E:\\MDR source data\\ROR\\outputs"));
-            assert_eq!(res.source_file_name, PathBuf::from("v1.58 20241211.json"));
-            assert_eq!(res.data_version, "v1.58");
-            assert_eq!(res.data_date, "2024-12-11");
-        }
-
- /* 
-    #[tokio::test]
-    async fn check_cli_vars_overwrite_env_values() {
-
-        // Note that the folder path given must exist, 
-        // and be accessible, or get_params will panic
-        // and an error will be thrown. 
-
-        temp_env::async_with_vars(
-        [
-            ("data_folder_path", Some("E:/ROR/20241211 1.58 data")),
-            ("src_file_name", Some("v1.58 20241211.json")),
-            ("data_version", Some("v1.59")),
-            ("data_date", Some("2025-12-11")),
-            ("output_file_name", Some("results 27.json")),
-        ],
-        async { 
-            let args : Vec<&str> = vec!["target/debug/ror1.exe", "-r", "-p", "-t", "-x",
-                                     "-f", "E:/ROR/data", "-d", "2026-12-25", "-s", "schema2 data.json", "-v", "v1.60"];
-            let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
-            let res = get_params(test_args).await.unwrap();
-    
-            assert_eq!(res.flags.import_ror, true);
-            assert_eq!(res.flags.process_data, true);
-            assert_eq!(res.flags.export_text, true);
-            assert_eq!(res.flags.export_csv, true);
-            assert_eq!(res.flags.create_lookups, false);
-            assert_eq!(res.flags.create_summary, false);
-            assert_eq!(res.data_folder, PathBuf::from("E:/ROR/data"));
-            assert_eq!(res.log_folder, PathBuf::from("E:/ROR/logs"));
-            assert_eq!(res.output_folder, PathBuf::from("E:/ROR/outputs"));
-            assert_eq!(res.source_file_name, "schema2 data.json");
-            let lt = Local::now().format("%m-%d %H%M%S").to_string();
-            assert_eq!(res.output_file_name, format!("results 27.json at {}.txt", lt));
-            assert_eq!(res.data_version, "v1.60");
-            assert_eq!(res.data_date, "2026-12-25");
-        }
-       ).await;
-
+        assert_eq!(res.flags.import_ror, true);
+        assert_eq!(res.flags.process_data, false);
+        assert_eq!(res.flags.export_text, false);
+        assert_eq!(res.flags.export_csv, false);
+        assert_eq!(res.flags.export_full_csv, false);
+        assert_eq!(res.flags.create_config, false);
+        assert_eq!(res.flags.create_lookups, false);
+        assert_eq!(res.flags.create_summary, false);
+        assert_eq!(res.data_folder, PathBuf::from("E:\\MDR source data\\ROR\\data"));
+        assert_eq!(res.log_folder, PathBuf::from("E:\\MDR source data\\ROR\\logs"));
+        assert_eq!(res.output_folder, PathBuf::from("E:\\MDR source data\\ROR\\outputs"));
+        assert_eq!(res.source_file_name, PathBuf::from("v1.58 20241211.json"));
+        assert_eq!(res.data_version, "v1.58");
+        assert_eq!(res.data_date, "2024-12-11");
     }
 
 
-    #[tokio::test]
-    async fn check_cli_vars_with_i_flag() {
+    #[test]
+    fn check_cli_vars_overwrite_env_values() {
+        let config = r#"
+[data]
+data_version="v1.60"
+data_date="2025-12-11"
 
-        // Note that the folder path given must exist, 
-        // and be accessible, or get_params will panic
-        // and an error will be thrown. 
+[files]
+data_folder_path="E:\\MDR source data\\ROR\\data"
+log_folder_path="E:\\MDR source data\\ROR\\logs"
+output_folder_path="E:\\MDR source data\\ROR\\outputs"
+src_file_name="v1.58 20241211.json"
 
-        temp_env::async_with_vars(
-        [
-            ("data_folder_path", Some("E:/ROR/20241211 1.58 data")),
-            ("src_file_name", Some("v1.58 20241211.json")),
-            ("data_date", Some("2025-12-11")),
-            ("output_file_name", Some("results 27.json")),
-        ],
-        async { 
-            let args : Vec<&str> = vec!["target/debug/ror1.exe", "-r", "-p", "-i", 
-                                        "-f", "E:/ROR/data", "-d", "2026-12-25", "-s", "schema2 data.json"];
-            let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
-            let res = get_params(test_args).await.unwrap();
-    
-            assert_eq!(res.flags.import_ror, false);
-            assert_eq!(res.flags.process_data, false);
-            assert_eq!(res.flags.export_text, false);
-            assert_eq!(res.flags.create_lookups,true);
-            assert_eq!(res.flags.create_summary, true);
-            assert_eq!(res.data_folder, PathBuf::new());
-            assert_eq!(res.log_folder, PathBuf::new());
-            assert_eq!(res.output_folder, PathBuf::new());
-            assert_eq!(res.source_file_name, "".to_string());
-            assert_eq!(res.output_file_name, "".to_string());
-            assert_eq!(res.data_version, "".to_string());
-            assert_eq!(res.data_date, "".to_string());
-        }
-       ).await;
-
-    }
-
-
-    #[tokio::test]
-    async fn check_cli_vars_with_a_flag_and_new_win_folders() {
-
-        // Note that the folder path given must exist, 
-        // and be accessible, or get_params will panic
-        // and an error will be thrown. 
-
-        temp_env::async_with_vars(
-        [
-            ("data_folder_path", Some("E:\\ROR\\20241211 1.58 data")),
-            ("log_folder_path", Some("E:\\ROR\\some logs")),
-            ("output_folder_path", Some("E:\\ROR\\dummy\\some outputs")),
-            ("src_file_name", Some("v1.58 20241211.json")),
-            ("data_date", Some("2025-12-11")),
-            ("output_file_name", Some("results 28.json")),
-        ],
-        async { 
-            let args : Vec<&str> = vec!["target/debug/ror1.exe", "-a", "-f", "E:\\ROR\\data", 
-                                       "-d", "2026-12-25", "-s", "schema2 data.json", "-v", "v1.60"];
-            let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
-            let res = get_params(test_args).await.unwrap();
-    
-            assert_eq!(res.flags.import_ror, true);
-            assert_eq!(res.flags.process_data, true);
-            assert_eq!(res.flags.export_text, true);
-            assert_eq!(res.flags.create_lookups, false);
-            assert_eq!(res.flags.create_summary, false);
-            assert_eq!(res.data_folder, PathBuf::from("E:/ROR/data"));
-            assert_eq!(res.log_folder, PathBuf::from("E:/ROR/some logs"));
-            assert_eq!(res.output_folder, PathBuf::from("E:/ROR/dummy/some outputs"));
-            assert_eq!(res.source_file_name, "schema2 data.json");
-            let lt = Local::now().format("%m-%d %H%M%S").to_string();
-            assert_eq!(res.output_file_name, format!("results 28.json at {}.txt", lt));
-            assert_eq!(res.data_version, "v1.60");
-            assert_eq!(res.data_date, "2026-12-25");
-        }
-      ).await;
-
-    }
-    
-    #[tokio::test]
-    async fn check_cli_vars_with_a_flag_and_new_posix_folders() {
-
-        // Note that the folder path given must exist, 
-        // and be accessible, or get_params will panic
-        // and an error will be thrown. 
-
-        temp_env::async_with_vars(
-        [
-            ("data_folder_path", Some("E:/ROR/data")),
-            ("log_folder_path", Some("E:/ROR/some logs 2")),
-            ("output_folder_path", Some("E:/ROR/dummy 2/some outputs")),
-            ("src_file_name", Some("v1.58 20241211.json")),
-            ("data_date", Some("2025-12-11")),
-            ("output_file_name", Some("results 28.json")),
-        ],
-        async { 
-            let args : Vec<&str> = vec!["target/debug/ror1.exe", "-a", "-f", "E:/ROR/data", 
-                                       "-d", "2026-12-25", "-s", "schema2 data.json", "-v", "v1.60"];
-            let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
-            let res = get_params(test_args).await.unwrap();
-    
-            assert_eq!(res.flags.import_ror, true);
-            assert_eq!(res.flags.process_data, true);
-            assert_eq!(res.flags.export_text, true);
-            assert_eq!(res.flags.create_lookups, false);
-            assert_eq!(res.flags.create_summary, false);
-            assert_eq!(res.data_folder, PathBuf::from("E:/ROR/data"));
-            assert_eq!(res.log_folder, PathBuf::from("E:/ROR/some logs 2"));
-            assert_eq!(res.output_folder, PathBuf::from("E:/ROR/dummy 2/some outputs"));
-            assert_eq!(res.source_file_name, "schema2 data.json");
-            let lt = Local::now().format("%m-%d %H%M%S").to_string();
-            assert_eq!(res.output_file_name, format!("results 28.json at {}.txt", lt));
-            assert_eq!(res.data_version, "v1.60");
-            assert_eq!(res.data_date, "2026-12-25");
-        }
-      ).await;
-
-    }
-
-
-    #[tokio::test]
-    #[should_panic]
-    async fn check_wrong_data_folder_panics_if_r() {
-    
-    temp_env::async_with_vars(
-    [
-        ("data_folder_path", Some("E:/ROR/20240607 1.47 data")),
-        ("log_folder_path", Some("E:/ROR/some logs")),
-        ("output_folder_path", Some("E:/ROR/dummy/some outputs")),
-        ("src_file_name", Some("v1.58 20241211.json")),
-        ("data_date", Some("2025-12-11")),
-        ("output_file_name", Some("results 28.json")),
-    ],
-    async { 
-        let args : Vec<&str> = vec!["target/debug/ror1.exe", "-a", "-f", "E:/silly folder name", 
+[database]
+db_host="localhost"
+db_user="user_name"
+db_password="password"
+db_port="5433"
+db_name="ror"
+        "#;
+        let config_string = config.to_string();
+        config_reader::populate_config_vars(&config_string).unwrap();
+        let args : Vec<&str> = vec!["dummy target", "-r", "-p", "-t", "-x",
                                     "-d", "2026-12-25", "-s", "schema2 data.json", "-v", "v1.60"];
         let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
-        let _res = get_params(test_args).await.unwrap();
-        }
-      ).await;
+        let cli_pars = cli_reader::fetch_valid_arguments(test_args).unwrap();
+        let res = get_params(cli_pars, config_string).unwrap();
+
+        assert_eq!(res.flags.import_ror, true);
+        assert_eq!(res.flags.process_data, true);
+        assert_eq!(res.flags.export_text, true);
+        assert_eq!(res.flags.export_csv, true);
+        assert_eq!(res.flags.export_full_csv, false);
+        assert_eq!(res.flags.create_config, false);
+        assert_eq!(res.flags.create_lookups, false);
+        assert_eq!(res.flags.create_summary, false);
+        assert_eq!(res.data_folder, PathBuf::from("E:\\MDR source data\\ROR\\data"));
+        assert_eq!(res.log_folder, PathBuf::from("E:\\MDR source data\\ROR\\logs"));
+        assert_eq!(res.output_folder, PathBuf::from("E:\\MDR source data\\ROR\\outputs"));
+        assert_eq!(res.source_file_name, PathBuf::from("schema2 data.json"));
+        assert_eq!(res.data_version, "v1.60");
+        assert_eq!(res.data_date, "2026-12-25");
     }
 
-    #[tokio::test]
-    async fn check_wrong_data_folder_does_not_panic_if_not_r() {
-    
-        temp_env::async_with_vars(
-        [
-            ("data_folder_path", Some("E:/ROR/daft data")),
-            ("log_folder_path", Some("E:/ROR/some logs")),
-            ("output_folder_path", Some("E:/ROR/dummy/some outputs")),
-            ("src_file_name", Some("v1.58 20241211.json")),
-            ("data_date", Some("2025-12-11")),
-            ("output_file_name", Some("results 28.json")),
-        ],
-        async { 
-            let args : Vec<&str> = vec!["target/debug/ror1.exe", "-p", "-f", "E:/ROR/silly folder name", 
-                                        "-d", "2026-12-25", "-s", "schema2 data.json", "-v", "v1.60"];
-            let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
-            let res = get_params(test_args).await.unwrap();
-            assert_eq!(res.flags.import_ror, false);
-            assert_eq!(res.flags.process_data, true);
-            assert_eq!(res.flags.export_text, false);
-            assert_eq!(res.flags.create_lookups, false);
-            assert_eq!(res.flags.create_summary, false);
-            assert_eq!(res.data_folder, PathBuf::from("E:/ROR/silly folder name"));
-            assert_eq!(res.log_folder, PathBuf::from("E:/ROR/some logs"));
-            assert_eq!(res.output_folder, PathBuf::from("E:/ROR/dummy/some outputs"));
-            assert_eq!(res.source_file_name, "schema2 data.json");
-            let lt = Local::now().format("%m-%d %H%M%S").to_string();
-            assert_eq!(res.output_file_name, format!("results 28.json at {}.txt", lt));
-            assert_eq!(res.data_version, "v1.60");
-            assert_eq!(res.data_date, "2026-12-25");
 
-            }
-        ).await;
+    #[test]
+    fn check_cli_vars_with_i_flag() {
+
+        let config = r#"
+[data]
+data_version="v1.50"
+data_date="2025-12-11"
+
+[files]
+data_folder_path="E:\\MDR source data\\ROR\\data"
+log_folder_path="E:\\MDR source data\\ROR\\logs"
+output_folder_path="E:\\MDR source data\\ROR\\outputs"
+src_file_name="v1.58 20241211.json"
+
+[database]
+db_host="localhost"
+db_user="user_name"
+db_password="password"
+db_port="5433"
+db_name="ror"
+    "#;
+        let config_string = config.to_string();
+        config_reader::populate_config_vars(&config_string).unwrap();
+        let args : Vec<&str> = vec!["dummy target", "-r", "-p", "-i", "-x", "-y",
+                                    "-d", "2026-12-25", "-s", "schema2 data.json", "-v", "v1.60"];
+        let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
+        let cli_pars = cli_reader::fetch_valid_arguments(test_args).unwrap();
+        let res = get_params(cli_pars, config_string).unwrap();
+
+        assert_eq!(res.flags.import_ror, false);
+        assert_eq!(res.flags.process_data, false);
+        assert_eq!(res.flags.export_text, false);
+        assert_eq!(res.flags.export_csv, false);
+        assert_eq!(res.flags.export_full_csv, false);
+        assert_eq!(res.flags.create_config, true);
+        assert_eq!(res.flags.create_lookups,true);
+        assert_eq!(res.flags.create_summary, true);
+        assert_eq!(res.data_folder, PathBuf::from("E:\\MDR source data\\ROR\\data"));
+        assert_eq!(res.log_folder, PathBuf::from("E:\\MDR source data\\ROR\\logs"));
+        assert_eq!(res.output_folder, PathBuf::from("E:\\MDR source data\\ROR\\outputs"));
+        assert_eq!(res.source_file_name, PathBuf::from("schema2 data.json"));
+        assert_eq!(res.data_version, "v1.60");
+        assert_eq!(res.data_date, "2026-12-25");
+    }
+
+
+    #[test]
+    fn check_with_x_and_y_flags() {
+
+        let config = r#"
+[data]
+data_version="v1.60"
+data_date="2025-12-11"
+
+[files]
+data_folder_path="E:\\MDR source data\\ROR\\data"
+log_folder_path="E:\\MDR source data\\ROR\\logs"
+output_folder_path="E:\\MDR source data\\ROR\\outputs"
+src_file_name="v1.58 20241211.json"
+
+[database]
+db_host="localhost"
+db_user="user_name"
+db_password="password"
+db_port="5433"
+db_name="ror"
+    "#;
+        let config_string = config.to_string();
+        config_reader::populate_config_vars(&config_string).unwrap();
+        let args : Vec<&str> = vec!["dummy target", "-x", "-y", "-s", "schema2 data.json"];
+        let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
+        let cli_pars = cli_reader::fetch_valid_arguments(test_args).unwrap();
+        let res = get_params(cli_pars, config_string).unwrap();
+
+        assert_eq!(res.flags.import_ror, false);
+        assert_eq!(res.flags.process_data, false);
+        assert_eq!(res.flags.export_text, false);
+        assert_eq!(res.flags.export_csv, true);
+        assert_eq!(res.flags.export_full_csv, true);
+        assert_eq!(res.flags.create_config, false);
+        assert_eq!(res.flags.create_lookups, false);
+        assert_eq!(res.flags.create_summary, false);
+        assert_eq!(res.data_folder, PathBuf::from("E:\\MDR source data\\ROR\\data"));
+        assert_eq!(res.log_folder, PathBuf::from("E:\\MDR source data\\ROR\\logs"));
+        assert_eq!(res.output_folder, PathBuf::from("E:\\MDR source data\\ROR\\outputs"));
+        assert_eq!(res.source_file_name, PathBuf::from("schema2 data.json"));
+        assert_eq!(res.data_version, "v1.60");
+        assert_eq!(res.data_date, "2025-12-11");
+    }
+
+    
+    #[test]
+    fn check_cli_vars_with_a_flag_and_posix_folders() {
+
+        let config = r#"
+[data]
+data_version=""
+data_date=""
+
+[files]
+data_folder_path="E:/MDR source data/ROR/data"
+log_folder_path="E:/MDR source data/ROR/logs"
+output_folder_path="E:/MDR source data/ROR/outputs"
+src_file_name="v1.58 20241211.json"
+
+[database]
+db_host="localhost"
+db_user="user_name"
+db_password="password"
+db_port="5433"
+db_name="ror"
+"#;
+        let config_string = config.to_string();
+        config_reader::populate_config_vars(&config_string).unwrap();
+
+        let args : Vec<&str> = vec!["dummy target", "-a"];
+        let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
+        let cli_pars = cli_reader::fetch_valid_arguments(test_args).unwrap();
+
+        let res = get_params(cli_pars, config_string).unwrap();
+
+        assert_eq!(res.flags.import_ror, true);
+        assert_eq!(res.flags.process_data, true);
+        assert_eq!(res.flags.export_text, true);
+        assert_eq!(res.flags.export_csv, false);
+        assert_eq!(res.flags.export_full_csv, false);
+        assert_eq!(res.flags.create_config, false);
+        assert_eq!(res.flags.create_lookups, false);
+        assert_eq!(res.flags.create_summary, false);
+        assert_eq!(res.data_folder, PathBuf::from("E:/MDR source data/ROR/data"));
+        assert_eq!(res.log_folder, PathBuf::from("E:/MDR source data/ROR/logs"));
+        assert_eq!(res.output_folder, PathBuf::from("E:/MDR source data/ROR/outputs"));
+        assert_eq!(res.source_file_name, PathBuf::from("v1.58 20241211.json"));
+        assert_eq!(res.data_version, "v1.58");
+        assert_eq!(res.data_date, "2024-12-11");
+    }
+
+
+    #[test]
+    #[should_panic]
+    fn check_wrong_data_folder_panics_if_r() {
+    
+        let config = r#"
+[data]
+data_version="v1.60"
+data_date="2025-12-11"
+
+[files]
+data_folder_path="C:\\MDR source data\\ROR\\data"
+log_folder_path="E:\\MDR source data\\ROR\\logs"
+output_folder_path="E:\\MDR source data\\ROR\\outputs"
+src_file_name="v1.58 20241211.json"
+
+[database]
+db_host="localhost"
+db_user="user_name"
+db_password="password"
+db_port="5433"
+db_name="ror"
+"#;
+        let config_string = config.to_string();
+        config_reader::populate_config_vars(&config_string).unwrap();
+        let args : Vec<&str> = vec!["dummy target", "-a", "-v", "v1.60"];
+        let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
+        let cli_pars = cli_reader::fetch_valid_arguments(test_args).unwrap();
+        let _res = get_params(cli_pars, config_string).unwrap();
+    }
+
+
+    #[test]
+    fn check_wrong_data_folder_does_not_panic_if_not_r() {
+    
+        let config = r#"
+[data]
+data_version="v1.60"
+data_date="2025-12-11"
+
+[files]
+data_folder_path="C:\\MDR source data\\ROR\\data"
+log_folder_path="E:\\MDR source data\\ROR\\logs"
+output_folder_path="E:\\MDR source data\\ROR\\outputs"
+src_file_name="v1.58 20241211.json"
+
+[database]
+db_host="localhost"
+db_user="user_name"
+db_password="password"
+db_port="5433"
+db_name="ror"
+"#;
+        let config_string = config.to_string();
+        config_reader::populate_config_vars(&config_string).unwrap();
+
+        let args : Vec<&str> = vec!["dummy target", "-p"];
+        let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
+        let cli_pars = cli_reader::fetch_valid_arguments(test_args).unwrap();
+
+        let res = get_params(cli_pars, config_string).unwrap();
+
+        assert_eq!(res.flags.import_ror, false);
+        assert_eq!(res.flags.process_data, true);
+        assert_eq!(res.flags.export_text, false);
+        assert_eq!(res.flags.export_csv, false);
+        assert_eq!(res.flags.export_full_csv, false);
+        assert_eq!(res.flags.create_config, false);
+        assert_eq!(res.flags.create_lookups, false);
+        assert_eq!(res.flags.create_summary, false);
+        assert_eq!(res.data_folder, PathBuf::from("C:\\MDR source data\\ROR\\data"));
+        assert_eq!(res.log_folder, PathBuf::from("E:\\MDR source data\\ROR\\logs"));
+        assert_eq!(res.output_folder, PathBuf::from("E:\\MDR source data\\ROR\\outputs"));
+        assert_eq!(res.source_file_name, PathBuf::from("v1.58 20241211.json"));
+        assert_eq!(res.data_version, "v1.58");
+        assert_eq!(res.data_date, "2024-12-11");
     }
 
 }
-*/
+

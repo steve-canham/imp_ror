@@ -56,45 +56,34 @@ pub fn fetch_valid_arguments(args: Vec<OsString>) -> Result<CliPars, AppError>
     let mut r_flag = parse_result.get_flag("r_flag");
     let mut p_flag = parse_result.get_flag("p_flag");
     let mut t_flag = parse_result.get_flag("t_flag");
-    let x_flag = parse_result.get_flag("x_flag");
-    let y_flag = parse_result.get_flag("y_flag");
+    let mut x_flag = parse_result.get_flag("x_flag");
+    let mut y_flag = parse_result.get_flag("y_flag");
     let mut j_flag = parse_result.get_flag("j_flag");
     let mut c_flag = parse_result.get_flag("c_flag");
     let mut m_flag = parse_result.get_flag("m_flag");
-    let z_flag = parse_result.get_flag("z_flag");
+    let mut z_flag = parse_result.get_flag("z_flag");
 
     // If c, m, j or all three flags set (may be by using 'i' (initialise) flag)
     // Only do the j and / or c and / or m actions
   
     if i_flag || c_flag || m_flag || j_flag {
+        
         if i_flag {
             c_flag = true;
             m_flag = true;
             j_flag = true;
         }
-        
-        let flags = Flags {
-            import_ror: false,
-            process_data: false,
-            export_text: false,
-            export_csv: false,
-            export_full_csv: false,
-            create_config: j_flag,
-            create_lookups: c_flag,
-            create_summary: m_flag,
-            test_run: false,
-        };
 
-        Ok(CliPars {
-            source_file: PathBuf::new(),
-            data_version: "".to_string(),
-            data_date: "".to_string(),
-            test_folder: PathBuf::new(),
-            flags: flags,
-        })
+        r_flag = false;
+        p_flag = false;
+        t_flag = false;
+        x_flag = false;
+        y_flag = false;
+        z_flag = false;        
     }
     
     else {
+
         if a_flag  // 'a' (do all) flag set
         {
             r_flag = true;  
@@ -111,27 +100,28 @@ pub fn fetch_valid_arguments(args: Vec<OsString>) -> Result<CliPars, AppError>
                 r_flag = true;  
             }
         }
-
-        let flags = Flags {
-            import_ror: r_flag,
-            process_data: p_flag,
-            export_text: t_flag,
-            export_csv: x_flag,
-            export_full_csv: y_flag,
-            create_config: false,
-            create_lookups: false,
-            create_summary: false,
-            test_run: z_flag,
-        };
-
-        Ok(CliPars {
-            source_file: source_file.clone(),
-            data_version: data_version.clone(),
-            data_date: data_date.clone(),
-            test_folder: test_folder.clone(),
-            flags: flags,
-        })
     }
+
+    let flags = Flags {
+        import_ror: r_flag,
+        process_data: p_flag,
+        export_text: t_flag,
+        export_csv: x_flag,
+        export_full_csv: y_flag,
+        create_config: j_flag,
+        create_lookups: c_flag,
+        create_summary: m_flag,
+        test_run: z_flag,
+    };
+
+    Ok(CliPars {
+        source_file: source_file.clone(),
+        data_version: data_version.clone(),
+        data_date: data_date.clone(),
+        test_folder: test_folder.clone(),
+        flags: flags,
+    })
+
 }
 
 
