@@ -12,13 +12,15 @@ problem.
 The module also provides a database connection pool on demand.
 ***********************************************************************************/
 
+pub mod cli_reader;
 pub mod config_reader;
 pub mod log_helper;
-pub mod cli_reader;
-mod lup_create_tables;
 mod config_writer;
+mod config_editor;
+mod lup_create_tables;
 mod lup_fill_tables;
 
+use std::sync::OnceLock;
 use crate::err::AppError;
 use chrono::NaiveDate;
 use sqlx::postgres::{PgPoolOptions, PgConnectOptions, PgPool};
@@ -41,6 +43,9 @@ pub struct InitParams {
     pub data_date: String,
     pub flags: Flags,
 }
+
+pub static LOG_RUNNING: OnceLock<bool> = OnceLock::new();
+pub static CONFIG_CREATED: OnceLock<bool> = OnceLock::new();
 
 pub fn get_params(cli_pars: CliPars, config_string: String) -> Result<InitParams, AppError> {
 
@@ -204,18 +209,52 @@ pub async fn get_db_pool() -> Result<PgPool, AppError> {
         .map_err(|e| AppError::DBPoolError(format!("Problem with connecting to database {} and obtaining Pool", db_name), e))
 }
 
+pub fn establish_log(params: &InitParams) -> Result<(), AppError> {
 
-pub async fn edit_config() -> Result<(), AppError>
+    if !log_set_up() {  // can be called more than once in context of integration tests
+        log_helper::setup_log(&params.log_folder, &params.source_file_name)?;
+        LOG_RUNNING.set(true).unwrap(); // should always work
+        log_helper::log_startup_params(&params);
+    }
+    Ok(())
+}
+
+pub fn log_set_up() -> bool {
+    match LOG_RUNNING.get() {
+        Some(_) => true,
+        None => false,
+    }
+}
+
+
+pub fn manage_config() -> Result<(), AppError>
 {
-    match config_writer::create_config_file().await {
-        Ok(()) => info!("Configuration file edits completed"),
-        Err(e) => {
+    let config_state = CONFIG_CREATED.get();
+    if config_state.is_none() {
+        match config_writer::create_config_file() 
+        {
+            Ok(()) => {
+                CONFIG_CREATED.set(true).unwrap();
+                info!("Configuration file creation completed")},
+            Err(e) => {
             error!("An error occured while editing the configuration file: {}", e);
             return Err(e)
             },
-    };
+        }
+    }
+    else {
+        match config_editor::edit_config_file() 
+        {
+            Ok(()) => info!("Configuration file edits completed"),
+            Err(e) => {
+            error!("An error occured while editing the configuration file: {}", e);
+            return Err(e)
+             },
+        }
+    }
     
     Ok(())
+
 }
 
 

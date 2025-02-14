@@ -6,14 +6,12 @@ mod export;
 pub mod err;
 
 use setup::cli_reader;
-use std::sync::OnceLock;
 use err::AppError;
-use setup::log_helper;
 use std::ffi::OsString;
 use std::fs;
 use std::path::PathBuf;
 
-pub static LOG_RUNNING: OnceLock<bool> = OnceLock::new();
+//pub static LOG_RUNNING: OnceLock<bool> = OnceLock::new();
 
 pub async fn run(args: Vec<OsString>) -> Result<(), AppError> {
     
@@ -21,7 +19,7 @@ pub async fn run(args: Vec<OsString>) -> Result<(), AppError> {
     let flags = cli_pars.flags;
 
     if flags.create_config {
-        setup::edit_config().await?;  // If set, must be done before anything else
+        setup::manage_config()?;  // If set, must be done before anything else
     }
 
     let config_file = PathBuf::from("./app_config.toml");
@@ -29,16 +27,12 @@ pub async fn run(args: Vec<OsString>) -> Result<(), AppError> {
                     .map_err(|e| AppError::IoReadErrorWithPath(e, config_file))?;
     
     let params = setup::get_params(cli_pars, config_string)?;
+
+    setup::establish_log(&params)?;
+    let pool = setup::get_db_pool().await?;
+
     let flags = params.flags;
     let test_run = flags.test_run;
-
-    if !test_run {
-       log_helper::setup_log(&params.log_folder, &params.source_file_name)?;
-       LOG_RUNNING.set(true).unwrap();   // no other thread - therefore should always work
-       log_helper::log_startup_params(&params);
-    }
-            
-    let pool = setup::get_db_pool().await?;
 
     // The first two routines below normally run only as an initial 
     // 'setup' of the program's config file and DB, but can be repeated later if required.

@@ -1,3 +1,5 @@
+
+
 use crate::err::AppError;
 use std::io;
 use std::fs::File;
@@ -5,21 +7,33 @@ use std::io::Write;
 use std::path::PathBuf;
 use regex::Regex;
 use chrono::NaiveDate;
+use std::fs;
+use super::config_reader::{Config, populate_config_vars};
 
-pub fn create_config_file() -> Result<(), AppError>
+pub fn edit_config_file() -> Result<(), AppError>
 {
-    let p1 = "        WELCOME TO IMP_ROR               CONFIGURATION SET UP";
+
+    // config file already exists so get the current file
+
+    let config_file = PathBuf::from("./app_config.toml");
+    let config_string: String = fs::read_to_string(&config_file)
+                    .map_err(|e| AppError::IoReadErrorWithPath(e, config_file))?;
+    let current_config: Config = populate_config_vars(&config_string)?; 
+
+
+    let p1 = "        WELCOME TO IMP_ROR               CONFIGURATION EDITING";
     let star_line = "****************************************************************************";
-    let p2 = "The initial task is to set up an app_config file, to hold the details needed";
-    let p3 = "to connect to the database, and some required folder paths.";
+    let p2 = "For the data points below, pressing return will transfer the existing";
+    let p3 = "configuration parameter (shown in brackets in the prompt) tothe edited file";
     let section = format!("\n\n{}\n{}\n{}\n{}\n{}\n", star_line, p1, star_line, p2, p3);
     println!("{}", section);
 
 
     let p1 = "Section 1: DATABASE PARAMETERS";
     let p2 = "DATABASE HOST";
+    let curr_value = current_config.db_pars.db_host;
     let p3 = "Please input the name of your database host (usually the server name or IP address).";
-    let p4 = "To accept the default ('localhost') simply press enter, otherwise type the name and press enter.";
+    let p4 = format!("To accept the current value ('{}') simply press enter, otherwise type the name and press enter.", curr_value);
     let section = format!("\n{}\n\n{}\n{}\n{}\n", p1, p2, p3, p4);
     println!("{}", section);
  
@@ -33,8 +47,9 @@ pub fn create_config_file() -> Result<(), AppError>
     println!("{}{}", db_host, suffix);
     
     let p1 = "USER NAME";
+    let curr_value = current_config.db_pars.db_user;
     let p2 = "Please input the name of the user account being used to access the database.";
-    let p3 = "No default is available, type the name and press enter.";
+    let p3 = format!("To accept the current value ('{}') simply press enter, otherwise type the name and press enter.", curr_value);
     let section = format!("\n{}\n{}\n{}\n", p1, p2, p3);
     println!("{}", section);
 
@@ -43,8 +58,9 @@ pub fn create_config_file() -> Result<(), AppError>
     println!("{}", db_user);
 
     let p1 = "USER PASSWORD";
+    let curr_value = current_config.db_pars.db_password;
     let p2 = "Please input the name of the user password being used to access the database.";
-    let p3 = "No default is available, type the password and press enter.";
+    let p3 = format!("To accept the current value ('{}') simply press enter, otherwise type the name and press enter.", curr_value);
     let section = format!("\n{}\n{}\n{}\n", p1, p2, p3);
     println!("{}", section);
 
@@ -53,8 +69,9 @@ pub fn create_config_file() -> Result<(), AppError>
     println!("{}", db_password);
 
     let p1 = "PORT";
+    let curr_value = current_config.db_pars.db_port;
     let p2 = "Please input the port number being used to access the database.";
-    let p3 = "To accept the default ('5432') simply press enter, otherwise type the number and press enter.";
+    let p3 = format!("To accept the current value ('{}') simply press enter, otherwise type the name and press enter.", curr_value);
     let section = format!("\n{}\n{}\n{}\n", p1, p2, p3);
     println!("{}", section);
 
@@ -81,8 +98,9 @@ pub fn create_config_file() -> Result<(), AppError>
     println!("{}{}", db_port, suffix);
 
     let p1 = "DATABASE NAME";
+    let curr_value = current_config.db_pars.db_name;
     let p2 = "Please input the name of the database.";
-    let p3 = "To accept the default ('ror') simply press enter, otherwise type the name and press enter.";
+    let p3 = format!("To accept the current value ('{}') simply press enter, otherwise type the name and press enter.", curr_value);
     let section = format!("\n{}\n{}\n{}\n", p1, p2, p3);
     println!("{}", section);
 
@@ -242,11 +260,11 @@ pub fn create_config_file() -> Result<(), AppError>
     println!("{}", config_string);
 
     let mut file = File::create("./app_config.toml")     // creates new or truncates existing
-        .expect("Failed to create or open the file");
+    .map_err(|e| AppError::IoWriteErrorWithPath( e, PathBuf::from("./app_config.toml")))?;
 
     // Write to the file
     file.write_all(config_string.as_bytes())
-        .expect("Failed to write to the file");
+        .map_err(|e| AppError::IoWriteErrorWithPath( e, PathBuf::from("./app_config.toml")))?;
     println!("Data written to file successfully!");
 
     Ok(())
@@ -279,5 +297,4 @@ fn is_compliant_version(input: &String) -> Result<bool, AppError> {
         .map_err(|e| AppError::RegexError(e, version_pattern.to_string()))?;
     Ok(re.is_match(&input))
 }
-
 

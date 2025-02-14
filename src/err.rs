@@ -1,6 +1,6 @@
-use crate::LOG_RUNNING;
 use thiserror::Error;
 use log::error;
+use crate::setup::log_set_up;
 
 
 // The error types used within the program.
@@ -50,8 +50,11 @@ pub enum AppError {
     #[error("Error when processing sql: {0:?}")]
     SqlxError(#[source] sqlx::Error, String),
 
-    #[error("Error during IO operation: {0:?}")]
-    IoError(#[from] std::io::Error),
+    #[error("Error when using regex: {0:?}")]
+    RegexError(#[source] regex::Error, String),
+
+    #[error("Error reading user input: {0:?}")]
+    UserInputError (#[from] std::io::Error),
 }
 
 
@@ -101,8 +104,10 @@ pub fn report_error(e: AppError) -> () {
   
         AppError::SqlxError(e, s) => print_error (e.to_string(), 
                         format!("SQL was: {}", s),  "SQLX ERROR"),
+
+        AppError::RegexError(e, d) => print_error(e.to_string(), d, "REGEX ISSUE"),
    
-        AppError::IoError(e) => print_simple_error (e.to_string(), "IO ERROR"),
+        AppError::UserInputError(e) => print_simple_error (e.to_string(), "USER INPUT ERROR"),
     }
 }
 
@@ -138,7 +143,7 @@ fn output_error (err_output: String) {
 
     eprint!("{}", err_output);
 
-    if LOG_RUNNING.get().is_some(){
+    if log_set_up(){
         error!("{}", err_output);
     }
 

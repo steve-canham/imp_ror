@@ -20,6 +20,7 @@ use log4rs::{
     encode::pattern::PatternEncoder,
 };
 
+
 pub fn setup_log (data_folder: &PathBuf, source_file_name : &PathBuf) -> Result<log4rs::Handle, AppError> {
     let log_file_path = get_log_file_path(data_folder, source_file_name);
     config_log (&log_file_path)
