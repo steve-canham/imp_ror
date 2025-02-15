@@ -1,11 +1,3 @@
-/***************************************************************************
- *
- * 
- * Database parameters MUST be provided and be valid or the program can not
- * continue. 
- * 
- * 
- ***************************************************************************/
 
 use std::sync::OnceLock;
 use toml;
@@ -17,22 +9,22 @@ use std::path::PathBuf;
 #[derive(Debug, Deserialize)]
 pub struct TomlConfig {
     pub data: Option<TomlDataPars>,
-    pub files: Option<TomlFilePars>, 
+    pub folders: Option<TomlFolderPars>, 
     pub database: Option<TomlDBPars>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct TomlDataPars {
+    pub src_file_name: Option<String>,
     pub data_version: Option<String>,
     pub data_date: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct TomlFilePars {
+pub struct TomlFolderPars {
     pub data_folder_path: Option<String>,
     pub log_folder_path: Option<String>,
     pub output_folder_path: Option<String>,
-    pub src_file_name: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -47,20 +39,20 @@ pub struct TomlDBPars {
 
 pub struct Config {
     pub data_details: DataPars, 
-    pub files: FilePars, 
+    pub folders: FolderPars, 
     pub db_pars: DBPars,
 }
 
 pub struct DataPars {
+    pub src_file_name: String,
     pub data_version: String,
     pub data_date: String,
 }
 
-pub struct FilePars {
+pub struct FolderPars {
     pub data_folder_path: PathBuf,
     pub log_folder_path: PathBuf,
     pub output_folder_path: PathBuf,
-    pub src_file_name: PathBuf,
 }
 
 #[derive(Debug, Clone)]
@@ -74,18 +66,19 @@ pub struct DBPars {
 
 pub static DB_PARS: OnceLock<DBPars> = OnceLock::new();
 
-
 pub fn populate_config_vars(config_string: &String) -> Result<Config, AppError> {
 
     let toml_config = toml::from_str::<TomlConfig>(&config_string)
         .map_err(|_| {AppError::ConfigurationError("Unable to parse config file.".to_string(),
                                        "File (app_config.toml) may be malformed.".to_string())})?;
 
+
     let toml_data_details = match toml_config.data {
         Some(d) => d,
         None => {
             println!("Data details section not found in config file.");
             TomlDataPars {
+                src_file_name: None,
                 data_version: None,
                 data_date: None,
             }
@@ -98,13 +91,13 @@ pub fn populate_config_vars(config_string: &String) -> Result<Config, AppError> 
             "Cannot find a section called '[database]'.".to_string()))},
     };
 
-    let toml_files = match toml_config.files {
+    let toml_folders = match toml_config.folders {
         Some(f) => f,
         None => {return Result::Err(AppError::ConfigurationError("Missing or misspelt configuration section.".to_string(),
-           "Cannot find a section called '[files]'.".to_string()))},
+           "Cannot find a section called '[folders]'.".to_string()))},
     };
        
-    let config_files = verify_file_parameters(toml_files)?;
+    let config_folders = verify_folder_parameters(toml_folders)?;
     let config_data_dets = verify_data_parameters(toml_data_details)?;
     let config_db_pars = verify_db_parameters(toml_database)?;
 
@@ -112,7 +105,7 @@ pub fn populate_config_vars(config_string: &String) -> Result<Config, AppError> 
 
     Ok(Config{
         data_details: config_data_dets,
-        files: config_files,
+        folders: config_folders,
         db_pars: config_db_pars,
     })
 }
@@ -130,30 +123,30 @@ fn verify_data_parameters(toml_data_pars: TomlDataPars) -> Result<DataPars, AppE
         None => "".to_string(),
     };
 
+    let src_file_name =  match toml_data_pars.src_file_name {
+        Some(s) => s.trim().to_string(),
+        None => "".to_string(),
+    };
+        
     Ok(DataPars {
+        src_file_name,
         data_version,
         data_date,
     })
 }
 
-fn verify_file_parameters(toml_files: TomlFilePars) -> Result<FilePars, AppError> {
+fn verify_folder_parameters(toml_folders: TomlFolderPars) -> Result<FolderPars, AppError> {
 
-    let data_folder_string = check_essential_string (toml_files.data_folder_path, "data path folder", "data_folder_path")?;
+    let data_folder_string = check_essential_string (toml_folders.data_folder_path, "data path folder", "data_folder_path")?;
 
-    let src_file_string =  match toml_files.src_file_name {
-        Some(s) => s.trim().to_string(),
-        None => "".to_string(),
-    };
+    let log_folder_string = check_defaulted_string (toml_folders.log_folder_path, "log folder", "data_folder_path", &data_folder_string);
 
-    let log_folder_string = check_defaulted_string (toml_files.log_folder_path, "log folder", "data_folder_path", &data_folder_string);
+    let output_folder_string = check_defaulted_string (toml_folders.output_folder_path, "outputs folder", "data_folder_path", &data_folder_string);
 
-    let output_folder_string = check_defaulted_string (toml_files.output_folder_path, "outputs folder", "data_folder_path", &data_folder_string);
-
-    Ok(FilePars {
+    Ok(FolderPars {
         data_folder_path: PathBuf::from(data_folder_string),
         log_folder_path: PathBuf::from(log_folder_string),
         output_folder_path: PathBuf::from(output_folder_string),
-        src_file_name: PathBuf::from(src_file_string),
     })
 }
 
@@ -244,7 +237,6 @@ pub fn fetch_db_conn_string(db_name: &String) -> Result<String, AppError> {
 
 
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -258,12 +250,12 @@ mod tests {
 [data]
 data_version="v99"
 data_date="2026-06-15"
-
-[files]
-data_folder_path="E:\\MDR source data\\ROR\\data"
-log_folder_path="E:\\MDR source data\\ROR\\logs"
-output_folder_path="E:\\MDR source data\\ROR\\outputs"
 src_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
+
+[folders]
+data_folder_path="E:/MDR source data/ROR/data"
+log_folder_path="E:/MDR source data/ROR/logs"
+output_folder_path="E:/MDR source data/ROR/outputs"
 
 [database]
 db_host="localhost"
@@ -274,11 +266,50 @@ db_name="ror"
 "#;
         let config_string = config.to_string();
         let res = populate_config_vars(&config_string).unwrap();
-        assert_eq!(res.files.data_folder_path, PathBuf::from("E:\\MDR source data\\ROR\\data"));
-        assert_eq!(res.files.log_folder_path, PathBuf::from("E:\\MDR source data\\ROR\\logs"));
-        assert_eq!(res.files.output_folder_path, PathBuf::from("E:\\MDR source data\\ROR\\outputs"));
-        assert_eq!(res.files.src_file_name, PathBuf::from("v1.59-2025-01-23-ror-data_schema_v2.json"));
+        assert_eq!(res.folders.data_folder_path, PathBuf::from("E:/MDR source data/ROR/data"));
+        assert_eq!(res.folders.log_folder_path, PathBuf::from("E:/MDR source data/ROR/logs"));
+        assert_eq!(res.folders.output_folder_path, PathBuf::from("E:/MDR source data/ROR/outputs"));
 
+        assert_eq!(res.data_details.src_file_name, "v1.59-2025-01-23-ror-data_schema_v2.json");
+        assert_eq!(res.data_details.data_version, "v99");
+        assert_eq!(res.data_details.data_date, "2026-06-15");
+
+        assert_eq!(res.db_pars.db_host, "localhost");
+        assert_eq!(res.db_pars.db_user, "user_name");
+        assert_eq!(res.db_pars.db_password, "password");
+        assert_eq!(res.db_pars.db_port, 5433);
+        assert_eq!(res.db_pars.db_name, "ror");
+    }
+    
+
+    #[test]
+    fn check_config_with_win_folders() {
+
+        let config = r#"
+[data]
+data_version="v99"
+data_date="2026-06-15"
+src_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
+
+[folders]
+data_folder_path="E:\\MDR source data\\ROR\\data"
+log_folder_path="E:\\MDR source data\\ROR\\logs"
+output_folder_path="E:\\MDR source data\\ROR\\outputs"
+
+[database]
+db_host="localhost"
+db_user="user_name"
+db_password="password"
+db_port="5433"
+db_name="ror"
+"#;
+        let config_string = config.to_string();
+        let res = populate_config_vars(&config_string).unwrap();
+        assert_eq!(res.folders.data_folder_path, PathBuf::from("E:/MDR source data/ROR/data"));
+        assert_eq!(res.folders.log_folder_path, PathBuf::from("E:/MDR source data/ROR/logs"));
+        assert_eq!(res.folders.output_folder_path, PathBuf::from("E:/MDR source data/ROR/outputs"));
+
+        assert_eq!(res.data_details.src_file_name, "v1.59-2025-01-23-ror-data_schema_v2.json");
         assert_eq!(res.data_details.data_version, "v99");
         assert_eq!(res.data_details.data_date, "2026-06-15");
 
@@ -297,10 +328,11 @@ db_name="ror"
 [data]
 data_version="v99"
 data_date="2026-06-15"
-
-[files]
-data_folder_path="E:\\MDR source data\\ROR\\data"
 src_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
+
+[folders]
+data_folder_path="E:/MDR source data/ROR/data"
+
 
 [database]
 db_host="localhost"
@@ -311,10 +343,11 @@ db_name="ror"
 "#;
         let config_string = config.to_string();
         let res = populate_config_vars(&config_string).unwrap();
-        assert_eq!(res.files.data_folder_path, PathBuf::from("E:\\MDR source data\\ROR\\data"));
-        assert_eq!(res.files.log_folder_path, PathBuf::from("E:\\MDR source data\\ROR\\data"));
-        assert_eq!(res.files.output_folder_path, PathBuf::from("E:\\MDR source data\\ROR\\data"));
-        assert_eq!(res.files.src_file_name, PathBuf::from("v1.59-2025-01-23-ror-data_schema_v2.json"));
+        assert_eq!(res.folders.data_folder_path, PathBuf::from("E:/MDR source data/ROR/data"));
+        assert_eq!(res.folders.log_folder_path, PathBuf::from("E:/MDR source data/ROR/data"));
+        assert_eq!(res.folders.output_folder_path, PathBuf::from("E:/MDR source data/ROR/data"));
+        
+        assert_eq!(res.data_details.src_file_name, "v1.59-2025-01-23-ror-data_schema_v2.json");
     }
 
 
@@ -325,12 +358,12 @@ db_name="ror"
 [data]
 data_version="v99"
 data_date="2026-06-15"
+src_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
 
-[files]
-data_folder_path="E:\\MDR source data\\ROR\\data"
+[folders]
+data_folder_path="E:/MDR source data/ROR/data"
 log_folder_path=""
 output_folder_path=""
-src_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
 
 [database]
 db_host="localhost"
@@ -341,10 +374,11 @@ db_name="ror"
 "#;
         let config_string = config.to_string();
         let res = populate_config_vars(&config_string).unwrap();
-        assert_eq!(res.files.data_folder_path, PathBuf::from("E:\\MDR source data\\ROR\\data"));
-        assert_eq!(res.files.log_folder_path, PathBuf::from("E:\\MDR source data\\ROR\\data"));
-        assert_eq!(res.files.output_folder_path, PathBuf::from("E:\\MDR source data\\ROR\\data"));
-        assert_eq!(res.files.src_file_name, PathBuf::from("v1.59-2025-01-23-ror-data_schema_v2.json"));
+        assert_eq!(res.folders.data_folder_path, PathBuf::from("E:/MDR source data/ROR/data"));
+        assert_eq!(res.folders.log_folder_path, PathBuf::from("E:/MDR source data/ROR/data"));
+        assert_eq!(res.folders.output_folder_path, PathBuf::from("E:/MDR source data/ROR/data"));
+
+        assert_eq!(res.data_details.src_file_name, "v1.59-2025-01-23-ror-data_schema_v2.json");
     }
 
 
@@ -352,11 +386,15 @@ db_name="ror"
     fn check_missing_data_details_become_empty_strings() {
 
         let config = r#"
-[files]
-data_folder_path="E:\\MDR source data\\ROR\\data"
-log_folder_path="E:\\MDR source data\\ROR\\logs"
-output_folder_path="E:\\MDR source data\\ROR\\outputs"
+[data]
 src_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
+
+
+[folders]
+data_folder_path="E:/MDR source data/ROR/data"
+log_folder_path="E:/MDR source data/ROR/logs"
+output_folder_path="E:/MDR source data/ROR/outputs"
+
 
 [database]
 db_host="localhost"
@@ -367,11 +405,11 @@ db_name="ror"
 "#;
         let config_string = config.to_string();
         let res = populate_config_vars(&config_string).unwrap();
-        assert_eq!(res.files.data_folder_path, PathBuf::from("E:\\MDR source data\\ROR\\data"));
-        assert_eq!(res.files.log_folder_path, PathBuf::from("E:\\MDR source data\\ROR\\logs"));
-        assert_eq!(res.files.output_folder_path, PathBuf::from("E:\\MDR source data\\ROR\\outputs"));
-        assert_eq!(res.files.src_file_name, PathBuf::from("v1.59-2025-01-23-ror-data_schema_v2.json"));
+        assert_eq!(res.folders.data_folder_path, PathBuf::from("E:/MDR source data/ROR/data"));
+        assert_eq!(res.folders.log_folder_path, PathBuf::from("E:/MDR source data/ROR/logs"));
+        assert_eq!(res.folders.output_folder_path, PathBuf::from("E:/MDR source data/ROR/outputs"));
 
+        assert_eq!(res.data_details.src_file_name, "v1.59-2025-01-23-ror-data_schema_v2.json");
         assert_eq!(res.data_details.data_version, "");
         assert_eq!(res.data_details.data_date, "");
 
@@ -390,11 +428,13 @@ db_name="ror"
 [data]
 data_version="v99"
 data_date="2026-06-15"
-
-[files]
-log_folder_path="E:\\MDR source data\\ROR\\logs"
-output_folder_path="E:\\MDR source data\\ROR\\outputs"
 src_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
+
+
+[folders]
+log_folder_path="E:/MDR source data/ROR/logs"
+output_folder_path="E:/MDR source data/ROR/outputs"
+
 
 [database]
 db_host="localhost"
@@ -416,12 +456,12 @@ db_name="ror"
 [data]
 data_version="v99"
 data_date="2026-06-15"
-
-[files]
-data_folder_path="E:\\MDR source data\\ROR\\data"
-log_folder_path="E:\\MDR source data\\ROR\\logs"
-output_folder_path="E:\\MDR source data\\ROR\\outputs"
 src_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
+
+[folders]
+data_folder_path="E:/MDR source data/ROR/data"
+log_folder_path="E:/MDR source data/ROR/logs"
+output_folder_path="E:/MDR source data/ROR/outputs"
 
 [database]
 db_host="localhost"
@@ -442,12 +482,12 @@ db_name="ror"
 [data]
 data_version="v99"
 data_date="2026-06-15"
-
-[files]
-data_folder_path="E:\\MDR source data\\ROR\\data"
-log_folder_path="E:\\MDR source data\\ROR\\logs"
-output_folder_path="E:\\MDR source data\\ROR\\outputs"
 src_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
+
+[folders]
+data_folder_path="E:/MDR source data/ROR/data"
+log_folder_path="E:/MDR source data/ROR/logs"
+output_folder_path="E:/MDR source data/ROR/outputs"
 
 [database]
 db_user="user_name"
@@ -467,11 +507,13 @@ db_password="password"
     fn missing_port_gets_default() {
 
         let config = r#"
-[files]
-data_folder_path="E:\\MDR source data\\ROR\\data"
-log_folder_path="E:\\MDR source data\\ROR\\logs"
-output_folder_path="E:\\MDR source data\\ROR\\outputs"
+[data]
 src_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
+
+[folders]
+data_folder_path="E:/MDR source data/ROR/data"
+log_folder_path="E:/MDR source data/ROR/logs"
+output_folder_path="E:/MDR source data/ROR/outputs"
 
 [database]
 db_host="localhost"
@@ -493,7 +535,6 @@ db_name="ror"
         assert_eq!(res.db_pars.db_port, 5432);
         assert_eq!(res.db_pars.db_name, "ror");
     }
-
 
 }
   

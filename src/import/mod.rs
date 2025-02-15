@@ -28,7 +28,7 @@ pub async fn create_ror_tables(pool : &Pool<Postgres>) -> Result<(), AppError>
     Ok(())
 }
 
-pub async fn import_data(data_folder : &PathBuf, source_file_name: &PathBuf, 
+pub async fn import_data(data_folder : &PathBuf, source_file_name: &String, 
                         data_version: &String, data_date: &String, 
                         pool : &Pool<Postgres>) -> Result<(), AppError>
 {
@@ -47,14 +47,14 @@ pub async fn import_data(data_folder : &PathBuf, source_file_name: &PathBuf,
     // Import data into matching tables. First obtain the raw data as text
     // This also checks the file exists...by opening it and checking no error
 
-    let source_file_path: PathBuf = [data_folder, source_file_name].iter().collect();
-    let data: String = match fs::read_to_string(source_file_path)
+    let source_file_path: PathBuf = [data_folder, &PathBuf::from(source_file_name)].iter().collect();
+    let data: String = match fs::read_to_string(&source_file_path)
     {
         Ok(d) => {
             info!("Got the data from the file");
             d
         }, 
-        Err(e) => return Err(AppError::IoReadErrorWithPath(e, source_file_name.to_owned())),
+        Err(e) => return Err(AppError::IoReadErrorWithPath(e, source_file_path)),
     };
 
     // Parse into an internal JSON structure

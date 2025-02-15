@@ -1,30 +1,59 @@
-use sqlx::{Pool, Postgres};
+use sqlx::{postgres::PgQueryResult, Pool, Postgres};
 use crate::AppError;
 
 pub async fn create_tables(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
-    let sql = r#"SET client_min_messages TO WARNING; 
-    create schema if not exists ror;
+    execute_sql(get_schema_sql(), pool).await?;
+    execute_sql(get_version_details_sql(), pool).await?;
+    execute_sql(get_core_data_sql(), pool).await?;
+    execute_sql(get_admin_data_sql(), pool).await?;
+    execute_sql(get_names_sql(), pool).await?;
+    execute_sql(get_locations_sql(), pool).await?;
+    execute_sql(get_external_ids_sql(), pool).await?;
+    execute_sql(get_links_sql(), pool).await?;
+    execute_sql(get_org_types_sql(), pool).await?;
+    execute_sql(get_relationships_sql(), pool).await?;
+    execute_sql(get_domains_sql(), pool).await?;
+    execute_sql(get_message_sql(), pool).await?;
 
-    drop table if exists ror.version_details;
+    Ok(())
+}
+    
+async fn execute_sql(sql: &str, pool: &Pool<Postgres>) -> Result<PgQueryResult, AppError> {
+    
+    sqlx::raw_sql(&sql).execute(pool)
+        .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))
+}
+
+fn get_schema_sql <'a>() -> &'a str {
+    r#"SET client_min_messages TO WARNING; 
+    create schema if not exists ror;"#
+}
+
+fn get_version_details_sql <'a>() -> &'a str {
+    r#"drop table if exists ror.version_details;
     create table ror.version_details
     (
           version           varchar     not null
         , data_date         varchar     not null
         , data_days         int         not null
         , import_datetime   timestamp   not null  default current_timestamp
-    );
+    );"#
+}
 
-    drop table if exists ror.core_data;
+fn get_core_data_sql <'a>() -> &'a str {
+    r#"drop table if exists ror.core_data;
     create table ror.core_data
     (
           id                varchar     not null primary key 
         , ror_full_id       varchar     not null  
         , status            varchar     not null
         , established       int         null
-    );
+    );"#
+}
 
-    drop table if exists ror.admin_data;
+fn get_admin_data_sql <'a>() -> &'a str {
+    r#"drop table if exists ror.admin_data;
     create table ror.admin_data
     (
           id                varchar     not null primary key
@@ -32,9 +61,11 @@ pub async fn create_tables(pool: &Pool<Postgres>) -> Result<(), AppError> {
         , cr_schema         varchar     not null
         , last_modified     date        not null
         , lm_schema         varchar     not null  
-    );
+    );"#
+}
 
-    drop table if exists ror.names;
+fn get_names_sql <'a>() -> &'a str {
+    r#"drop table if exists ror.names;
     create table ror.names
     (  
           id                varchar     not null
@@ -43,10 +74,11 @@ pub async fn create_tables(pool: &Pool<Postgres>) -> Result<(), AppError> {
         , is_ror_name       bool        null
         , lang              varchar     null
     );
-    create index src_names_idx on ror.names(id);
+    create index src_names_idx on ror.names(id);"#
+}
 
-
-    drop table if exists ror.locations;
+fn get_locations_sql <'a>() -> &'a str {
+    r#"drop table if exists ror.locations;
     create table ror.locations
     (  
           id                varchar     not null
@@ -61,9 +93,11 @@ pub async fn create_tables(pool: &Pool<Postgres>) -> Result<(), AppError> {
         , country_subdivision_code      varchar     null
         , country_subdivision_name      varchar     null	
     );
-    create index src_locations_idx on ror.locations(id);
+    create index src_locations_idx on ror.locations(id);"#
+}
 
-    drop table if exists ror.external_ids;
+fn get_external_ids_sql <'a>() -> &'a str {
+    r#"drop table if exists ror.external_ids;
     create table ror.external_ids
     (
           id                varchar     not null
@@ -71,26 +105,32 @@ pub async fn create_tables(pool: &Pool<Postgres>) -> Result<(), AppError> {
         , id_value          varchar     not null
         , is_preferred      bool        null
     );
-    create index src_external_ids_idx on ror.external_ids(id);
+    create index src_external_ids_idx on ror.external_ids(id);"#
+}
 
-    drop table if exists ror.links;
+fn get_links_sql <'a>() -> &'a str {
+    r#"drop table if exists ror.links;
     create table ror.links
     (
           id                varchar	    not null
         , link_type         varchar     not null
         , value             varchar     not null
     );
-    create index src_links_idx on ror.links(id);
+    create index src_links_idx on ror.links(id);"#
+}
 
-    drop table if exists ror.type;
+fn get_org_types_sql <'a>() -> &'a str {
+    r#"drop table if exists ror.type;
     create table ror.type
     (  
           id                varchar	    not null
         , org_type          varchar     not null
     ); 
-    create index src_type_idx on ror.type(id);
+    create index src_type_idx on ror.type(id);"#
+}
 
-    drop table if exists ror.relationships;
+fn get_relationships_sql <'a>() -> &'a str {
+    r#"drop table if exists ror.relationships;
     create table ror.relationships
     (
           id                varchar     not null
@@ -98,22 +138,23 @@ pub async fn create_tables(pool: &Pool<Postgres>) -> Result<(), AppError> {
         , related_id        varchar     not null
         , related_label     varchar     not null
     ); 
-    create index src_relationships_idx on ror.relationships(id);
+    create index src_relationships_idx on ror.relationships(id);"#
+}
 
-    drop table if exists ror.domains;
+fn get_domains_sql <'a>() -> &'a str {
+    r#"drop table if exists ror.domains;
     create table ror.domains
     (
           id                varchar     not null
         , value             varchar     not null
     );
-    create index src_domains_idx on ror.domains(id);
-    
-    SET client_min_messages TO NOTICE;"#;
-
-    sqlx::raw_sql(sql).execute(pool).await
-        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    Ok(())
-    
+    create index src_domains_idx on ror.domains(id);"#
 }
+
+fn get_message_sql <'a>() -> &'a str {
+    r#"SET client_min_messages TO NOTICE;"#
+}
+
+
 
 

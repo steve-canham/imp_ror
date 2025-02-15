@@ -21,20 +21,19 @@ use log4rs::{
 };
 
 
-pub fn setup_log (data_folder: &PathBuf, source_file_name : &PathBuf) -> Result<log4rs::Handle, AppError> {
+pub fn setup_log (data_folder: &PathBuf, source_file_name : &String) -> Result<log4rs::Handle, AppError> {
     let log_file_path = get_log_file_path(data_folder, source_file_name);
     config_log (&log_file_path)
 }
 
-fn get_log_file_path(data_folder: &PathBuf, source_file_name : &PathBuf) -> PathBuf {
+fn get_log_file_path(data_folder: &PathBuf, source_file_name : &String) -> PathBuf {
     
     // Derives the log file name, returns the full path
 
     let datetime_string = Local::now().format("%m-%d %H%M%S").to_string();
     let mut log_file_name = format!("ror {} ", datetime_string);
-    let source_file_string = source_file_name.display().to_string();
-    if source_file_string != "" {
-        let source_file = &source_file_string[..(source_file_string.len() - 5)];
+    if source_file_name != "" {
+        let source_file = &source_file_name[..(source_file_name.len() - 5)];
         log_file_name = format!("{} from {}.log", log_file_name, source_file);
     }
     else {
@@ -92,7 +91,7 @@ pub fn log_startup_params (ip : &InitParams) {
     info!("data_folder: {}", ip.data_folder.display());
     info!("log_folder: {}", ip.log_folder.display());
     info!("output_folder: {}", ip.output_folder.display());
-    info!("source_file_name: {}", ip.source_file_name.display());
+    info!("source_file_name: {}", ip.source_file_name);
     info!("data_version: {}", ip.data_version);
     info!("data_date: {}", ip.data_date);
     info!("create config table: {}", ip.flags.create_config);
@@ -107,4 +106,11 @@ pub fn log_startup_params (ip : &InitParams) {
     info!("************************************");
     info!("");
 
+}
+
+pub fn write_config (config_string: &String) {
+    info!("Config file created or modified");
+    info!("New file is:");
+    info!("{}", config_string);
+    info!("");
 }

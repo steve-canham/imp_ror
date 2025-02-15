@@ -4,8 +4,7 @@ use crate::AppError;
 
 pub async fn remove_dups (pool: &Pool<Postgres>) -> Result<(), AppError> {
     
-    // Before further processing the duplicate names need to be removed from 
-    // src.names. 
+    // Before further processing the duplicate names need to be removed from src.names. 
     // If this is not done the import to the core data, that follows, will fail, 
     // as some organisations have more than one name marked as the 'ror name' (the 
     // import therefore fails because of a duplicated PK). 

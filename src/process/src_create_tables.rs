@@ -1,22 +1,49 @@
-use sqlx::{Pool, Postgres};
+use sqlx::{postgres::PgQueryResult, Pool, Postgres};
 use crate::AppError;
 
 pub async fn create_tables(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
-    let sql = r#"
-    SET client_min_messages TO WARNING; 
-    create schema if not exists src;
+    execute_sql(get_schema_sql(), pool).await?;
+    execute_sql(get_version_details_sql(), pool).await?;
+    execute_sql(get_core_data_sql(), pool).await?;
+    execute_sql(get_names_sql(), pool).await?;
+    execute_sql(get_dup_names_sql(), pool).await?;
+    execute_sql(get_dup_names_deleted_sql(), pool).await?;
+    execute_sql(get_locations_sql(), pool).await?;
+    execute_sql(get_external_ids_sql(), pool).await?;
+    execute_sql(get_links_sql(), pool).await?;
+    execute_sql(get_org_types_sql(), pool).await?;
+    execute_sql(get_relationships_sql(), pool).await?;
+    execute_sql(get_domains_sql(), pool).await?;
+    execute_sql(get_message_sql(), pool).await?;
 
-    drop table if exists src.version_details;
+    Ok(())
+}
+        
+async fn execute_sql(sql: &str, pool: &Pool<Postgres>) -> Result<PgQueryResult, AppError> {
+    
+    sqlx::raw_sql(&sql).execute(pool)
+        .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))
+}
+
+fn get_schema_sql <'a>() -> &'a str {
+    r#"SET client_min_messages TO WARNING; 
+    create schema if not exists src;"#
+}
+    
+fn get_version_details_sql <'a>() -> &'a str {
+    r#"drop table if exists src.version_details;
     create table src.version_details
     (
           version           varchar     not null
         , data_date         varchar     not null
         , data_days         int         not null
         , process_datetime  timestamp   not null  default current_timestamp
-    );
+    );"#
+}
 
-    drop table if exists src.core_data;
+fn get_core_data_sql <'a>() -> &'a str {
+    r#"drop table if exists src.core_data;
     create table src.core_data
     (
           id                varchar     not null primary key
@@ -27,9 +54,11 @@ pub async fn create_tables(pool: &Pool<Postgres>) -> Result<(), AppError> {
         , location          varchar     null
         , csubdiv_code      varchar     null
         , country_code      varchar     null
-    );
+    );"#
+}
 
-    drop table if exists src.names;
+fn get_names_sql <'a>() -> &'a str {
+    r#"drop table if exists src.names;
     create table src.names
     (
           id                varchar     not null
@@ -39,9 +68,11 @@ pub async fn create_tables(pool: &Pool<Postgres>) -> Result<(), AppError> {
         , lang_code         varchar     null
         , script_code       varchar     null
     );
-    create index names_idx on src.names(id);
-        
-    drop table if exists src.dup_names;
+    create index names_idx on src.names(id);"#
+}
+
+fn get_dup_names_sql <'a>() -> &'a str {
+    r#"drop table if exists src.dup_names;
     create table src.dup_names
     (
           id                varchar     not null
@@ -51,9 +82,11 @@ pub async fn create_tables(pool: &Pool<Postgres>) -> Result<(), AppError> {
         , is_ror_name       bool        null
         , lang_code         varchar     null
     );
-    create index dup_names_idx on src.dup_names(id);
+    create index dup_names_idx on src.dup_names(id);"#
+}
 
-    drop table if exists src.dup_names_deleted;
+fn get_dup_names_deleted_sql <'a>() -> &'a str {
+    r#"drop table if exists src.dup_names_deleted;
     create table src.dup_names_deleted
     (
           id                varchar     not null
@@ -63,9 +96,11 @@ pub async fn create_tables(pool: &Pool<Postgres>) -> Result<(), AppError> {
         , is_ror_name       bool        null
         , lang_code         varchar     null
     );
-    create index dup_names_deleted_idx on src.dup_names(id);
+    create index dup_names_deleted_idx on src.dup_names(id);"#
+}
 
-    drop table if exists src.locations;
+fn get_locations_sql <'a>() -> &'a str {
+    r#"drop table if exists src.locations;
     create table src.locations
     (
           id                varchar     not null
@@ -81,9 +116,11 @@ pub async fn create_tables(pool: &Pool<Postgres>) -> Result<(), AppError> {
         , csubdiv_code      varchar     null  
         , csubdiv_name      varchar     null	
     );
-    create index locations_idx on src.locations(id);
+    create index locations_idx on src.locations(id);"#
+}
 
-    drop table if exists src.external_ids;
+fn get_external_ids_sql <'a>() -> &'a str {
+    r#"drop table if exists src.external_ids;
     create table src.external_ids
     (
           id                varchar     not null
@@ -92,9 +129,11 @@ pub async fn create_tables(pool: &Pool<Postgres>) -> Result<(), AppError> {
         , id_value          varchar     not null
         , is_preferred      bool        not null default false
     );
-    create index external_ids_idx on src.external_ids(id);
+    create index external_ids_idx on src.external_ids(id);"#
+}
 
-    drop table if exists src.links;
+fn get_links_sql <'a>() -> &'a str {
+    r#"drop table if exists src.links;
     create table src.links
     (
           id                varchar     not null
@@ -102,18 +141,22 @@ pub async fn create_tables(pool: &Pool<Postgres>) -> Result<(), AppError> {
         , link_type         int         not null
         , link              varchar     not null
     );
-    create index links_idx on src.links(id);
+    create index links_idx on src.links(id);"#
+}
 
-    drop table if exists src.type;
+fn get_org_types_sql <'a>() -> &'a str {
+    r#"drop table if exists src.type;
     create table src.type
     (
           id                varchar     not null
         , ror_name          varchar     not null
         , org_type          int         not null
     );  
-    create index type_idx on src.type(id);
+    create index type_idx on src.type(id);"#
+}
 
-    drop table if exists src.relationships;
+fn get_relationships_sql <'a>() -> &'a str {
+    r#"drop table if exists src.relationships;
     create table src.relationships
     (
           id                varchar     not null
@@ -122,23 +165,22 @@ pub async fn create_tables(pool: &Pool<Postgres>) -> Result<(), AppError> {
         , related_id        varchar     not null
         , related_name      varchar     not null
     );  
-    create index relationships_idx on src.relationships(id);
+    create index relationships_idx on src.relationships(id);"#
+}
 
-    drop table if exists src.domains;
+fn get_domains_sql <'a>() -> &'a str {
+    r#"drop table if exists src.domains;
     create table src.domains
     (
           id                varchar     not null
         , ror_name          varchar     not null
         , domain            varchar     not null
     );
-    create index domains_idx on src.domains(id);
+    create index domains_idx on src.domains(id);"#
+}
 
-    SET client_min_messages TO NOTICE;"#;
-
-    sqlx::raw_sql(sql).execute(pool).await
-        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    Ok(())
-    
+fn get_message_sql <'a>() -> &'a str {
+    r#"SET client_min_messages TO NOTICE;"#
 }
 
 

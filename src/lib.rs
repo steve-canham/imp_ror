@@ -1,9 +1,10 @@
 pub mod setup;
+pub mod err;
 mod import;
 mod process;
 mod summarise;
 mod export;
-pub mod err;
+
 
 use setup::cli_reader;
 use err::AppError;
@@ -11,27 +12,44 @@ use std::ffi::OsString;
 use std::fs;
 use std::path::PathBuf;
 
-//pub static LOG_RUNNING: OnceLock<bool> = OnceLock::new();
-
 pub async fn run(args: Vec<OsString>) -> Result<(), AppError> {
     
-    let cli_pars = cli_reader::fetch_valid_arguments(args)?;
+    // If no config file the command line arguments are forced into
+    // the equivalent of a user's initialisation request. Otherwise
+    // they are read using the CLAP based CLI reader.
+
+    let cli_pars: cli_reader::CliPars;
+    if !cli_reader::config_file_exists() {
+        cli_pars = cli_reader::get_initalising_cli_pars();  // force flags to equal initialisation request
+    }
+    else {
+        cli_pars = cli_reader::fetch_valid_arguments(args)?;
+    }
     let flags = cli_pars.flags;
 
+    // The create config file flag may nave been set explicitly by the user
+    // or generated automatically by the absence of a config file. The config
+    // file must be generated / edited before the rest of the program proceeds.
+
     if flags.create_config {
-        setup::manage_config()?;  // If set, must be done before anything else
+        if cli_reader::config_file_exists() {
+            setup::edit_config()?; 
+        }
+        else {
+            setup::create_config()?; 
+        }
     }
 
     let config_file = PathBuf::from("./app_config.toml");
     let config_string: String = fs::read_to_string(&config_file)
                     .map_err(|e| AppError::IoReadErrorWithPath(e, config_file))?;
     
-    let params = setup::get_params(cli_pars, config_string)?;
+    let params = setup::get_params(cli_pars, &config_string)?;
 
-    setup::establish_log(&params)?;
+    setup::establish_log(&params, &config_string)?;
     let pool = setup::get_db_pool().await?;
 
-    let flags = params.flags;
+    //let flags = params.flags;
     let test_run = flags.test_run;
 
     // The first two routines below normally run only as an initial 

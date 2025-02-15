@@ -20,7 +20,7 @@ use super::ror_record_structs::{RorCoreData, RorRelationship, RorExternalId,
 async fn import_v2_0_data_to_ror_and_check_org_numbers() {
 
     let cd_path = env::current_dir().unwrap();
-    let target_path : PathBuf = [cd_path, PathBuf::from("tests\\test_data\\")].iter().collect();
+    let target_path : PathBuf = [cd_path, PathBuf::from("tests/test_data/")].iter().collect();
     let target_folder = target_path.to_str().unwrap();
     let target_file = "v99-2030-01-01-test-data_schema_v2.json";
     let args : Vec<&str> = vec!["target/debug/ror1.exe", "-f", target_folder, "-s", target_file, "-r", "-z"];

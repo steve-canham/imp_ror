@@ -8,8 +8,8 @@ use chrono::NaiveDate;
 
 pub fn create_config_file() -> Result<(), AppError>
 {
-    let p1 = "        WELCOME TO IMP_ROR               CONFIGURATION SET UP";
-    let star_line = "****************************************************************************";
+    let p1 = "                 WELCOME TO IMP_ROR               INITIAL CONFIGURATION SET UP";
+    let star_line = "**********************************************************************************";
     let p2 = "The initial task is to set up an app_config file, to hold the details needed";
     let p3 = "to connect to the database, and some required folder paths.";
     let section = format!("\n\n{}\n{}\n{}\n{}\n{}\n", star_line, p1, star_line, p2, p3);
@@ -105,7 +105,7 @@ pub fn create_config_file() -> Result<(), AppError>
 
     let mut df = "".to_string();
     while df == "".to_string() {
-        let try_df = user_input()?.replace("\\", "\\\\");
+        let try_df = user_input()?.replace("\\", "/");
         if folder_exists(&PathBuf::from(&try_df))
         {
             df = try_df;
@@ -134,7 +134,7 @@ pub fn create_config_file() -> Result<(), AppError>
         output_folder_path = format!("output_folder_path=\"{}\"", data_folder);
     }
     else {
-        let op_folder = output_folder.to_string().replace("\\", "\\\\");
+        let op_folder = output_folder.to_string().replace("\\", "/");
         output_folder_path = format!("output_folder_path=\"{}\"", op_folder);
     }
     println!("{}", output_folder_path);
@@ -151,19 +151,19 @@ pub fn create_config_file() -> Result<(), AppError>
         log_folder_path = format!("log_folder_path=\"{}\"", data_folder);
     }
     else {
-        let lg_folder = log_folder.to_string().replace("\\", "\\\\");
+        let lg_folder = log_folder.to_string().replace("\\", "/");
         log_folder_path = format!("log_folder_path=\"{}\"", lg_folder);
     }
     println!("{}", log_folder_path);
 
 
-    let p1 = "Section 3: SOURCE FILE";
+    let p1 = "Section 3: DATA PARAMETERS";
     let p2 = "SOURCE FILE NAME";
     let p3 = "The source file can be provided as a command line argument, or in the configuration file, or in both.";
     let p4 = "NOTE that any source file name provided in the command line will over-write the value in the config file.";
     let p5 = "NOTE also that without a source file named in the configuration file, i.e. if enter is pressed without ";
     let p6 = "entering a value, a source file name will ALWAYS have to be provided in the command line.";
-    let section = format!("\n{}\n\n{}\n{}\n\n{}\n{}\n{}\n{}\n{}\n", p1, p2, p3, star_line, p4, p5, p6, star_line);
+    let section = format!("\n{}\n\n{}\n\n{}\n{}\n{}\n\n{}\n{}\n{}\n", p1, p2, star_line, p3, p4, p5, p6, star_line);
     println!("{}", section);
 
     let src_file = user_input()?;
@@ -230,16 +230,14 @@ pub fn create_config_file() -> Result<(), AppError>
             }
         }
         data_date = format!("data_date=\"{}\"", d_date);
-        println!("{}{}", data_date, suffix);
-
-        // check is a date
+        println!("{}{}", data_version, suffix);
     }
 
+
     let database_section = format!("[database]\n{}\n{}\n{}\n{}\n{}\n", db_host, db_user, db_password, db_port, db_name);
-    let files_section = format!("[files]\n{}\n{}\n{}\n{}\n", data_folder_path, output_folder_path, log_folder_path, src_file_name);
-    let data_section = format!("[data]\n{}\n{}", data_version, data_date);
-    let config_string = format!("\n{}\n\n{}\n\n{}\n", data_section, files_section, database_section);
-    println!("{}", config_string);
+    let folders_section = format!("[folders]\n{}\n{}\n{}\n", data_folder_path, output_folder_path, log_folder_path);
+    let data_section = format!("[data]\n{}\n{}\n{}\n", src_file_name, data_version, data_date);
+    let config_string = format!("\n{}\n\n{}\n\n{}\n", data_section, folders_section, database_section);
 
     let mut file = File::create("./app_config.toml")     // creates new or truncates existing
         .expect("Failed to create or open the file");
@@ -247,7 +245,6 @@ pub fn create_config_file() -> Result<(), AppError>
     // Write to the file
     file.write_all(config_string.as_bytes())
         .expect("Failed to write to the file");
-    println!("Data written to file successfully!");
 
     Ok(())
 }
