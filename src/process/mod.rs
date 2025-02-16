@@ -34,7 +34,13 @@ pub async fn process_data(data_version: &String, pool : &Pool<Postgres>) -> Resu
 
     // Import the data from ror schema to src schema.
 
-    match src_data_importer::import_data(data_version, pool).await
+    // if data version = "" obtain it from the ror tables
+    let mut dv = data_version.to_string();
+    if data_version == "" {
+        dv = get_current_data_version(pool).await?;
+    }
+
+    match src_data_importer::import_data(dv, pool).await
     {
         Ok(()) => {
             info!("Data imported from ror to src tables"); 
@@ -72,4 +78,12 @@ pub async fn process_data(data_version: &String, pool : &Pool<Postgres>) -> Resu
     }
 
     Ok(())
+}
+
+
+pub async fn get_current_data_version(pool: &Pool<Postgres>)-> Result<String, AppError> {
+    
+    let sql = "select version from ror.version_details";
+    sqlx::query_scalar(sql).fetch_one(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))
 }

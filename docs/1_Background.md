@@ -1,8 +1,15 @@
-A small program to process and summarise ROR organisation data, as made available by ROR 
+
+<h2>Background</h2>
+
+<h3>Summary</h3>
+
+imp_ror is a small program to process and summarise ROR organisation data, as made available by ROR 
 on Zenodo (see https://ror.readme.io/docs/data-dump). A new version of the data is posted 
 on a roughly monthly basis. The program processes and retains a single version at a time, 
 but retains summaries of the key features of all versions imported. Data is stored using a 
-Postgres database. As outputs, the system can summarise any specific version as a text file, 
+Postgres database. 
+
+As outputs, the system can summarise any specific version as a text file, 
 or create a set of CSV files representing the stored summary data, for a single version or 
 for all those so far imported.
 
@@ -11,10 +18,10 @@ made available from April 2024 onwards. It can handle versions 2.0 and 2.1, the 
 use from December 2024.
 
 The system is written in Rust and uses a command line interface (CLI) for control. 
+
 <i>N.B. At the moment, the program is not yet available as a stand alone .exe or .lib file, 
-though it is hoped to create these in the future. The current system therefore needs the 
-source code to be downloaded from GitHub, and then run within a Rust development environment 
-(see 'Installation and Routine use' below).</i>
+though it is hoped to create these in the future. The current system therefore requires the 
+source code to be downloaded and then run within a Rust development environment.</i>
 
 <h3>Purpose</h3>
 

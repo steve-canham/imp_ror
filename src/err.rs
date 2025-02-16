@@ -85,7 +85,7 @@ pub fn report_error(e: AppError) -> () {
         AppError::MissingVersion(v_requested)  =>  print_error (
                         format!("Data for the version specified ('{}') does not yet exist in the summary tables.", v_requested),
                         " Run -r or -a with the specified version, to import the data and allow its processing and summarising.".to_string(), 
-                        " MISDSING VERSION"),
+                        " MISSING VERSION"),
 
         AppError::LogSetupError(p, d) => print_error (p, d, "LOG SETUP ERROR"),
 

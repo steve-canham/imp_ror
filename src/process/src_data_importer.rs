@@ -3,7 +3,7 @@ use log::info;
 use crate::err::AppError;
 use super::src_rmv_dup_names;
 
-pub async fn import_data (data_version: &String, pool: &Pool<Postgres>) -> Result<(), AppError> {
+pub async fn import_data (data_version: String, pool: &Pool<Postgres>) -> Result<(), AppError> {
 
     check_data_version_matches_ror_schema_data(data_version, pool).await?;
 
@@ -31,7 +31,8 @@ pub async fn import_data (data_version: &String, pool: &Pool<Postgres>) -> Resul
     Ok(())
 }
 
-async fn check_data_version_matches_ror_schema_data(data_version: &String, pool: &Pool<Postgres>)-> Result<(), AppError> {
+
+async fn check_data_version_matches_ror_schema_data(data_version: String, pool: &Pool<Postgres>)-> Result<(), AppError> {
     
     let sql = "select version from ror.version_details";
     let stored_version: String  = sqlx::query_scalar(sql).fetch_one(pool).await
