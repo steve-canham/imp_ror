@@ -141,6 +141,8 @@ impl RequiredDataVecs{
                         self.name_types.push("label".to_string());
                         self.is_rors.push(Some(true));
                         self.langs.push(name.lang.clone()); 
+
+                        println!("ror name found without name type for{}: {}", db_id.clone(), name.value.clone())
                     }
                     else {
                         let mut is_a_ror_name: Option<bool> = None;
