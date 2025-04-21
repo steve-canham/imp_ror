@@ -9,6 +9,7 @@ pub async fn create_tables(pool: &Pool<Postgres>) -> Result<(), AppError> {
     execute_sql(get_names_sql(), pool).await?;
     execute_sql(get_dup_names_sql(), pool).await?;
     execute_sql(get_dup_names_deleted_sql(), pool).await?;
+    execute_sql(get_names_pad_sql(), pool).await?;
     execute_sql(get_locations_sql(), pool).await?;
     execute_sql(get_external_ids_sql(), pool).await?;
     execute_sql(get_links_sql(), pool).await?;
@@ -98,6 +99,21 @@ fn get_dup_names_deleted_sql <'a>() -> &'a str {
     );
     create index dup_names_deleted_idx on src.dup_names(id);"#
 }
+
+fn get_names_pad_sql <'a>() -> &'a str {
+    r#"drop table if exists src.names_pad;
+    create table src.names_pad
+    (
+          id                varchar     not null
+        , name              varchar     not null  
+        , country_code      varchar     null  
+        , lang_code         varchar     null
+        , script_code       varchar     null
+        , script_code_end   varchar     null
+    );
+    create index names_pad_idx on src.names_pad(id);"#
+}
+
 
 fn get_locations_sql <'a>() -> &'a str {
     r#"drop table if exists src.locations;
@@ -192,7 +208,6 @@ pub async fn create_admin_data_table(pool: &Pool<Postgres>) -> Result<(), AppErr
     (
           id                varchar     not null primary key
         , ror_name          varchar     not null	              
-        , n_locs            int         not null default 0
         , n_labels          int         not null default 0
         , n_aliases         int         not null default 0
         , n_acronyms        int         not null default 0
@@ -201,6 +216,9 @@ pub async fn create_admin_data_table(pool: &Pool<Postgres>) -> Result<(), AppErr
         , n_nacro           int         not null default 0
         , n_nacro_wolc      int         not null default 0
         , is_company        bool        not null default false
+        , n_locs            int         not null default 0
+        , n_subdivs         int         not null default 0
+        , n_countries       int         not null default 0
         , n_types           int         not null default 0
         , n_isni            int         not null default 0
         , n_grid            int         not null default 0

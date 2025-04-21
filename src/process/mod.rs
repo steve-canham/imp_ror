@@ -3,7 +3,6 @@ mod src_data_processor;
 mod src_create_tables;
 mod src_rmv_dup_names;
 
-
 use log::{info, error};
 use sqlx::{Pool, Postgres};
 use crate::AppError;
@@ -63,21 +62,18 @@ pub async fn process_data(data_version: &String, pool : &Pool<Postgres>) -> Resu
             return Err(e)
             },
     }
+    
+    // Improve data cleanliness in the names table
 
-    // Add the script codes to the names.
-
-    match src_data_processor::add_script_codes(pool).await
-    {
-        Ok(()) => {
-            info!("Script codes added to organisation names"); 
-        },
-        Err(e) => {
-            error!("An error occured while adding the script codes: {}", e);
-            return Err(e)
-            },
-    }
+    src_data_processor::tidy_names(pool).await?;
+    src_data_processor::prepare_names_for_script_codes(pool).await?;
+    src_data_processor::add_script_codes(pool).await?;
+    src_data_processor::add_langs_for_nonlatin_codes(pool).await?;
+    src_data_processor::clean_japanese_script_codes(pool).await?;
+    src_data_processor::clean_script_codes_with_numbers(pool).await?;
 
     Ok(())
+
 }
 
 

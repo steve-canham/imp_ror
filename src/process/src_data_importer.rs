@@ -14,7 +14,6 @@ pub async fn import_data (data_version: String, pool: &Pool<Postgres>) -> Result
     src_rmv_dup_names::remove_dups(pool).await?;  // done here to prevent PK errors in core_data
     
     execute_sql(get_core_data_sql(), pool).await?;
-    execute_sql(update_core_data_sql(), pool).await?;
     execute_sql(get_admin_data_sql(), pool).await?;
     info!("Core organisation data transferred to src table");
 
@@ -79,8 +78,8 @@ fn get_import_names_sql <'a>() -> &'a str {
 
 fn get_core_data_sql <'a>() -> &'a str {
 
-    // Note reference to src.names (not ror.names) as the 
-    // src table has now had duplicates removed.
+    // Note reference to src.names (not ror.names) as when this
+    // is used the src table has had duplicates removed.
     
         r#"insert into src.core_data (id, ror_full_id, 
         ror_name, status, established)
@@ -97,14 +96,6 @@ fn get_core_data_sql <'a>() -> &'a str {
         on c.id = m.id;"#
 }
 
-fn update_core_data_sql <'a>() -> &'a str {
-        r#"update src.core_data c
-        set location = t.name,
-        csubdiv_code = t.country_subdivision_code,
-        country_code = t.country_code
-        from ror.locations t
-        where c.id = t.id;"#
-}
 
 fn get_admin_data_sql <'a>() -> &'a str {
         r#"insert into src.admin_data(id, ror_name, created, cr_schema, 

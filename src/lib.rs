@@ -48,8 +48,6 @@ pub async fn run(args: Vec<OsString>) -> Result<(), AppError> {
 
     setup::establish_log(&params, &config_string)?;
     let pool = setup::get_db_pool().await?;
-
-    //let flags = params.flags;
     let test_run = flags.test_run;
 
     // The first two routines below normally run only as an initial 
