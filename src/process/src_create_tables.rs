@@ -105,11 +105,13 @@ fn get_names_pad_sql <'a>() -> &'a str {
     create table src.names_pad
     (
           id                varchar     not null
-        , name              varchar     not null  
+        , original_name     varchar     not null    
+        , name              varchar     null  
         , country_code      varchar     null  
         , lang_code         varchar     null
         , script_code       varchar     null
-        , script_code_end   varchar     null
+        , latin             varchar     null
+        , nonlatin          varchar     null
     );
     create index names_pad_idx on src.names_pad(id);"#
 }

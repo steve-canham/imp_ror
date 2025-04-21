@@ -70,7 +70,8 @@ pub async fn process_data(data_version: &String, pool : &Pool<Postgres>) -> Resu
     src_data_processor::add_script_codes(pool).await?;
     src_data_processor::add_langs_for_nonlatin_codes(pool).await?;
     src_data_processor::clean_japanese_script_codes(pool).await?;
-    src_data_processor::clean_script_codes_with_numbers(pool).await?;
+    src_data_processor::clean_double_script_codes(pool).await?;
+    src_data_processor::apply_script_codes_to_names(pool).await?;
 
     Ok(())
 
