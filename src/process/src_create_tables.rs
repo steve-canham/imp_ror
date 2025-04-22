@@ -17,7 +17,6 @@ pub async fn create_tables(pool: &Pool<Postgres>) -> Result<(), AppError> {
     execute_sql(get_relationships_sql(), pool).await?;
     execute_sql(get_domains_sql(), pool).await?;
     execute_sql(get_message_sql(), pool).await?;
-
     Ok(())
 }
         
@@ -107,7 +106,6 @@ fn get_names_pad_sql <'a>() -> &'a str {
           id                varchar     not null
         , original_name     varchar     not null    
         , name              varchar     null  
-        , country_code      varchar     null  
         , lang_code         varchar     null
         , script_code       varchar     null
         , latin             varchar     null

@@ -2,6 +2,7 @@ mod src_data_importer;
 mod src_data_processor;
 mod src_create_tables;
 mod src_rmv_dup_names;
+mod src_script_coder;
 
 use log::{info, error};
 use sqlx::{Pool, Postgres};
@@ -63,15 +64,14 @@ pub async fn process_data(data_version: &String, pool : &Pool<Postgres>) -> Resu
             },
     }
     
-    // Improve data cleanliness in the names table
+    // Generate script codes
 
-    src_data_processor::tidy_names(pool).await?;
-    src_data_processor::prepare_names_for_script_codes(pool).await?;
-    src_data_processor::add_script_codes(pool).await?;
-    src_data_processor::add_langs_for_nonlatin_codes(pool).await?;
-    src_data_processor::clean_japanese_script_codes(pool).await?;
-    src_data_processor::clean_double_script_codes(pool).await?;
-    src_data_processor::apply_script_codes_to_names(pool).await?;
+    src_script_coder::prepare_names_for_script_codes(pool).await?;
+    src_script_coder::add_script_codes(pool).await?;
+    src_script_coder::clean_japanese_script_codes(pool).await?;
+    src_script_coder::clean_double_script_codes(pool).await?;
+    src_script_coder::apply_script_codes_to_names(pool).await?;
+    src_script_coder::add_langs_for_nonlatin_codes(pool).await?;
 
     Ok(())
 
