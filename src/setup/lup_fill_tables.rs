@@ -169,6 +169,7 @@ fn fill_lang_codes_3_sql <'a>() -> &'a str {
     ('tl', 'tgl', 'Tagalog', 'ISO 639-1'), ('ug', 'uig', 'Uighur', 'ISO 639-1');"#
 }
 
+
 fn fill_script_codes_1_sql <'a>() -> &'a str {
     r#"insert into lup.lang_scripts(code, unicode_name, iso_name, dir, chars, notes, hex_start, hex_end, ascii_start, ascii_end, source) 
     values 
@@ -212,6 +213,7 @@ fn fill_script_codes_2_sql <'a>() -> &'a str {
     ('Geok', 'Georgian', 'Khutsuri (Asomtavruli and Nuskhuri)', 'LtR', null, 'Three different related scripts', '', '', 0, 0, 'ISO 15924'), 
     ('Laoo', 'Lao', 'Lao', 'LtR', 82, 'Used in Laos', '0E80', '0EFF', 3712, 3839, 'ISO 15924'), 
     ('Latn', 'Latin', 'Latin', 'LtR', 1475, '', '0', '02FF', 0, 767, 'ISO 15924'), 
+    ('Latn2', 'Latin Extended', 'Latin Extended', 'LtR', 255, 'Specialist characters used in romanised Vietnamese and a few other languages', '1E00', '1EFF', 7680, 7935, 'web'), 
     ('Lepc', 'Lepcha', 'Lepcha (Róng)', 'LtR', 74, 'Used in parts of India, Tibet', '1C00', '1C4F', 7168, 7247, 'ISO 15924'), 
     ('Limb', 'Limbu', 'Limbu', 'LtR', 68, 'Used in parts of India, Tibet', '1900', '194F', 6400, 6479, 'ISO 15924'), 
     ('Mlym', 'Malayalam', 'Malayalam', 'LtR', 118, 'Used in parts of India (Kerala)', '0D00', '0D7F', 3328, 3455, 'ISO 15924'), 
@@ -248,6 +250,15 @@ fn fill_script_codes_3_sql <'a>() -> &'a str {
     ('Tibt', 'Tibetan', 'Tibetan', 'LtR', 207, '', '0F00', '0FFF', 3840, 4095, 'ISO 15924'), 
     ('Cans', 'Canadian Aboriginal', 'Unified Canadian Aboriginal Syllabics', 'LtR', 726, 'Used in Inuit and related languages', '1400', '167F', 5120, 5759, 'ISO 15924'), 
     ('Wara', 'Warang Citi', 'Warang Citi (Varang Kshiti)', 'LtR', 84, 'Used in parts of India', '118A0', '118FF', 71840, 71935, 'ISO 15924'), 
-    ('Yiii', 'Yi', 'Yi', 'LtR', 1220, 'Used in parts of China', 'A000', 'A48F', 40960, 42127, 'ISO 15924');"#
+    ('Yiii', 'Yi', 'Yi', 'LtR', 1220, 'Used in parts of China', 'A000', 'A48F', 40960, 42127, 'ISO 15924').
+    ('Latn, Jpan', 'Latin - Japanese mix', 'Latin - Japanese mix', null, 'Latin characters mixed with one or more of Han, Hiragana, or Katakana', '', '', 0, 0, 'imp_ror'), 
+    ('Latn, Cyrl', 'Latin - Cyrillic mix', 'Latin - Cyrillic mix', null, 'Latin characters mixed with Cyrillic', '', '', 0, 0, 'imp_ror'), 
+    ('Latn, Hani', 'Latin - Hani mix', 'Latin - Hani mix', null, 'Latin characters mixed with Hani (usually Chinese Hanzi)', '', '', 0, 0, 'imp_ror'), 
+    ('Latn, Hang', 'Latin - Hangul mix', 'Latin - Hangul mix', null, 'Latin characters mixed with Hangul', '', '', 0, 0, 'imp_ror'), 
+    ('Latn, Grek', 'Latin - Greek mix', 'Latin - Greek mix', null, 'Latin characters mixed with Greek', '', '', 0, 0, 'imp_ror'), 
+    ('Latn, Deva', 'Latin - Devanagari mix', 'Latin - Devanagari mix', null, 'Latin characters mixed with Devanagari (usualy Hindi)', '', '', 0, 0, 'imp_ror'), 
+    ('Latn, Geor', 'Latin - Georgian mix', 'Latin - Georgian mix', null, 'Latin characters mixed with Georgian', '', '', 0, 0, 'imp_ror'), 
+    ('Deva, Beng', 'Devanagari - Bengali mix', 'Devanagari - Bengali mix', null, Devanagari characters mixed with Bengali', '', '', 0, 0, 'imp_ror'), 
+    ('Hani, Hang', 'Hani - Hangul mix', 'Hani - Hangul mix', null, 'Hani (Hanja) characters mixed with Korean Hangul', '', '', 0, 0, 'imp_ror');"#
 }
 

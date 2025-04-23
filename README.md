@@ -1,6 +1,3 @@
-**** REPLACES ROR1... **** REPLACES ROR1... **** REPLACES ROR1... <br>
-*********** SIMILAR FUNCTIONALITY BUT SIMPLER TO USE ************ <br>
-
 A program to process and summarise ROR organisation data, as made available by ROR 
 on Zenodo (see https://ror.readme.io/docs/data-dump). A new version of the data is posted 
 on a roughly monthly basis. 
@@ -20,18 +17,25 @@ The system is written in Rust and uses a command line interface (CLI) for contro
 though it is hoped to create these in the future. The current system therefore needs the 
 source code to be downloaded and then run within a Rust development environment.</i>
 
-<h3>Please use the Docs!</h3>
+<h2>Please use the Docs!</h2>
 
-Details on configuring and initialising the system, using it and the various command line 
-aarguments available, the internal database schemas used to store the ROR data and the outputs provided 
-can all be found within the docs section on this GitHub page. Those documemts are written assuming only a 
-very basic knowledge of Rust and its development environment. 
+The summary below assumes some familiarity with Rust, Cargo and Postgres, and is only designed to provide 
+a quick overview of the system.
 
-The summary below assumes greater familiarity with Rust, Cargo and Postgres, and is designed to provide a quick 
-overview of the system. The more detailed documents should be consulted by anyone wishing to use the system or 
-anyone seeking a more detailed understanding of what it does.
+Anyone seeking a more detailed understanding of what the system does, how to set it up and use it, including 
+the various command line arguments available, and the data structures created should consult the more 
+detailed documentation within the docs folder on this GitHub page. Those documents are much more detailed and 
+assume less familiarity with Rust and its development environment. They cover:
+<ul>
+<li>Background and intended purpose</li>
+<li>Installation and Configuration</li>
+<li>Operation and Commands</li>
+<li>Database schemas and data structures</li>
+<li>Coding scripts of ROR Names</li>
+</ul>
 
-<h3>Summary of Installation and Routine use</h3>
+
+<h2>Summary of Installation and Routine use</h2>
 
 <h4>Pre-requisites</h4>
 <ul>

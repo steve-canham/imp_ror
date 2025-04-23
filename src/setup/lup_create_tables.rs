@@ -66,7 +66,7 @@ pub async fn create_tables(pool: &Pool<Postgres>) -> Result<(), AppError> {
       , notes           varchar
       , hex_start       varchar
       , hex_end         varchar
-      , ascii_start	  int
+      , ascii_start     int
       , ascii_end       int
       , source          varchar
     );
