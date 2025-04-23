@@ -106,3 +106,4 @@ The folowing command line arguments are available:
 <i><b>-k</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -lookup]. A flag that causes the lookup tables to be regenerated. Generally only used if the code or data for these tables has been revised. 
 
 <i><b>-m</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -summsetup]. A flag that causes the re-establishment of the summary tables in the smm schema. NOTE - ANY EXISTING DATA IN THOSE TABLES WILL BE DESTROYED. 
+

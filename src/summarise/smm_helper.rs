@@ -651,6 +651,22 @@ pub async fn store_singletons(vcode: &String, num_orgs: i64, num_names: i64, poo
     store_singleton(vcode, "ror_wolc_ncmp", "Noncmp ROR names wolc, number & pc of noncmp orgs", 
     num_ncmp_wolc_ror, Some(pc_ncmp_wolc_ror), pool).await?;
 
+    // Location data
+
+    let num_poly_locs = get_count(r#"select count(id) from src.admin_data where n_locs > 1"#, pool).await?;  
+    let pc_poly_locs = get_pc(num_poly_locs, num_orgs); 
+    let num_poly_subdivs = get_count(r#"select count(id) from src.admin_data where n_subdivs > 1"#, pool).await?;  
+    let pc_poly_subdivs = get_pc(num_poly_subdivs, num_orgs); 
+    let num_poly_countries = get_count(r#"select count(id) from src.admin_data where n_countries > 1"#, pool).await?;  
+    let pc_poly_countries = get_pc(num_poly_countries, num_orgs); 
+
+    store_singleton(vcode, "poly_locs", "Orgs with more than one location, number & pc of orgs", 
+    num_poly_locs, Some(pc_poly_locs), pool).await?;
+    store_singleton(vcode, "poly_subdivs", "Orgs in more than one ‘state’, number & pc of orgs",  
+    num_poly_subdivs, Some(pc_poly_subdivs), pool).await?;
+    store_singleton(vcode, "poly_countries", "Orgs in more than one country, number & pc of orgs",  
+    num_poly_countries, Some(pc_poly_countries), pool).await?;
+
     Ok(())
 }
 

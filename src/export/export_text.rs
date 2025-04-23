@@ -36,7 +36,7 @@ pub async fn generate_text(output_folder : &PathBuf, data_version: &String,
     write_ror_name_details(&output_file_path, &singvals).await?;
     write_ranked_name_info(&output_file_path, &vcode, pool, &singvals).await?;
     write_type_details(&output_file_path, &vcode, pool).await?;
-    write_location_details(&output_file_path, &vcode, pool).await?;
+    write_location_details(&output_file_path, &vcode, pool, &singvals).await?;
     write_links_and_extid_details(&output_file_path, &vcode, pool).await?;
     write_relationship_details(&output_file_path, &vcode, pool, &singvals).await?;
     write_domain_details(&output_file_path, &vcode, pool).await?;
@@ -277,11 +277,23 @@ async fn write_type_details(output_file_path: &PathBuf, vcode: &String, pool: &P
     Ok(())
 }
 
-async fn write_location_details(output_file_path: &PathBuf, vcode: &String, pool: &Pool<Postgres>) -> Result<(), AppError> {
+async fn write_location_details(output_file_path: &PathBuf, vcode: &String, pool: &Pool<Postgres>, singvals: &HashMap<String, Singleton>) -> Result<(), AppError> {
        
     append_to_file(output_file_path, &get_hdr_line("LOCATIONS"))?;
 
-    // Count distribution.
+    // Poly locations, sub-divisions, countries
+
+    let s1 = &singvals["poly_locs"]; 
+    let s2 = &singvals["poly_subdivs"];
+    let s3 = &singvals["poly_countries"]; 
+
+    let s_text = get_sing_hdr() + &get_singleton_line(&s1.description, s1.number, s1.pc)
+                   + &get_singleton_line(&s2.description, s2.number, s2.pc)
+                   + &get_singleton_line(&s3.description, s3.number, s3.pc);
+    
+    append_to_file(output_file_path, &s_text)?;
+
+        // Count distribution.
 
     let table_text = get_distrib_table("locs", "locations", vcode, pool).await?;
     append_to_file(output_file_path, &table_text)?;
@@ -557,7 +569,7 @@ fn get_orgrel_line(org_type: &str, rel_type: &str, num_links: i32, num_orgs: i32
 }
 
 fn get_singleton_line(topic: &str, num: i32, pc: Option<f32>) -> String {
-    let spacer1 = " ".repeat(64 - topic.len() - num.to_string().len());
+    let spacer1 = " ".repeat(64 - topic.chars().count() - num.to_string().len());
     if pc.is_some() {
         let pc_as_string = format!("{:.2}", pc.unwrap());
         let spacer2 = " ".repeat(15 - pc_as_string.len());

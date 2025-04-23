@@ -138,7 +138,7 @@ pub async fn add_script_codes (pool: &Pool<Postgres>) -> Result<(), AppError> {
 
             let sql  = format!(r#"update src.names_pad
                     set script_code = script_code||', '||'{}' 
-                    where name ~ '[\u{:>4}-\u{:>4}]'"#, r.code, r.hex_start, r.hex_end);
+                    where name ~ '[\u{:0>4}-\u{:0>4}]'"#, r.code, r.hex_start, r.hex_end);
 
             sqlx::query(&sql).execute(pool).await
                 .map_err(|e| AppError::SqlxError(e, sql))?;
@@ -278,7 +278,7 @@ pub async fn clean_double_script_codes (pool: &Pool<Postgres>) -> Result<(), App
 
     // if latin are just numbers in russian, greek, arabic - 
     // make the script_code the non-latin script
-      
+
     let mut rga_names = 0;
 
     let sql  = r#"update src.names_pad
