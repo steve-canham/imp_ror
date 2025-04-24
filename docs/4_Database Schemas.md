@@ -37,15 +37,15 @@ lookup tables (set up within the 'lup' or lookup schema) which effectively provi
 of these categorised values, e.g. the organisation, name, link, external id and relationship types. 
 This is intended to make any future data processing quicker and future display more flexible.
 
-b) Ensuring all names specified as a 'ROR name' have a name type designated. In a small number of cases 
-(about 30) this is not the case. They are therefore classified as labels, which allows them to 
+b) Ensuring all names specified as a 'ROR name' have a name type designated. In a very small number of cases 
+this is not the case. They are therefore classified as labels, which allows them to 
 be processed in the same way as all other ROR names.
 
 c) The removal of duplicates from the names table. There are a small number of organisations that 
-have two names with the same value - in some cases, though certainly not all, caused by the correction 
-described in b). In most cases (currently about 65) these are names with two types listed in the source file, 
-usually both 'label' and 'alias'. In further cases (currently about 10) the names are the same type but have two 
-different language codes applied. These duplications are removed according to the folowing rules:
+have two names with the same value - in one case caused by the correction 
+described in b). In most of these cases these are identical names with two types listed in the source file, 
+usually both 'label' and 'alias'. In further cases the names are the same type but have two 
+different language codes applied. These duplications are removed according to the following rules:
 <ul>
 <li>If one of the duplicate pairs is a ror name and the other is not, the one that is not is removed.</li> 
 <li>If one is a label and the other an alias or acronym, the alias or acronym is removed.</li> 
@@ -65,15 +65,22 @@ information is added to each name record, as being of potential value when selec
 
 e) The expansion of the admin_data table, to include for each organisation the numbers of entities 
 of each type it is linked with, e.g. how many names (of various types), links and external ids (of 
-various types), relationships (of various types), locations, etc. are included in that organisation's 
+various types), relationships (of various types), locations, countries etc. are included in that organisation's 
 ror record. This is to make it easier both to use and display the information, to support some of the 
 production of summary data, and to more easily identify organisations that are missing certain 
 types of data.
 
-f) The renaming of a few field names to make them clearer, more consistent or simpler, e.g. 
+f) The addition of summary geographical data to the core_data table. This includes the location name and codes for 
+geographical subdivision and country. For the great majority of organisations, that only have a single location, 
+this data is taken from the locations table and is present to make it easier to use the geographical data (especially
+the country code) in later processing, as well as making it easier to distinguish organisations with the same or 
+very similar names. Names that have multiple locations (and / or subdivisions and / or countries), are clearly 
+indicated within the same data.
+
+g) The renaming of a few field names to make them clearer, more consistent or simpler, e.g. 
 country_subdivision_code becomes csubdiv_code, lang becomes lang_code, etc.
 
-g) For one record, the replacement of a deprecated language code with the current equivalent.
+h) For one record, the replacement of a deprecated language code with the current equivalent.
  
 The src data is designed to be used as the basis for ad hoc SQL queries of the data. They are also used as 
 the basis of the summary statistics described below, and are designed to provide a more useful set of base 

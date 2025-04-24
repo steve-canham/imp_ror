@@ -107,3 +107,17 @@ The folowing command line arguments are available:
 
 <i><b>-m</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -summsetup]. A flag that causes the re-establishment of the summary tables in the smm schema. NOTE - ANY EXISTING DATA IN THOSE TABLES WILL BE DESTROYED. 
 
+<h2>Version Information</h2>
+
+<h4>Version 1.0</h4>
+21/02/2025  -  All functionality described above present
+
+<h4>Version 1.1</h4>
+24/04/2025  -  Changes:
+<ul>
+<li>Script coding process improved to become more comprehensive and accurate</li>
+<li>Improved script coding process fully documented</li>
+<li>Location data in core table improved to handle organisations with multiple locations more accurately</li>
+<li>Location data - number of orgs with multiple locations, states, countries - added to summary report</li>
+<li>Fixed bug where orgs with completely duplicate names (same name, language, type) are better handled (only one organisation affected)</li>
+</ul>
