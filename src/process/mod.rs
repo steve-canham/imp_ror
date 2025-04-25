@@ -71,10 +71,14 @@ pub async fn process_data(data_version: &String, pool : &Pool<Postgres>) -> Resu
     src_script_coder::clean_japanese_script_codes(pool).await?;
     src_script_coder::clean_double_script_codes(pool).await?;
     src_script_coder::apply_script_codes_to_names(pool).await?;
+
+    // Update lang codes from scripts where possible, record lang code source type
+
+    src_script_coder::update_lang_code_source("ror", pool).await?;
     src_script_coder::add_langs_for_nonlatin_codes(pool).await?;
+    src_script_coder::update_lang_code_source("script_auto", pool).await?;
 
     Ok(())
-
 }
 
 

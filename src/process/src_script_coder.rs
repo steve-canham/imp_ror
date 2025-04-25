@@ -374,6 +374,21 @@ pub async fn apply_script_codes_to_names (pool: &Pool<Postgres>) -> Result<(), A
 }
 
 
+pub async fn update_lang_code_source(srce: &str, pool: &Pool<Postgres>) -> Result<(), AppError> {
+
+    let sql = format!(r#"update src.names
+            set lang_source = '{}'
+            where lang_source is null
+            and lang_code is not null;"#, srce );
+ 
+    let res = sqlx::raw_sql(&sql).execute(pool)
+            .await.map_err(|e| AppError::SqlxError(e, sql))?;
+        info!("{} records updated with '{}' as language source", res.rows_affected(), srce);
+
+    Ok(())
+}
+
+
 pub async fn add_langs_for_nonlatin_codes (pool: &Pool<Postgres>) -> Result<(), AppError> {
     
     let mut nonlatin_names = 0;
@@ -413,5 +428,7 @@ async fn update_lang_code(lang_code: &str, country_code: &str, pool: &Pool<Postg
 
     Ok(res.rows_affected())
 }
+
+
 
 
