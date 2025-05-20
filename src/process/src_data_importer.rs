@@ -76,6 +76,7 @@ fn get_import_names_sql <'a>() -> &'a str {
         from ror.names"#
 }
 
+
 fn get_core_data_sql <'a>() -> &'a str {
 
     // Note reference to src.names (not ror.names) as when this

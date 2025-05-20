@@ -25,6 +25,7 @@ pub struct Flags {
     pub import_ror: bool,
     pub process_data: bool,
     pub export_text: bool,
+    pub additional_processing: bool,
     pub export_csv: bool,
     pub export_full_csv: bool,
     pub create_config: bool,
@@ -54,6 +55,7 @@ pub fn fetch_valid_arguments(args: Vec<OsString>) -> Result<CliPars, AppError>
     let mut r_flag = parse_result.get_flag("r_flag");
     let mut p_flag = parse_result.get_flag("p_flag");
     let mut t_flag = parse_result.get_flag("t_flag");
+    let mut q_flag = parse_result.get_flag("q_flag");
     let mut x_flag = parse_result.get_flag("x_flag");
     let mut y_flag = parse_result.get_flag("y_flag");
     let c_flag = parse_result.get_flag("c_flag");
@@ -69,6 +71,7 @@ pub fn fetch_valid_arguments(args: Vec<OsString>) -> Result<CliPars, AppError>
         r_flag = false;
         p_flag = false;
         t_flag = false;
+        q_flag = false;
         x_flag = false;
         y_flag = false;
         z_flag = false;        
@@ -84,11 +87,11 @@ pub fn fetch_valid_arguments(args: Vec<OsString>) -> Result<CliPars, AppError>
         }
         else 
         {
-            // if none of r, p, t, x or y flags set
+            // if none of r, p, q, t, x or y flags set
             // set r to be true, as the default with no flags
 
             if r_flag == false && p_flag == false && t_flag == false
-                && x_flag == false && y_flag == false {
+                && q_flag == false && x_flag == false && y_flag == false {
                 r_flag = true;  
             }
         }
@@ -97,6 +100,7 @@ pub fn fetch_valid_arguments(args: Vec<OsString>) -> Result<CliPars, AppError>
     let flags = Flags {
         import_ror: r_flag,
         process_data: p_flag,
+        additional_processing: q_flag,
         export_text: t_flag,
         export_csv: x_flag,
         export_full_csv: y_flag,
@@ -113,7 +117,6 @@ pub fn fetch_valid_arguments(args: Vec<OsString>) -> Result<CliPars, AppError>
         test_folder: test_folder.clone(),
         flags: flags,
     })
-
 }
 
 
@@ -127,11 +130,13 @@ pub fn config_file_exists()-> bool {
     res
 }
 
+
 pub fn get_initalising_cli_pars()  -> CliPars {
     
     let flags = Flags {
         import_ror: false,
         process_data: false,
+        additional_processing: false,
         export_text: false,
         export_csv: false,
         export_full_csv: false,
@@ -148,7 +153,6 @@ pub fn get_initalising_cli_pars()  -> CliPars {
         test_folder: PathBuf::new(),
         flags: flags,
     }
-
 }
 
 
@@ -185,7 +189,7 @@ fn parse_args(args: Vec<OsString>) -> Result<ArgMatches, clap::Error> {
            .short('a')
            .long("all")
            .required(false)
-           .help("A flag signifying run the entire program, equivalent to R and P")
+           .help("A flag signifying run the entire program, equivalent to R, P and T")
            .action(clap::ArgAction::SetTrue)
          )
         .arg(
@@ -202,6 +206,14 @@ fn parse_args(args: Vec<OsString>) -> Result<ArgMatches, clap::Error> {
             .long("process")
             .required(false)
             .help("A flag signifying process ror data to src data and analyse and store results")
+            .action(clap::ArgAction::SetTrue)
+        )
+        .arg(
+             Arg::new("q_flag")
+            .short('q')
+            .long("languages")
+            .required(false)
+            .help("Additional processing - apply language codes and add relationship records")
             .action(clap::ArgAction::SetTrue)
         )
         .arg(

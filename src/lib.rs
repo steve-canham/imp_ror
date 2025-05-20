@@ -4,6 +4,7 @@ mod import;
 mod process;
 mod summarise;
 mod export;
+mod extra;
 
 
 use setup::cli_reader;
@@ -76,6 +77,7 @@ pub async fn run(args: Vec<OsString>) -> Result<(), AppError> {
         }
     }
 
+
     if flags.process_data  // transfer data to src tables, and summarise in smm tables
     {
         process::create_src_tables(&pool).await?;
@@ -83,10 +85,25 @@ pub async fn run(args: Vec<OsString>) -> Result<(), AppError> {
         summarise::summarise_data(&pool).await?;
     }
 
+
+    if flags.additional_processing  // add language codes to as many names as possible
+    {
+        extra::load_data(&pool).await?;
+        extra::prep_names(&pool).await?;
+        extra::apply_name_codes(&pool).await?;
+        extra::apply_acro_codes(&pool).await?;
+
+        // extra::complete_rels(&pool).await?;
+        // extra::rationalise_companies(&pool).await?;
+
+    }
+
+
     if flags.export_text  // write out summary data from data in smm tables
     { 
         export::export_as_text(&params.output_folder, &params.data_version, &pool).await?;
     }
+
 
     if flags.export_csv  // write out summary data from data in smm tables
     { 

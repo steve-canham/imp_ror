@@ -311,7 +311,29 @@ pub async fn clean_double_script_codes (pool: &Pool<Postgres>) -> Result<(), App
 
     rga_names += res.rows_affected();
 
-    info!("{} Russian, Greek and Arabic names with numbers recoded", rga_names); 
+    info!("{} Russian, Greek and Arabic names with numbers recoded", rga_names);
+
+    // For Ukranian and Byelorussian names, 'i' and 'ý' seems to be allowed (not in Russian)
+    // and is therefore not an indicator of a latin script
+
+    let sql  = r#"update src.names_pad
+    set latin = replace(latin, 'i', '')
+    where latin like '%i%' 
+    and lang_code in ('be', 'uk'); "#;
+
+    sqlx::query(sql).execute(pool).await
+    .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+
+    let sql  = r#"update src.names_pad
+    set latin = replace(latin, 'ý', '')
+    where latin like '%ý%' 
+    and lang_code in ('be', 'uk'); "#;
+
+    sqlx::query(sql).execute(pool).await
+    .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+
+    // Recode double scripts with only a very small (rel;atively) amount of 
+    // one script to be the major script exclusively
 
     let mut singletons = 0;
 
@@ -372,63 +394,4 @@ pub async fn apply_script_codes_to_names (pool: &Pool<Postgres>) -> Result<(), A
 
     Ok(())
 }
-
-
-pub async fn update_lang_code_source(srce: &str, pool: &Pool<Postgres>) -> Result<(), AppError> {
-
-    let sql = format!(r#"update src.names
-            set lang_source = '{}'
-            where lang_source is null
-            and lang_code is not null;"#, srce );
  
-    let res = sqlx::raw_sql(&sql).execute(pool)
-            .await.map_err(|e| AppError::SqlxError(e, sql))?;
-        info!("{} records updated with '{}' as language source", res.rows_affected(), srce);
-
-    Ok(())
-}
-
-
-pub async fn add_langs_for_nonlatin_codes (pool: &Pool<Postgres>) -> Result<(), AppError> {
-    
-    let mut nonlatin_names = 0;
-
-    nonlatin_names += update_lang_code("ru", "RU", pool).await?;
-    nonlatin_names += update_lang_code("uk", "UA", pool).await?;
-    nonlatin_names += update_lang_code("el", "GR", pool).await?;
-    nonlatin_names += update_lang_code("ja", "JP", pool).await?;
-    nonlatin_names += update_lang_code("zh", "CN", pool).await?;
-    nonlatin_names += update_lang_code("ko", "KR", pool).await?;
-    nonlatin_names += update_lang_code("bg", "BG", pool).await?;
-    nonlatin_names += update_lang_code("be", "BY", pool).await?;
-    nonlatin_names += update_lang_code("ky", "KG", pool).await?;
-    nonlatin_names += update_lang_code("kk", "KZ", pool).await?;
-    nonlatin_names += update_lang_code("mn", "MN", pool).await?;
-    nonlatin_names += update_lang_code("uz", "UZ", pool).await?;
-    nonlatin_names += update_lang_code("hy", "AM", pool).await?;
-
-    info!("{} Non-latin language codes applied", nonlatin_names); 
-
-    Ok(())
-}
-
-
-async fn update_lang_code(lang_code: &str, country_code: &str, pool: &Pool<Postgres>) -> Result<u64, AppError> {
-
-    let sql  = format!(r#"update src.names n
-        set lang_code = '{}'
-        from src.core_data c
-        where n.id = c.id
-        and n.lang_code is null 
-        and n.script_code <> 'Latn'
-        and c.country_code = '{}' ;"#, lang_code, country_code);
-
-    let res = sqlx::query(&sql).execute(pool).await
-    .map_err(|e| AppError::SqlxError(e, sql))?;
-
-    Ok(res.rows_affected())
-}
-
-
-
-

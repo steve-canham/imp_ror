@@ -35,6 +35,7 @@ pub async fn process_data(data_version: &String, pool : &Pool<Postgres>) -> Resu
     // Import the data from ror schema to src schema.
 
     // if data version = "" obtain it from the ror tables
+
     let mut dv = data_version.to_string();
     if data_version == "" {
         dv = get_current_data_version(pool).await?;
@@ -74,13 +75,12 @@ pub async fn process_data(data_version: &String, pool : &Pool<Postgres>) -> Resu
 
     // Update lang codes from scripts where possible, record lang code source type
 
-    src_script_coder::update_lang_code_source("ror", pool).await?;
-    src_script_coder::add_langs_for_nonlatin_codes(pool).await?;
-    src_script_coder::update_lang_code_source("script_auto", pool).await?;
+    //src_script_coder::update_lang_code_source("ror", pool).await?;
+    //src_script_coder::add_langs_for_nonlatin_codes(pool).await?;
+    //src_script_coder::update_lang_code_source("script_auto", pool).await?;
 
     Ok(())
 }
-
 
 pub async fn get_current_data_version(pool: &Pool<Postgres>)-> Result<String, AppError> {
     

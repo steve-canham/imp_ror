@@ -66,7 +66,6 @@ fn get_names_sql <'a>() -> &'a str {
         , name_type         int         not null 
         , is_ror_name       bool        not null default false
         , lang_code         varchar     null
-        , lang_source       varchar     null
         , script_code       varchar     null
     );
     create index names_idx on src.names(id);"#
