@@ -14,6 +14,8 @@ pub async fn create_tables(pool: &Pool<Postgres>) -> Result<(), AppError> {
     execute_sql(get_org_types_sql(), pool).await?;
     execute_sql(get_relationships_sql(), pool).await?;
     execute_sql(get_domains_sql(), pool).await?;
+    execute_sql(get_bare_ror_names_sql(), pool).await?;
+    execute_sql(get_dup_names_sql(), pool).await?;
     execute_sql(get_message_sql(), pool).await?;
 
     Ok(())
@@ -64,11 +66,15 @@ fn get_admin_data_sql <'a>() -> &'a str {
     );"#
 }
 
+// ror names has an identity column to help resolve ambiguities 
+// The column does not appear in the derived src.names table
+
 fn get_names_sql <'a>() -> &'a str {
     r#"drop table if exists ror.names;
     create table ror.names
     (  
-          id                varchar     not null
+          ident             int         GENERATED ALWAYS AS IDENTITY
+        , id                varchar     not null
         , value             varchar     not null  
         , name_type         varchar     not null
         , is_ror_name       bool        null
@@ -149,6 +155,33 @@ fn get_domains_sql <'a>() -> &'a str {
         , value             varchar     not null
     );
     create index src_domains_idx on ror.domains(id);"#
+}
+
+
+fn get_bare_ror_names_sql <'a>() -> &'a str {
+    r#"drop table if exists ror.bare_ror_names;
+    create table ror.bare_ror_names
+    (
+          id                varchar     not null
+        , value             varchar     not null
+    );
+    create index src_bare_ror_names_idx on ror.bare_ror_names(id);"#
+}
+
+
+fn get_dup_names_sql <'a>() -> &'a str {
+    r#"drop table if exists ror.dup_names;
+    create table ror.dup_names
+    (
+          ident             int         not null
+        , id                varchar     not null
+        , value             varchar     not null  
+        , name_type         varchar     null 
+        , is_ror_name       bool        null
+        , lang_code         varchar     null
+        , fate              varchar     null
+    );
+    create index dup_names_idx on ror.dup_names(id);"#
 }
 
 fn get_message_sql <'a>() -> &'a str {

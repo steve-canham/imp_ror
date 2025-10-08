@@ -36,8 +36,8 @@ pub async fn create_tables(pool: &Pool<Postgres>) -> Result<(), AppError> {
       , name            varchar
     );
 
-    drop table if exists lup.ror_org_rels;
-    create table lup.ror_org_rels (
+    drop table if exists lup.ror_rel_types;
+    create table lup.ror_rel_types (
         id              int         not null primary key
       , name            varchar
     );

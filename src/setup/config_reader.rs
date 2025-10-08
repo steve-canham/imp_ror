@@ -253,22 +253,22 @@ data_date="2026-06-15"
 src_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
 
 [folders]
-data_folder_path="E:/MDR source data/ROR/data"
-log_folder_path="E:/MDR source data/ROR/logs"
-output_folder_path="E:/MDR source data/ROR/outputs"
+data_folder_path="/home/steve/Data/MDR source data/ROR/data"
+output_folder_path="/home/steve/Data/MDR source data/ROR/outputs"
+log_folder_path="/home/steve/Data/MDR/MDR_Logs/ror"
 
 [database]
 db_host="localhost"
 db_user="user_name"
 db_password="password"
-db_port="5433"
+db_port="5432"
 db_name="ror"
 "#;
         let config_string = config.to_string();
         let res = populate_config_vars(&config_string).unwrap();
-        assert_eq!(res.folders.data_folder_path, PathBuf::from("E:/MDR source data/ROR/data"));
-        assert_eq!(res.folders.log_folder_path, PathBuf::from("E:/MDR source data/ROR/logs"));
-        assert_eq!(res.folders.output_folder_path, PathBuf::from("E:/MDR source data/ROR/outputs"));
+        assert_eq!(res.folders.data_folder_path, PathBuf::from("/home/steve/Data/MDR source data/ROR/data"));
+        assert_eq!(res.folders.log_folder_path, PathBuf::from("/home/steve/Data/MDR/MDR_Logs/ror"));
+        assert_eq!(res.folders.output_folder_path, PathBuf::from("/home/steve/Data/MDR source data/ROR/outputs"));
 
         assert_eq!(res.data_details.src_file_name, "v1.59-2025-01-23-ror-data_schema_v2.json");
         assert_eq!(res.data_details.data_version, "v99");
@@ -277,49 +277,10 @@ db_name="ror"
         assert_eq!(res.db_pars.db_host, "localhost");
         assert_eq!(res.db_pars.db_user, "user_name");
         assert_eq!(res.db_pars.db_password, "password");
-        assert_eq!(res.db_pars.db_port, 5433);
+        assert_eq!(res.db_pars.db_port, 5432);
         assert_eq!(res.db_pars.db_name, "ror");
     }
     
-
-    #[test]
-    fn check_config_with_win_folders() {
-
-        let config = r#"
-[data]
-data_version="v99"
-data_date="2026-06-15"
-src_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
-
-[folders]
-data_folder_path="E:\\MDR source data\\ROR\\data"
-log_folder_path="E:\\MDR source data\\ROR\\logs"
-output_folder_path="E:\\MDR source data\\ROR\\outputs"
-
-[database]
-db_host="localhost"
-db_user="user_name"
-db_password="password"
-db_port="5433"
-db_name="ror"
-"#;
-        let config_string = config.to_string();
-        let res = populate_config_vars(&config_string).unwrap();
-        assert_eq!(res.folders.data_folder_path, PathBuf::from("E:/MDR source data/ROR/data"));
-        assert_eq!(res.folders.log_folder_path, PathBuf::from("E:/MDR source data/ROR/logs"));
-        assert_eq!(res.folders.output_folder_path, PathBuf::from("E:/MDR source data/ROR/outputs"));
-
-        assert_eq!(res.data_details.src_file_name, "v1.59-2025-01-23-ror-data_schema_v2.json");
-        assert_eq!(res.data_details.data_version, "v99");
-        assert_eq!(res.data_details.data_date, "2026-06-15");
-
-        assert_eq!(res.db_pars.db_host, "localhost");
-        assert_eq!(res.db_pars.db_user, "user_name");
-        assert_eq!(res.db_pars.db_password, "password");
-        assert_eq!(res.db_pars.db_port, 5433);
-        assert_eq!(res.db_pars.db_name, "ror");
-    }
-
 
     #[test]
     fn check_config_with_missing_log_and_outputs_folders() {
@@ -331,21 +292,21 @@ data_date="2026-06-15"
 src_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
 
 [folders]
-data_folder_path="E:/MDR source data/ROR/data"
+data_folder_path="/home/steve/Data/MDR source data/ROR/data"
 
 
 [database]
 db_host="localhost"
 db_user="user_name"
 db_password="password"
-db_port="5433"
+db_port="5432"
 db_name="ror"
 "#;
         let config_string = config.to_string();
         let res = populate_config_vars(&config_string).unwrap();
-        assert_eq!(res.folders.data_folder_path, PathBuf::from("E:/MDR source data/ROR/data"));
-        assert_eq!(res.folders.log_folder_path, PathBuf::from("E:/MDR source data/ROR/data"));
-        assert_eq!(res.folders.output_folder_path, PathBuf::from("E:/MDR source data/ROR/data"));
+        assert_eq!(res.folders.data_folder_path, PathBuf::from("/home/steve/Data/MDR source data/ROR/data"));
+        assert_eq!(res.folders.log_folder_path, PathBuf::from("/home/steve/Data/MDR source data/ROR/data"));
+        assert_eq!(res.folders.output_folder_path, PathBuf::from("/home/steve/Data/MDR source data/ROR/data"));
         
         assert_eq!(res.data_details.src_file_name, "v1.59-2025-01-23-ror-data_schema_v2.json");
     }
@@ -361,7 +322,7 @@ data_date="2026-06-15"
 src_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
 
 [folders]
-data_folder_path="E:/MDR source data/ROR/data"
+data_folder_path="/home/steve/Data/MDR source data/ROR/data"
 log_folder_path=""
 output_folder_path=""
 
@@ -369,14 +330,14 @@ output_folder_path=""
 db_host="localhost"
 db_user="user_name"
 db_password="password"
-db_port="5433"
+db_port="5432"
 db_name="ror"
 "#;
         let config_string = config.to_string();
         let res = populate_config_vars(&config_string).unwrap();
-        assert_eq!(res.folders.data_folder_path, PathBuf::from("E:/MDR source data/ROR/data"));
-        assert_eq!(res.folders.log_folder_path, PathBuf::from("E:/MDR source data/ROR/data"));
-        assert_eq!(res.folders.output_folder_path, PathBuf::from("E:/MDR source data/ROR/data"));
+        assert_eq!(res.folders.data_folder_path, PathBuf::from("/home/steve/Data/MDR source data/ROR/data"));
+        assert_eq!(res.folders.log_folder_path, PathBuf::from("/home/steve/Data/MDR source data/ROR/data"));
+        assert_eq!(res.folders.output_folder_path, PathBuf::from("/home/steve/Data/MDR source data/ROR/data"));
 
         assert_eq!(res.data_details.src_file_name, "v1.59-2025-01-23-ror-data_schema_v2.json");
     }
@@ -391,23 +352,23 @@ src_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
 
 
 [folders]
-data_folder_path="E:/MDR source data/ROR/data"
-log_folder_path="E:/MDR source data/ROR/logs"
-output_folder_path="E:/MDR source data/ROR/outputs"
+data_folder_path="/home/steve/Data/MDR source data/ROR/data"
+output_folder_path="/home/steve/Data/MDR source data/ROR/outputs"
+log_folder_path="/home/steve/Data/MDR/MDR_Logs/ror"
 
 
 [database]
 db_host="localhost"
 db_user="user_name"
 db_password="password"
-db_port="5433"
+db_port="5432"
 db_name="ror"
 "#;
         let config_string = config.to_string();
         let res = populate_config_vars(&config_string).unwrap();
-        assert_eq!(res.folders.data_folder_path, PathBuf::from("E:/MDR source data/ROR/data"));
-        assert_eq!(res.folders.log_folder_path, PathBuf::from("E:/MDR source data/ROR/logs"));
-        assert_eq!(res.folders.output_folder_path, PathBuf::from("E:/MDR source data/ROR/outputs"));
+        assert_eq!(res.folders.data_folder_path, PathBuf::from("/home/steve/Data/MDR source data/ROR/data"));
+        assert_eq!(res.folders.log_folder_path, PathBuf::from("/home/steve/Data/MDR/MDR_Logs/ror"));
+        assert_eq!(res.folders.output_folder_path, PathBuf::from("/home/steve/Data/MDR source data/ROR/outputs"));
 
         assert_eq!(res.data_details.src_file_name, "v1.59-2025-01-23-ror-data_schema_v2.json");
         assert_eq!(res.data_details.data_version, "");
@@ -416,7 +377,7 @@ db_name="ror"
         assert_eq!(res.db_pars.db_host, "localhost");
         assert_eq!(res.db_pars.db_user, "user_name");
         assert_eq!(res.db_pars.db_password, "password");
-        assert_eq!(res.db_pars.db_port, 5433);
+        assert_eq!(res.db_pars.db_port, 5432);
         assert_eq!(res.db_pars.db_name, "ror");
     }
 
@@ -432,15 +393,15 @@ src_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
 
 
 [folders]
-log_folder_path="E:/MDR source data/ROR/logs"
-output_folder_path="E:/MDR source data/ROR/outputs"
+output_folder_path="/home/steve/Data/MDR source data/ROR/outputs"
+log_folder_path="/home/steve/Data/MDR/MDR_Logs/ror"
 
 
 [database]
 db_host="localhost"
 db_user="user_name"
 db_password="password"
-db_port="5433"
+db_port="5432"
 db_name="ror"
 "#;
         let config_string = config.to_string();
@@ -459,15 +420,15 @@ data_date="2026-06-15"
 src_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
 
 [folders]
-data_folder_path="E:/MDR source data/ROR/data"
-log_folder_path="E:/MDR source data/ROR/logs"
-output_folder_path="E:/MDR source data/ROR/outputs"
+data_folder_path="/home/steve/Data/MDR source data/ROR/data"
+output_folder_path="/home/steve/Data/MDR source data/ROR/outputs"
+log_folder_path="/home/steve/Data/MDR/MDR_Logs/ror"
 
 [database]
 db_host="localhost"
 db_user=""
 db_password="password"
-db_port="5433"
+db_port="5432"
 db_name="ror"
 "#;
         let config_string = config.to_string();
@@ -485,9 +446,9 @@ data_date="2026-06-15"
 src_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
 
 [folders]
-data_folder_path="E:/MDR source data/ROR/data"
-log_folder_path="E:/MDR source data/ROR/logs"
-output_folder_path="E:/MDR source data/ROR/outputs"
+data_folder_path="/home/steve/Data/MDR source data/ROR/data"
+output_folder_path="/home/steve/Data/MDR source data/ROR/outputs"
+log_folder_path="/home/steve/Data/MDR/MDR_Logs/ror"
 
 [database]
 db_user="user_name"
@@ -511,9 +472,9 @@ db_password="password"
 src_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
 
 [folders]
-data_folder_path="E:/MDR source data/ROR/data"
-log_folder_path="E:/MDR source data/ROR/logs"
-output_folder_path="E:/MDR source data/ROR/outputs"
+data_folder_path="/home/steve/Data/MDR source data/ROR/data"
+output_folder_path="/home/steve/Data/MDR source data/ROR/outputs"
+log_folder_path="/home/steve/Data/MDR/MDR_Logs/ror"
 
 [database]
 db_host="localhost"

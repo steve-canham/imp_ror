@@ -510,9 +510,16 @@ pub async fn store_singletons(vcode: &String, num_orgs: i64, num_names: i64, poo
     let num_acro = get_count("select count(*) from src.names where name_type = 10", pool).await?;
     let num_nacro = get_count("select count(*) from src.names where name_type <> 10", pool).await?;
 
+    // Labels added to names designated only as 'ror names'
+
+    let num_added_labels = get_count("select count(id) from ror.bare_ror_names", pool).await?;
+    let pc_added = get_pc (num_added_labels, num_names);  
+    store_singleton(vcode, "added_labels", "Labels added to designated ROR names without a name type", 
+    num_added_labels, Some(pc_added), pool).await?;
+    
     // Duplicated names that have been removed
 
-    let num_duplicated_names = get_count("select count(id) from src.dup_names_deleted", pool).await?;
+    let num_duplicated_names = get_count("select count(id) from ror.dup_names", pool).await? / 2;
     let pc_dup = get_pc (num_duplicated_names, num_names);  
     store_singleton(vcode, "dup_names", "Duplicated names removed, number & pc of total names", 
     num_duplicated_names, Some(pc_dup), pool).await?;

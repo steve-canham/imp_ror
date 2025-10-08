@@ -88,7 +88,8 @@ pub async fn import_data(data_folder : &PathBuf, source_file_name: &String,
         let db_id = extract_id_from(&r.id).to_string();
 
         cdv.add_core_data(r, &db_id); 
-        rdv.add_required_data(r, &db_id); 
+        rdv.add_name_data(r, &db_id, pool).await?; 
+        rdv.add_locs_and_types_data(r, &db_id);
         ndv.add_non_required_data(r, &db_id); 
         
         //if i > 705 { break;  }
@@ -101,20 +102,20 @@ pub async fn import_data(data_folder : &PathBuf, source_file_name: &String,
             }
             
             // store records to DB and clear vectors
-            cdv.store_data(&pool).await;
+            cdv.store_data(&pool).await?;
             cdv = CoreDataVecs::new(vector_size);
-            rdv.store_data(&pool).await;
+            rdv.store_data(&pool).await?;
             rdv = RequiredDataVecs::new(vector_size);
-            ndv.store_data(&pool).await;
+            ndv.store_data(&pool).await?;
             ndv = NonRequiredDataVecs::new(vector_size);
         }
     }
     
     //store any residual vector contents
 
-    cdv.store_data(&pool).await;
-    rdv.store_data(&pool).await;
-    ndv.store_data(&pool).await;
+    cdv.store_data(pool).await?;
+    rdv.store_data(pool).await?;
+    ndv.store_data(pool).await?;
 
     info!("Total records processed: {}", n + cdv.db_ids.len());
 

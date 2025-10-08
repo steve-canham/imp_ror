@@ -6,16 +6,17 @@ use super::src_rmv_dup_names;
 pub async fn import_data (data_version: String, pool: &Pool<Postgres>) -> Result<(), AppError> {
 
     check_data_version_matches_ror_schema_data(data_version, pool).await?;
-
     execute_sql(get_version_details_sql(), pool).await?;
-    execute_sql(get_import_names_sql(), pool).await?;
-    info!("Name data transferred to src table");
     
     src_rmv_dup_names::remove_dups(pool).await?;  // done here to prevent PK errors in core_data
     
     execute_sql(get_core_data_sql(), pool).await?;
     execute_sql(get_admin_data_sql(), pool).await?;
     info!("Core organisation data transferred to src table");
+
+    execute_sql(get_import_names_sql(), pool).await?;
+    info!("Name data transferred to src table");
+    
 
     execute_sql(get_links_sql(), pool).await?;
     execute_sql(get_external_ids_sql(), pool).await?;
@@ -58,7 +59,35 @@ fn get_version_details_sql <'a>() -> &'a str {
        select version, data_date, data_days from ror.version_details;"#
 }
 
+fn get_core_data_sql <'a>() -> &'a str {
+   
+        r#"insert into src.core_data (id, ror_full_id, 
+        ror_name, status, established)
+        select c.id, c.ror_full_id, m.value, 
+        case 
+            when c.status = 'active' then 1
+            when c.status = 'inactive' then 2
+            when c.status = 'withdrawn' then 3
+        end, 
+        c.established 
+        from ror.core_data c
+        inner join
+            (select id, value from ror.names where is_ror_name = true) m
+        on c.id = m.id;"#
+}
+
+
+fn get_admin_data_sql <'a>() -> &'a str {
+        r#"insert into src.admin_data(id, ror_name, created, cr_schema, 
+        last_modified, lm_schema)
+        select a.id, c.ror_name, a.created, a.cr_schema, a.last_modified, a.lm_schema 
+        from ror.admin_data a
+        inner join src.core_data c
+        on a.id = c.id;"#
+}
+
 fn get_import_names_sql <'a>() -> &'a str {
+        
         r#"insert into src.names(id, value, name_type, 
         is_ror_name, lang_code)
         select id, value, 
@@ -76,36 +105,6 @@ fn get_import_names_sql <'a>() -> &'a str {
         from ror.names"#
 }
 
-
-fn get_core_data_sql <'a>() -> &'a str {
-
-    // Note reference to src.names (not ror.names) as when this
-    // is used the src table has had duplicates removed.
-    
-        r#"insert into src.core_data (id, ror_full_id, 
-        ror_name, status, established)
-        select c.id, c.ror_full_id, m.value, 
-        case 
-            when c.status = 'active' then 1
-            when c.status = 'inactive' then 2
-            when c.status = 'withdrawn' then 3
-        end, 
-        c.established 
-        from ror.core_data c
-        inner join
-            (select id, value from src.names where is_ror_name = true) m
-        on c.id = m.id;"#
-}
-
-
-fn get_admin_data_sql <'a>() -> &'a str {
-        r#"insert into src.admin_data(id, ror_name, created, cr_schema, 
-        last_modified, lm_schema)
-        select a.id, c.ror_name, a.created, a.cr_schema, a.last_modified, a.lm_schema 
-        from ror.admin_data a
-        inner join src.core_data c
-        on a.id = c.id;"#
-}
 
 fn get_links_sql <'a>() -> &'a str  {
         r#"insert into src.links(id, ror_name, link_type, link)

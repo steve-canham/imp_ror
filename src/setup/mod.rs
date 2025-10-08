@@ -408,9 +408,9 @@ data_date="2025-12-11"
 src_file_name="v1.58 20241211.json"
 
 [folders]
-data_folder_path="E:/MDR source data/ROR/data"
-log_folder_path="E:/MDR source data/ROR/logs"
-output_folder_path="E:/MDR source data/ROR/outputs"
+data_folder_path="/home/steve/Data/MDR source data/ROR/data"
+output_folder_path="/home/steve/Data/MDR source data/ROR/outputs"
+log_folder_path="/home/steve/Data/MDR/MDR_Logs/ror"
 
 [database]
 db_host="localhost"
@@ -436,9 +436,9 @@ db_name="ror"
         assert_eq!(res.flags.create_config, false);
         assert_eq!(res.flags.create_lookups, false);
         assert_eq!(res.flags.create_summary, false);
-        assert_eq!(res.data_folder, PathBuf::from("E:/MDR source data/ROR/data"));
-        assert_eq!(res.log_folder, PathBuf::from("E:/MDR source data/ROR/logs"));
-        assert_eq!(res.output_folder, PathBuf::from("E:/MDR source data/ROR/outputs"));
+        assert_eq!(res.data_folder, PathBuf::from("/home/steve/Data/MDR source data/ROR/data"));
+        assert_eq!(res.log_folder, PathBuf::from("/home/steve/Data/MDR/MDR_Logs/ror"));
+        assert_eq!(res.output_folder, PathBuf::from("/home/steve/Data/MDR source data/ROR/outputs"));
         assert_eq!(res.source_file_name, "v1.58 20241211.json");
         assert_eq!(res.data_version, "v1.58");
         assert_eq!(res.data_date, "2024-12-11");
@@ -454,9 +454,9 @@ data_date="2025-12-11"
 src_file_name="v1.58 20241211.json"
 
 [folders]
-data_folder_path="E:/MDR source data/ROR/data"
-log_folder_path="E:/MDR source data/ROR/logs"
-output_folder_path="E:/MDR source data/ROR/outputs"
+data_folder_path="/home/steve/Data/MDR source data/ROR/data"
+output_folder_path="/home/steve/Data/MDR source data/ROR/outputs"
+log_folder_path="/home/steve/Data/MDR/MDR_Logs/ror"
 
 [database]
 db_host="localhost"
@@ -481,10 +481,9 @@ db_name="ror"
         assert_eq!(res.flags.create_config, false);
         assert_eq!(res.flags.create_lookups, false);
         assert_eq!(res.flags.create_summary, false);
-        assert_eq!(res.data_folder, PathBuf::from("E:/MDR source data/ROR/data"));
-        assert_eq!(res.log_folder, PathBuf::from("E:/MDR source data/ROR/logs"));
-        assert_eq!(res.output_folder, PathBuf::from("E:/MDR source data/ROR/outputs"));
-        assert_eq!(res.source_file_name, "schema2 data.json");
+        assert_eq!(res.data_folder, PathBuf::from("/home/steve/Data/MDR source data/ROR/data"));
+        assert_eq!(res.log_folder, PathBuf::from("/home/steve/Data/MDR/MDR_Logs/ror"));
+        assert_eq!(res.output_folder, PathBuf::from("/home/steve/Data/MDR source data/ROR/outputs"));        assert_eq!(res.source_file_name, "schema2 data.json");
         assert_eq!(res.data_version, "v1.60");
         assert_eq!(res.data_date, "2026-12-25");
     }
@@ -500,9 +499,9 @@ data_version="v1.50"
 data_date="2025-12-11"
 
 [folders]
-data_folder_path="E:/MDR source data/ROR/data"
-log_folder_path="E:/MDR source data/ROR/logs"
-output_folder_path="E:/MDR source data/ROR/outputs"
+data_folder_path="/home/steve/Data/MDR source data/ROR/data"
+output_folder_path="/home/steve/Data/MDR source data/ROR/outputs"
+log_folder_path="/home/steve/Data/MDR/MDR_Logs/ror"
 
 [database]
 db_host="localhost"
@@ -527,60 +526,15 @@ db_name="ror"
         assert_eq!(res.flags.create_config, true);
         assert_eq!(res.flags.create_lookups,false);
         assert_eq!(res.flags.create_summary, true);
-        assert_eq!(res.data_folder, PathBuf::from("E:/MDR source data/ROR/data"));
-        assert_eq!(res.log_folder, PathBuf::from("E:/MDR source data/ROR/logs"));
-        assert_eq!(res.output_folder, PathBuf::from("E:/MDR source data/ROR/outputs"));
+        assert_eq!(res.data_folder, PathBuf::from("/home/steve/Data/MDR source data/ROR/data"));
+        assert_eq!(res.log_folder, PathBuf::from("/home/steve/Data/MDR/MDR_Logs/ror"));
+        assert_eq!(res.output_folder, PathBuf::from("/home/steve/Data/MDR source data/ROR/outputs"));
         assert_eq!(res.source_file_name, "schema2 data.json");
         assert_eq!(res.data_version, "v1.60");
         assert_eq!(res.data_date, "2026-12-25");
     }
 
-    #[test]
-    fn check_with_cm_flags_and_win_paths() {
-
-        let config = r#"
-[data]
-src_file_name="v1.58 20241211.json"
-data_version="v1.50"
-data_date="2025-12-11"
-
-[folders]
-data_folder_path="E:\\MDR source data\\ROR\\data"
-log_folder_path="E:\\MDR source data\\ROR\\logs"
-output_folder_path="E:\\MDR source data\\ROR\\outputs"
-
-[database]
-db_host="localhost"
-db_user="user_name"
-db_password="password"
-db_port="5433"
-db_name="ror"
-    "#;
-        let config_string = config.to_string();
-        config_reader::populate_config_vars(&config_string).unwrap();
-        let args : Vec<&str> = vec!["dummy target", "-r", "-p", "-x", "-y", "-c", "-m",
-                                    "-d", "2026-12-25", "-s", "schema2 data.json", "-v", "v1.60"];
-        let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
-        let cli_pars = cli_reader::fetch_valid_arguments(test_args).unwrap();
-        let res = get_params(cli_pars, &config_string).unwrap();
-
-        assert_eq!(res.flags.import_ror, false);
-        assert_eq!(res.flags.process_data, false);
-        assert_eq!(res.flags.export_text, false);
-        assert_eq!(res.flags.export_csv, false);
-        assert_eq!(res.flags.export_full_csv, false);
-        assert_eq!(res.flags.create_config, true);
-        assert_eq!(res.flags.create_lookups,false);
-        assert_eq!(res.flags.create_summary, true);
-        assert_eq!(res.data_folder, PathBuf::from("E:/MDR source data/ROR/data"));
-        assert_eq!(res.log_folder, PathBuf::from("E:/MDR source data/ROR/logs"));
-        assert_eq!(res.output_folder, PathBuf::from("E:/MDR source data/ROR/outputs"));
-        assert_eq!(res.source_file_name, "schema2 data.json");
-        assert_eq!(res.data_version, "v1.60");
-        assert_eq!(res.data_date, "2026-12-25");
-    }
-
-
+   
     #[test]
     fn check_with_x_and_y_flags() {
 
@@ -591,9 +545,9 @@ data_version="v1.60"
 data_date="2025-12-11"
 
 [folders]
-data_folder_path="E:/MDR source data/ROR/data"
-log_folder_path="E:/MDR source data/ROR/logs"
-output_folder_path="E:/MDR source data/ROR/outputs"
+data_folder_path="/home/steve/Data/MDR source data/ROR/data"
+output_folder_path="/home/steve/Data/MDR source data/ROR/outputs"
+log_folder_path="/home/steve/Data/MDR/MDR_Logs/ror"
 
 [database]
 db_host="localhost"
@@ -617,9 +571,9 @@ db_name="ror"
         assert_eq!(res.flags.create_config, false);
         assert_eq!(res.flags.create_lookups, false);
         assert_eq!(res.flags.create_summary, false);
-        assert_eq!(res.data_folder, PathBuf::from("E:/MDR source data/ROR/data"));
-        assert_eq!(res.log_folder, PathBuf::from("E:/MDR source data/ROR/logs"));
-        assert_eq!(res.output_folder, PathBuf::from("E:/MDR source data/ROR/outputs"));
+        assert_eq!(res.data_folder, PathBuf::from("/home/steve/Data/MDR source data/ROR/data"));
+        assert_eq!(res.log_folder, PathBuf::from("/home/steve/Data/MDR/MDR_Logs/ror"));
+        assert_eq!(res.output_folder, PathBuf::from("/home/steve/Data/MDR source data/ROR/outputs"));
         assert_eq!(res.source_file_name, "schema2 data.json");
         assert_eq!(res.data_version, "v1.60");
         assert_eq!(res.data_date, "2025-12-11");
@@ -635,9 +589,9 @@ data_version=""
 data_date=""
 
 [folders]
-data_folder_path="E:/MDR source data/ROR/data"
-log_folder_path="E:/MDR source data/ROR/logs"
-output_folder_path="E:/MDR source data/ROR/outputs"
+data_folder_path="/home/steve/Data/MDR source data/ROR/data"
+output_folder_path="/home/steve/Data/MDR source data/ROR/outputs"
+log_folder_path="/home/steve/Data/MDR/MDR_Logs/ror"
 
 [database]
 db_host="localhost"
@@ -663,9 +617,9 @@ db_name="ror"
         assert_eq!(res.flags.create_config, false);
         assert_eq!(res.flags.create_lookups, false);
         assert_eq!(res.flags.create_summary, false);
-        assert_eq!(res.data_folder, PathBuf::from("E:/MDR source data/ROR/data"));
-        assert_eq!(res.log_folder, PathBuf::from("E:/MDR source data/ROR/logs"));
-        assert_eq!(res.output_folder, PathBuf::from("E:/MDR source data/ROR/outputs"));
+        assert_eq!(res.data_folder, PathBuf::from("/home/steve/Data/MDR source data/ROR/data"));
+        assert_eq!(res.log_folder, PathBuf::from("/home/steve/Data/MDR/MDR_Logs/ror"));
+        assert_eq!(res.output_folder, PathBuf::from("/home/steve/Data/MDR source data/ROR/outputs"));
         assert_eq!(res.source_file_name, "v1.58 20241211.json");
         assert_eq!(res.data_version, "v1.58");
         assert_eq!(res.data_date, "2024-12-11");
@@ -682,9 +636,9 @@ data_version="v1.60"
 data_date="2025-12-11"
 
 [folders]
-data_folder_path="C:/MDR source data/ROR/data"
-log_folder_path="E:/MDR source data/ROR/logs"
-output_folder_path="E:/MDR source data/ROR/outputs"
+data_folder_path="/home/steve/Data/MDR source data/ROR/no_data"
+output_folder_path="/home/steve/Data/MDR source data/ROR/outputs"
+log_folder_path="/home/steve/Data/MDR/MDR_Logs/ror"
 
 [database]
 db_host="localhost"
@@ -712,9 +666,9 @@ data_version="v1.60"
 data_date="2025-12-11"
 
 [folders]
-data_folder_path="C:/MDR source data/ROR/data"
-log_folder_path="E:/MDR source data/ROR/logs"
-output_folder_path="E:/MDR source data/ROR/outputs"
+data_folder_path="/home/steve/Data/MDR source data/ROR/no_data"
+output_folder_path="/home/steve/Data/MDR source data/ROR/outputs"
+log_folder_path="/home/steve/Data/MDR/MDR_Logs/ror"
 
 [database]
 db_host="localhost"
@@ -740,9 +694,9 @@ db_name="ror"
         assert_eq!(res.flags.create_config, false);
         assert_eq!(res.flags.create_lookups, false);
         assert_eq!(res.flags.create_summary, false);
-        assert_eq!(res.data_folder, PathBuf::from("C:/MDR source data/ROR/data"));
-        assert_eq!(res.log_folder, PathBuf::from("E:/MDR source data/ROR/logs"));
-        assert_eq!(res.output_folder, PathBuf::from("E:/MDR source data/ROR/outputs"));
+        assert_eq!(res.data_folder, PathBuf::from("/home/steve/Data/MDR source data/ROR/no_data"));
+        assert_eq!(res.log_folder, PathBuf::from("/home/steve/Data/MDR/MDR_Logs/ror"));
+        assert_eq!(res.output_folder, PathBuf::from("/home/steve/Data/MDR source data/ROR/outputs"));
         assert_eq!(res.source_file_name, "v1.58 20241211.json");
         assert_eq!(res.data_version, "v1.58");
         assert_eq!(res.data_date, "2024-12-11");

@@ -7,8 +7,6 @@ pub async fn create_tables(pool: &Pool<Postgres>) -> Result<(), AppError> {
     execute_sql(get_version_details_sql(), pool).await?;
     execute_sql(get_core_data_sql(), pool).await?;
     execute_sql(get_names_sql(), pool).await?;
-    execute_sql(get_dup_names_sql(), pool).await?;
-    execute_sql(get_dup_names_deleted_sql(), pool).await?;
     execute_sql(get_names_pad_sql(), pool).await?;
     execute_sql(get_locations_sql(), pool).await?;
     execute_sql(get_external_ids_sql(), pool).await?;
@@ -71,33 +69,6 @@ fn get_names_sql <'a>() -> &'a str {
     create index names_idx on src.names(id);"#
 }
 
-fn get_dup_names_sql <'a>() -> &'a str {
-    r#"drop table if exists src.dup_names;
-    create table src.dup_names
-    (
-          id                varchar     not null
-        , value             varchar     not null  
-        , name_type         int         null 
-        , dup_type          varchar     not null
-        , is_ror_name       bool        null
-        , lang_code         varchar     null
-    );
-    create index dup_names_idx on src.dup_names(id);"#
-}
-
-fn get_dup_names_deleted_sql <'a>() -> &'a str {
-    r#"drop table if exists src.dup_names_deleted;
-    create table src.dup_names_deleted
-    (
-          id                varchar     not null
-        , value             varchar     not null  
-        , name_type         int         null 
-        , dup_type          varchar     not null
-        , is_ror_name       bool        null
-        , lang_code         varchar     null
-    );
-    create index dup_names_deleted_idx on src.dup_names(id);"#
-}
 
 fn get_names_pad_sql <'a>() -> &'a str {
     r#"drop table if exists src.names_pad;

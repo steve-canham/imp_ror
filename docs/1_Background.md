@@ -45,6 +45,6 @@ between the two), logging, file handling (of both JSON and text files), and unit
 The system is still 'basic' Rust, however, and does not use more advanced features of the language.
 
 <h3>Development environment</h3>
-
+ 
 The system was developed on a Windows 11 machine, using Rust 1.80.1, Postgres 17, VS Code and 
 DBeaver. Efforts will be made to make the system cross-platform, though this has not yet been tested.

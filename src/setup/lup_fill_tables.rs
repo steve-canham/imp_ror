@@ -43,7 +43,7 @@ fn fill_lookup_tables_sql <'a>() -> &'a str {
     insert into lup.ror_link_types(id, name) 
       values (21, 'wikipedia'), (22, 'website');
     
-    insert into lup.ror_org_rels(id, name) 
+    insert into lup.ror_rel_types(id, name) 
        values (1, 'has parent'), (2, 'has child'), (3, 'is related to'),
         (4, 'has predecessor'), (5, 'has successor');"#
 }

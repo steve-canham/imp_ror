@@ -386,11 +386,13 @@ pub async fn apply_script_codes_to_names (pool: &Pool<Postgres>) -> Result<(), A
     .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
     info!("Language script codes applied to names table"); 
+    info!(""); 
 
-    let sql  = r#"drop table src.names_pad"#;
+    // Remove this as unnecessary, for now
+    // let sql  = r#"drop table src.names_pad"#;
 
-    sqlx::query(sql).execute(pool).await
-    .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    // sqlx::query(sql).execute(pool).await
+    // .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
     Ok(())
 }

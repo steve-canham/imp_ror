@@ -125,14 +125,18 @@ async fn write_name_info(output_file_path: &PathBuf, vcode: &String, pool: &Pool
 
     append_to_file(output_file_path, &get_hdr_line("NAMES"))?;
 
+    let s1 = &singvals["added_labels"]; 
+    let s2 = &singvals["dup_names"]; 
+
+    let name_change_text = "\n".to_string() + &get_sing_hdr()+ &get_singleton_line(&s1.description, s1.number, s1.pc)
+                           + &get_singleton_line(&s2.description, s2.number, s2.pc);
+
+    append_to_file(output_file_path, &name_change_text)?;
+
     // Write name attribute summary - att_type 1
 
     let table_text = get_attrib_table(1, "Names", "TOTAL (excl. nacro lines)", vcode, pool).await?;
     append_to_file(output_file_path, &table_text)?;
-
-    let s1 = &singvals["dup_names"]; 
-    let dup_text = get_sing_hdr() + &get_singleton_line(&s1.description, s1.number, s1.pc);
-    append_to_file(output_file_path, &dup_text)?;
 
     // Write count distributions - count_type: names, labels, aliases, acronyms
 

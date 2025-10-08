@@ -268,8 +268,8 @@ async fn check_src_name_data() {
         value: "Yamashita Kōjōsen Byōin".to_string(), name_type: 7, 
         is_ror_name: false, lang_code: None, script_code: Some("Latn".to_string())});
     assert_eq!(names[4], SrcName{
-        value: "やまし た こうじょう せん びょう いん".to_string(), name_type: 7, 
-        is_ror_name: false, lang_code: Some("ja".to_string()), script_code: Some("Hira".to_string())});
+        value: "ヤマシタ コージョーセン ビョーイン".to_string(), name_type: 7, 
+        is_ror_name: false, lang_code: Some("ja".to_string()), script_code: Some("Jpan".to_string())});
 }
 
 

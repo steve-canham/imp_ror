@@ -34,7 +34,7 @@ pub async fn store_summary_data (pool: &Pool<Postgres>) -> Result<(), AppError> 
     let num_domains= smm_helper::get_count("select count(*) from src.domains", pool).await?;
     
     let sql = r#"INSERT into smm.version_summaries (vcode, vdate, vdays, num_orgs, num_names,
-                      num_types, num_links, num_ext_ids, num_rels, num_locations , num_domains)
+                      num_types, num_links, num_ext_ids, num_rels, num_locations, num_domains)
                       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"#;
     sqlx::query(sql).bind(&vcode).bind(vdate).bind(vdays)
         .bind(num_orgs).bind(num_names).bind(num_types).bind(num_links)

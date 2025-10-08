@@ -190,7 +190,7 @@ iii) In many cases there is a large discrepancy between the size of the Latin an
 From a usage point of view, a ‘Latin user’ is unlikely to understand a name retrieved as being (partially) Latin if that Latin component is just a character or two – in normal usage it can only be interpreted by someone familiar with the majority script. Conversely a ‘non Latin user’ will probably not make sense of a name classified as a combination of that script and Latin if almost all of the name is in Latin (unless of course they are also familiar with a Latin language like English).
 <br/><br/>
 It therefore makes sense to reclassify the double coded names as the majority script, when 
-	a) the minority script consists of only 1 or 2 characters <br/>
+	a) the minority script consists of only 1 or 2 characters, AND<br/>
 	b) the majority script is at least 6 characters long.<br/><br/>
 The second criterion is to avoid recoding some double scripted names where both components are very short (e.g. ‘LG화학’, or ‘智谱ai’) – possibly double scripted acronyms. These limits are arbitrary, and could be tweaked to other values, but they seem a reasonable starting point. The SQL for recoding the ‘short Latin – longer nonLatin’ scenario is given below. Similar code is used for the converse recoding.<br/>
 <br/>
@@ -200,9 +200,9 @@ The second criterion is to avoid recoding some double scripted names where both 
     			and length(latin) < 3 <br/>
     			and char_length(nonlatin) > 5<br/>
 <br/>
-Making the three changes above means that almost half of the ‘double scripted’ names disappear. There are (currently, April 2025) just 158 names that could be classified as using two scripts, and even that is probably stretching the definition. The resultanty set is shown in the tab double_coded_2 in the spreadsheet.
+Making the three changes above means that almost half of the ‘double scripted’ names disappear. There are (currently, April 2025) just 158 names that could be classified as using two scripts, and even that is probably stretching the definition. (The resultant set is shown in the tab double_coded_2 in the current summary spreadsheet)
 <br/><br/>
-Why these double coded names occur is an interesting question. Presumably they have appeared at some time in source material listing an organisation, and are therefore needed as part of a matching process. Many of the Japanese entries, for example, just include a Latin acronym followed by ‘株式会社’, according to Google translate the equivalent of ‘co. ltd.’ or ‘corporation’. Some may be simple errors, though it not clear how easily that could be checked and corrections made.<br/>
+Why these double coded names occur is unclear. Presumably they have appeared at some time in source material listing an organisation, and are therefore needed as part of a matching process. Many of the Japanese entries, for example, just include a Latin acronym followed by ‘株式会社’, according to Google translate the equivalent of ‘co. ltd.’ or ‘corporation’. Some may be simple errors, though it not clear how easily that could be checked and corrections made.<br/>
 Only a very few seem like genuine and deliberate attempts to provide a full name in two scripts:<br/>
 ‘武田薬品工業株式会社, Takeda Yakuhin Kōgyō kabushiki gaisha’ and <br/>
 ‘Институт коммерции и праваWebsiteDirections’<br/> 

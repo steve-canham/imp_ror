@@ -19,7 +19,10 @@ pub async fn create_src_tables(pool : &Pool<Postgres>) -> Result<(), AppError>
             },
     };
     match src_create_tables::create_admin_data_table(pool).await {
-        Ok(()) => info!("Admin data table created in src schema"),
+        Ok(()) => {
+            info!("Admin data table created in src schema");
+            info!(""); 
+        },
         Err(e) => {
             error!("An error occured while creating the src admin data table: {}", e);
             return Err(e)
@@ -45,6 +48,7 @@ pub async fn process_data(data_version: &String, pool : &Pool<Postgres>) -> Resu
     {
         Ok(()) => {
             info!("Data imported from ror to src tables"); 
+            info!(""); 
         },
         Err(e) => {
             error!("An error occured while transferring to the src tables: {}", e);
@@ -58,6 +62,7 @@ pub async fn process_data(data_version: &String, pool : &Pool<Postgres>) -> Resu
     {
         Ok(()) => {
             info!("All org attributes counted and results added to admin table"); 
+            info!(""); 
         },
         Err(e) => {
             error!("An error occured while processing the imported data: {}", e);

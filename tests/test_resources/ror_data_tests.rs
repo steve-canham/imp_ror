@@ -251,7 +251,7 @@ async fn check_ror_name_data() {
         value: "Yamashita Kōjōsen Byōin".to_string(), name_type: "alias".to_string(), 
         is_ror_name: None, lang: None,});
     assert_eq!(names[4], RorName{
-        value: "やまし た こうじょう せん びょう いん".to_string(), name_type: "alias".to_string(), 
+        value: "ヤマシタ コージョーセン ビョーイン".to_string(), name_type: "alias".to_string(), 
         is_ror_name: None, lang: Some("ja".to_string()),});
 }
 

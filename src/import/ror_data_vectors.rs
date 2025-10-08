@@ -1,6 +1,8 @@
 use chrono::NaiveDate;
-use sqlx::{Pool, Postgres};
+use sqlx::{postgres::PgQueryResult, Pool, Postgres};
 use crate::import::ror_json_models::RorRecord;
+use crate::AppError;
+use log::info;
 
 // vectors to hold column values, 100 at a time
 
@@ -47,28 +49,32 @@ impl CoreDataVecs{
     }
 
 
-    pub async fn store_data(&self, pool : &Pool<Postgres>) {
+    pub async fn store_data(&self, pool : &Pool<Postgres>) -> Result<PgQueryResult, AppError> {
     
         // do the core data
-        let _ = sqlx::query(r#"INSERT INTO ror.core_data (id, ror_full_id, status, established) 
-            SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::int[])"#)
+        let sql = r#"INSERT INTO ror.core_data (id, ror_full_id, status, established) 
+            SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::int[])"#;
+
+        sqlx::query(sql)
         .bind(&self.db_ids)
         .bind(&self.ror_ids)
         .bind(&self.statuses)
         .bind(&self.estabs)
         .execute(pool)
-        .await;
+        .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
         
         // do the admin data
-        let _ = sqlx::query(r#"INSERT INTO ror.admin_data (id, created, cr_schema, last_modified, lm_schema) 
-            SELECT * FROM UNNEST($1::text[], $2::timestamp[], $3::text[], $4::timestamp[], $5::text[])"#)
+        let sql = r#"INSERT INTO ror.admin_data (id, created, cr_schema, last_modified, lm_schema) 
+            SELECT * FROM UNNEST($1::text[], $2::timestamp[], $3::text[], $4::timestamp[], $5::text[])"#;
+
+        sqlx::query(sql)
         .bind(&self.db_ids)
         .bind(&self.created_dates)
         .bind(&self.created_vs)
         .bind(&self.lastmod_dates)
         .bind(&self.lastmod_vs)
         .execute(pool)
-        .await;
+        .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))
 
     }
 
@@ -79,7 +85,7 @@ pub struct RequiredDataVecs {
     pub name_db_ids: Vec<String>,
     pub names: Vec<String>,
     pub name_types: Vec<String>,
-    pub is_rors:Vec<Option<bool>>,
+    pub is_rors:Vec<bool>,
     pub langs: Vec<Option<String>>,
 
     pub type_db_ids: Vec<String>,
@@ -125,7 +131,7 @@ impl RequiredDataVecs{
         }
     }
 
-    pub fn add_required_data(&mut self, r: &RorRecord, db_id: &String) 
+    pub async fn add_name_data(&mut self, r: &RorRecord, db_id: &String, pool : &Pool<Postgres>) -> Result<(), AppError> 
     {
         if r.names.len() > 0 {
             for name in r.names.iter()
@@ -139,17 +145,19 @@ impl RequiredDataVecs{
                         self.name_db_ids.push(db_id.clone());
                         self.names.push(name.value.clone());
                         self.name_types.push("label".to_string());
-                        self.is_rors.push(Some(true));
+                        self.is_rors.push(true);
                         self.langs.push(name.lang.clone()); 
 
-                        println!("ror name found without name type for{}: {}", db_id.clone(), name.value.clone())
+                        info!("ror name found without name type for {}: {}", db_id.clone(), name.value.clone());
+                        store_mising_type_ror_record(&db_id, &name.value, pool).await?;
                     }
                     else {
-                        let mut is_a_ror_name: Option<bool> = None;
+                        let mut is_a_ror_name = false;
                         if name.types.contains(&"ror_display".to_string())
                         {
-                            is_a_ror_name = Some(true);
+                            is_a_ror_name = true;
                         }
+
                         for name_type in name.types.iter()
                         {
                             if name_type != "ror_display" {
@@ -164,6 +172,11 @@ impl RequiredDataVecs{
                 }
             }
         }
+        Ok(())
+    }
+
+    pub fn add_locs_and_types_data(&mut self, r: &RorRecord, db_id: &String) 
+    {
 
         if r.types.len() > 0 {
             // types is a vector of strings
@@ -193,31 +206,39 @@ impl RequiredDataVecs{
 
     }
 
-    pub async fn store_data(&self, pool : &Pool<Postgres>) {
+    pub async fn store_data(&self, pool : &Pool<Postgres>) -> Result<PgQueryResult, AppError> {
         
         // do the name data
-        let _ = sqlx::query(r#"INSERT INTO ror.names (id, value, name_type, is_ror_name, lang) 
-        SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::bool[], $5::text[])"#)
+        let sql = r#"INSERT INTO ror.names (id, value, name_type, is_ror_name, lang) 
+        SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::bool[], $5::text[])"#;
+
+        sqlx::query(sql)
         .bind(&self.name_db_ids)
         .bind(&self.names)
         .bind(&self.name_types)
         .bind(&self.is_rors)
         .bind(&self.langs)
         .execute(pool)
-        .await;
+        .await.map_err(|e| AppError::SqlxError(e, "Storing ror names".to_string()))?;
 
         // do the type data
-        let _ = sqlx::query(r#"INSERT INTO ror.type (id, org_type) 
-        SELECT * FROM UNNEST($1::text[], $2::text[])"#)
+
+        let sql = r#"INSERT INTO ror.type (id, org_type) 
+        SELECT * FROM UNNEST($1::text[], $2::text[])"#;
+
+        sqlx::query(sql)
         .bind(&self.type_db_ids)
         .bind(&self.org_types)
         .execute(pool)
-        .await;
+        .await.map_err(|e| AppError::SqlxError(e, "Storing ror types".to_string()))?;
 
         // do the location data
-        let _ = sqlx::query(r#"INSERT INTO ror.locations (id, geonames_id, name, lat, lng, 
+
+        let sql = r#"INSERT INTO ror.locations (id, geonames_id, name, lat, lng, 
         continent_code, continent_name, country_code, country_name, country_subdivision_code, country_subdivision_name ) 
-        SELECT * FROM UNNEST($1::text[], $2::int[], $3::text[], $4::real[], $5::real[], $6::text[], $7::text[], $8::text[], $9::text[], $10::text[], $11::text[])"#)
+        SELECT * FROM UNNEST($1::text[], $2::int[], $3::text[], $4::real[], $5::real[], $6::text[], $7::text[], $8::text[], $9::text[], $10::text[], $11::text[])"#;
+
+        sqlx::query(sql)
         .bind(&self.loc_db_ids)
         .bind(&self.gn_ids)
         .bind(&self.gn_names)
@@ -230,7 +251,7 @@ impl RequiredDataVecs{
         .bind(&self.cy_subdiv_codes)
         .bind(&self.cy_subdiv_names)
         .execute(pool)
-        .await;
+        .await.map_err(|e| AppError::SqlxError(e, "Storing ror locations".to_string()))
 
     }
 }
@@ -373,46 +394,56 @@ impl NonRequiredDataVecs{
     
     }
 
-    pub async fn store_data(&self, pool : &Pool<Postgres>) {
+    pub async fn store_data(&self, pool : &Pool<Postgres>) -> Result<PgQueryResult, AppError> {
 
         // do the relationships data
-        let _ = sqlx::query(r#"INSERT INTO ror.relationships (id, rel_type, related_id, related_label) 
-        SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::text[])"#)
+
+        let sql = r#"INSERT INTO ror.relationships (id, rel_type, related_id, related_label) 
+        SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::text[])"#;
+
+        sqlx::query(sql)
         .bind(&self.rel_db_ids)
         .bind(&self.rel_types)
         .bind(&self.rel_ids)
         .bind(&self.rel_labels)
         .execute(pool)
-        .await;
-
+        .await.map_err(|e| AppError::SqlxError(e, "Storing ror rels".to_string()))?;
     
         // do the links data
-        let _ = sqlx::query(r#"INSERT INTO ror.links (id, link_type, value) 
-        SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[])"#)
+
+        let sql = r#"INSERT INTO ror.links (id, link_type, value) 
+        SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[])"#;
+
+        sqlx::query(sql)
         .bind(&self.link_db_ids)
         .bind(&self.link_types)
         .bind(&self.links)
         .execute(pool)
-        .await;
-
+        .await.map_err(|e| AppError::SqlxError(e, "Storing ror links".to_string()))?;
     
         // do the external ids data
-        let _ = sqlx::query(r#"INSERT INTO ror.external_ids (id, id_type, id_value, is_preferred) 
-        SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::bool[])"#)
+
+        let sql = r#"INSERT INTO ror.external_ids (id, id_type, id_value, is_preferred) 
+        SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::bool[])"#;
+
+        sqlx::query(sql)
         .bind(&self.id_db_ids)
         .bind(&self.id_types)
         .bind(&self.id_values)
         .bind(&self.is_prefs)
         .execute(pool)
-        .await;
+        .await.map_err(|e| AppError::SqlxError(e, "Storing ror external_ids".to_string()))?;
     
         // do the domain data
-        let _ = sqlx::query(r#"INSERT INTO ror.domains (id, value) 
-        SELECT * FROM UNNEST($1::text[], $2::text[])"#)
+
+        let sql = r#"INSERT INTO ror.domains (id, value) 
+        SELECT * FROM UNNEST($1::text[], $2::text[])"#;
+
+        sqlx::query(sql)
         .bind(&self.dom_db_ids)
         .bind(&self.doms)
         .execute(pool)
-        .await;
+        .await.map_err(|e| AppError::SqlxError(e, "Storing ror domains".to_string()))
 
     }
 
@@ -423,6 +454,20 @@ pub fn extract_id_from(full_id: &String) -> &str {
     let b = full_id.as_bytes();
     std::str::from_utf8(&b[b.len()-9..]).unwrap()
 }
+
+
+pub async fn store_mising_type_ror_record(id: &str, name: &str, pool : &Pool<Postgres>) -> Result<PgQueryResult, AppError> {
+    
+        // do the core data
+        let sql = r#"INSERT INTO ror.bare_ror_names (id, value) values ($1, $2);"#;
+
+        sqlx::query(sql)
+        .bind(id)
+        .bind(name)
+        .execute(pool)
+        .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))
+}
+
 
 // Tests
 
