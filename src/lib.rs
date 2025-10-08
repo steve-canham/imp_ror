@@ -4,7 +4,6 @@ mod import;
 mod process;
 mod summarise;
 mod export;
-mod extra;
 
 
 use setup::cli_reader;
@@ -84,20 +83,6 @@ pub async fn run(args: Vec<OsString>) -> Result<(), AppError> {
         process::process_data(&params.data_version, &pool).await?;
         summarise::summarise_data(&pool).await?;
     }
-
-
-    if flags.additional_processing  // add language codes to as many names as possible
-    {
-        extra::load_data(&pool).await?;
-        extra::prep_names(&pool).await?;
-        extra::apply_name_codes(&pool).await?;
-        extra::apply_acro_codes(&pool).await?;
-
-        // extra::complete_rels(&pool).await?;
-        // extra::rationalise_companies(&pool).await?;
-
-    }
-
 
     if flags.export_text  // write out summary data from data in smm tables
     { 
