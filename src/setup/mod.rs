@@ -97,9 +97,9 @@ pub fn get_params(cli_pars: CliPars, config_string: &String) -> Result<InitParam
 
     let mut source_file_name = cli_pars.source_file;
     if source_file_name == "".to_string() {
-        source_file_name =  data_pars.src_file_name;
+        source_file_name =  data_pars.ppr_file_name;
         if source_file_name == "".to_string() && flags.import_ror {   // Required data is missing
-            return Result::Err(AppError::MissingProgramParameter("src_file_name".to_string()));
+            return Result::Err(AppError::MissingProgramParameter("ppr_file_name".to_string()));
         }
     }
 
@@ -211,6 +211,7 @@ pub async fn get_db_pool() -> Result<PgPool, AppError> {
         .connect_with(opts).await
         .map_err(|e| AppError::DBPoolError(format!("Problem with connecting to database {} and obtaining Pool", db_name), e))
 }
+
 
 pub fn establish_log(params: &InitParams, config_string: &String) -> Result<(), AppError> {
 
@@ -405,7 +406,7 @@ mod tests {
 [data]
 data_version="v1.60"
 data_date="2025-12-11"
-src_file_name="v1.58 20241211.json"
+ppr_file_name="v1.58 20241211.json"
 
 [folders]
 data_folder_path="/home/steve/Data/MDR source data/ROR/data"
@@ -451,7 +452,7 @@ db_name="ror"
 [data]
 data_version="v1.60"
 data_date="2025-12-11"
-src_file_name="v1.58 20241211.json"
+ppr_file_name="v1.58 20241211.json"
 
 [folders]
 data_folder_path="/home/steve/Data/MDR source data/ROR/data"
@@ -494,7 +495,7 @@ db_name="ror"
 
         let config = r#"
 [data]
-src_file_name="v1.58 20241211.json"
+ppr_file_name="v1.58 20241211.json"
 data_version="v1.50"
 data_date="2025-12-11"
 
@@ -540,7 +541,7 @@ db_name="ror"
 
         let config = r#"
 [data]
-src_file_name="v1.58 20241211.json"
+ppr_file_name="v1.58 20241211.json"
 data_version="v1.60"
 data_date="2025-12-11"
 
@@ -584,7 +585,7 @@ db_name="ror"
 
         let config = r#"
 [data]
-src_file_name="v1.58 20241211.json"
+ppr_file_name="v1.58 20241211.json"
 data_version=""
 data_date=""
 
@@ -631,7 +632,7 @@ db_name="ror"
     
         let config = r#"
 [data]
-src_file_name="v1.58 20241211.json"
+ppr_file_name="v1.58 20241211.json"
 data_version="v1.60"
 data_date="2025-12-11"
 
@@ -661,7 +662,7 @@ db_name="ror"
     
         let config = r#"
 [data]
-src_file_name="v1.58 20241211.json"
+ppr_file_name="v1.58 20241211.json"
 data_version="v1.60"
 data_date="2025-12-11"
 

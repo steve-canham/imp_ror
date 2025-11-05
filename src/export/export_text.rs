@@ -17,7 +17,7 @@ pub async fn generate_text(output_folder : &PathBuf, data_version: &String,
 
     let mut vcode: String = data_version.clone();
     if vcode == "" {
-        let sql = "SELECT version as vcode from src.version_details;";
+        let sql = "SELECT version as vcode from ppr.version_details;";
         vcode = sqlx::query_scalar(sql).fetch_one(pool).await
             .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     }
@@ -67,7 +67,7 @@ async fn write_header_and_summary(output_file_path: &PathBuf, vcode: &String, po
     
     // Get import date from the ror table, other summary detrails from the smm.version_summaries table
 
-    let sql = "SELECT import_datetime from ror.version_details;";
+    let sql = "SELECT import_datetime from src.version_details;";
     let import_dt: NaiveDateTime = sqlx::query_scalar(sql).fetch_one(pool).await 
            .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 

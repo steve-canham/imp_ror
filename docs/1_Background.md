@@ -29,10 +29,10 @@ imp_ror was developed for three main reasons:
 
 a) To provide a mechanism to quickly download and integrate ROR data within other 
 systems, on a regular basis (e.g. as each new version is published). The ROR data is available
-both in its 'raw' ror state, i.e. with almost no additional processing applied (see 
-'The base ror data schema' below), and in a lightly modified state, with a limited degree 
-of processing applied (see 'The src data schema' below). The latter might be of more immediate
-use in many use cases, or a better basis for additional processing.
+both in its 'raw' state, i.e. with almost no additional processing applied (see 
+'The base src data schema' in doc.4), and in a lightly modified state, with a limited degree 
+of processing applied (see 'The ppr data schema' in doc 4.elow). The latter is likely to be of more immediate
+use in many use cases, as well as a better basis for additional processing.
 
 b) To allow comparison of the different ROR data versions over time, allowing monitoring of 
 the development of ROR data, and the easier identification of possible inconsistencies or 
@@ -46,5 +46,7 @@ The system is still 'basic' Rust, however, and does not use more advanced featur
 
 <h3>Development environment</h3>
  
-The system was developed on a Windows 11 machine, using Rust 1.80.1, Postgres 17, VS Code and 
-DBeaver. Efforts will be made to make the system cross-platform, though this has not yet been tested.
+The system was originally developed on a Windows 11 machine, using Rust 1.80.1, Postgres 17, VS Code and 
+DBeaver. 
+It is now being developed / maintained on a Linux machine (Kubuntu 24.04), using Rust 1.91, Postgres 18 and pgAdmin.
+Efforts will be made to make the system cross-platform, though this has not yet been tested.

@@ -15,7 +15,7 @@ pub struct TomlConfig {
 
 #[derive(Debug, Deserialize)]
 pub struct TomlDataPars {
-    pub src_file_name: Option<String>,
+    pub ppr_file_name: Option<String>,
     pub data_version: Option<String>,
     pub data_date: Option<String>,
 }
@@ -44,7 +44,7 @@ pub struct Config {
 }
 
 pub struct DataPars {
-    pub src_file_name: String,
+    pub ppr_file_name: String,
     pub data_version: String,
     pub data_date: String,
 }
@@ -78,7 +78,7 @@ pub fn populate_config_vars(config_string: &String) -> Result<Config, AppError> 
         None => {
             println!("Data details section not found in config file.");
             TomlDataPars {
-                src_file_name: None,
+                ppr_file_name: None,
                 data_version: None,
                 data_date: None,
             }
@@ -123,13 +123,13 @@ fn verify_data_parameters(toml_data_pars: TomlDataPars) -> Result<DataPars, AppE
         None => "".to_string(),
     };
 
-    let src_file_name =  match toml_data_pars.src_file_name {
+    let ppr_file_name =  match toml_data_pars.ppr_file_name {
         Some(s) => s.trim().to_string(),
         None => "".to_string(),
     };
         
     Ok(DataPars {
-        src_file_name,
+        ppr_file_name,
         data_version,
         data_date,
     })
@@ -176,9 +176,9 @@ fn verify_db_parameters(toml_database: TomlDBPars) -> Result<DBPars, AppError> {
 }
 
 
-fn check_essential_string (src_name: Option<String>, value_name: &str, config_name: &str) -> Result<String, AppError> {
+fn check_essential_string (ppr_name: Option<String>, value_name: &str, config_name: &str) -> Result<String, AppError> {
  
-    let s = match src_name {
+    let s = match ppr_name {
         Some(s) => s,
         None => "none".to_string(),
     };
@@ -194,9 +194,9 @@ fn check_essential_string (src_name: Option<String>, value_name: &str, config_na
 }
 
 
-fn check_defaulted_string (src_name: Option<String>, value_name: &str, default_name: &str, default:  &str) -> String {
+fn check_defaulted_string (ppr_name: Option<String>, value_name: &str, default_name: &str, default:  &str) -> String {
  
-    let s = match src_name {
+    let s = match ppr_name {
         Some(s) => s,
         None => "none".to_string(),
     };
@@ -250,7 +250,7 @@ mod tests {
 [data]
 data_version="v99"
 data_date="2026-06-15"
-src_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
+ppr_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
 
 [folders]
 data_folder_path="/home/steve/Data/MDR source data/ROR/data"
@@ -270,7 +270,7 @@ db_name="ror"
         assert_eq!(res.folders.log_folder_path, PathBuf::from("/home/steve/Data/MDR/MDR_Logs/ror"));
         assert_eq!(res.folders.output_folder_path, PathBuf::from("/home/steve/Data/MDR source data/ROR/outputs"));
 
-        assert_eq!(res.data_details.src_file_name, "v1.59-2025-01-23-ror-data_schema_v2.json");
+        assert_eq!(res.data_details.ppr_file_name, "v1.59-2025-01-23-ror-data_schema_v2.json");
         assert_eq!(res.data_details.data_version, "v99");
         assert_eq!(res.data_details.data_date, "2026-06-15");
 
@@ -289,7 +289,7 @@ db_name="ror"
 [data]
 data_version="v99"
 data_date="2026-06-15"
-src_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
+ppr_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
 
 [folders]
 data_folder_path="/home/steve/Data/MDR source data/ROR/data"
@@ -308,7 +308,7 @@ db_name="ror"
         assert_eq!(res.folders.log_folder_path, PathBuf::from("/home/steve/Data/MDR source data/ROR/data"));
         assert_eq!(res.folders.output_folder_path, PathBuf::from("/home/steve/Data/MDR source data/ROR/data"));
         
-        assert_eq!(res.data_details.src_file_name, "v1.59-2025-01-23-ror-data_schema_v2.json");
+        assert_eq!(res.data_details.ppr_file_name, "v1.59-2025-01-23-ror-data_schema_v2.json");
     }
 
 
@@ -319,7 +319,7 @@ db_name="ror"
 [data]
 data_version="v99"
 data_date="2026-06-15"
-src_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
+ppr_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
 
 [folders]
 data_folder_path="/home/steve/Data/MDR source data/ROR/data"
@@ -339,7 +339,7 @@ db_name="ror"
         assert_eq!(res.folders.log_folder_path, PathBuf::from("/home/steve/Data/MDR source data/ROR/data"));
         assert_eq!(res.folders.output_folder_path, PathBuf::from("/home/steve/Data/MDR source data/ROR/data"));
 
-        assert_eq!(res.data_details.src_file_name, "v1.59-2025-01-23-ror-data_schema_v2.json");
+        assert_eq!(res.data_details.ppr_file_name, "v1.59-2025-01-23-ror-data_schema_v2.json");
     }
 
 
@@ -348,7 +348,7 @@ db_name="ror"
 
         let config = r#"
 [data]
-src_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
+ppr_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
 
 
 [folders]
@@ -370,7 +370,7 @@ db_name="ror"
         assert_eq!(res.folders.log_folder_path, PathBuf::from("/home/steve/Data/MDR/MDR_Logs/ror"));
         assert_eq!(res.folders.output_folder_path, PathBuf::from("/home/steve/Data/MDR source data/ROR/outputs"));
 
-        assert_eq!(res.data_details.src_file_name, "v1.59-2025-01-23-ror-data_schema_v2.json");
+        assert_eq!(res.data_details.ppr_file_name, "v1.59-2025-01-23-ror-data_schema_v2.json");
         assert_eq!(res.data_details.data_version, "");
         assert_eq!(res.data_details.data_date, "");
 
@@ -389,7 +389,7 @@ db_name="ror"
 [data]
 data_version="v99"
 data_date="2026-06-15"
-src_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
+ppr_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
 
 
 [folders]
@@ -417,7 +417,7 @@ db_name="ror"
 [data]
 data_version="v99"
 data_date="2026-06-15"
-src_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
+ppr_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
 
 [folders]
 data_folder_path="/home/steve/Data/MDR source data/ROR/data"
@@ -443,7 +443,7 @@ db_name="ror"
 [data]
 data_version="v99"
 data_date="2026-06-15"
-src_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
+ppr_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
 
 [folders]
 data_folder_path="/home/steve/Data/MDR source data/ROR/data"
@@ -469,7 +469,7 @@ db_password="password"
 
         let config = r#"
 [data]
-src_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
+ppr_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
 
 [folders]
 data_folder_path="/home/steve/Data/MDR source data/ROR/data"

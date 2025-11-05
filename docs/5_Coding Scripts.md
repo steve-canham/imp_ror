@@ -36,12 +36,12 @@ Codes are those of the source scripts separated by a comma, e.g. ‘Latn, Grek�
 
 <h2>3. Create a copy of the name data.</h2>
 To reduce side effects from any errors in the process, and make it easier to manage and develop, it is better to copy the ROR name data into a temporary table.<br/>
-This becomes a names ‘scratch pad’ and will be discarded after the scripting process ends. In the imp_ror system this table is called src.names_pad.<br/>
+This becomes a names ‘scratch pad’ and will be discarded after the scripting process ends. In the imp_ror system this table is called ppr.names_pad.<br/>
 <br/>
 The table includes two fields for the name – one that is the original value and the second for the name after it has been pre-processed.<br/>
 It also has two additional fields, latin and nonlatin, which will be used later to process mixed script names. Otherwise the name data is simply copied across from the source ‘names’ table, that contains all the names in the ROR system. The script code field must be initialised as an empty string rather than null. The SQL used to create and fill this table is:
 <br/><br/>
-create table src.names_pad<br/>
+create table ppr.names_pad<br/>
     (<br/>
           id                varchar     not null<br/>
         , original_name     varchar     not null<br/>
@@ -51,11 +51,11 @@ create table src.names_pad<br/>
         , latin             varchar     null<br/>
         , nonlatin          varchar     null<br/>
     );<br/>
-    create index names_pad_idx on src.names_pad(id);<br/>
+    create index names_pad_idx on ppr.names_pad(id);<br/>
 <br/>
-    Insert into src.names_pad (id, original_name, name, lang_code, script_code)<br/>
+    Insert into ppr.names_pad (id, original_name, name, lang_code, script_code)<br/>
     select id, value, value, lang_code, ''<br/>
-    from src.names;<br/>
+    from ppr.names;<br/>
 
 <h2>4. Pre-process the name data.</h2>
 A variety of punctuation marks that are traditionally included in the ‘Latin’ block also occur within non-Latin names. They need to be removed or the script will report, wrongly, a huge number of mixed script names. The characters are listed below:
@@ -74,14 +74,14 @@ In addition, one character that occurs in Katakana (the katakana middle dot) als
 <br/>
 Character removal is done using the SQL replace function, targeted to the appropriate records, the SQL being constructed in Rust by interpolating the character to be removed (char) as below
 <br/><br/>
-let sql  = format!(r#"update src.names_pad<br/>
+let sql  = format!(r#"update ppr.names_pad<br/>
             set name = replace(name, '{}', '')<br/>
             where name like '%{}%'; "#, char, char);<br/>
 <br/>
 A slightly different formulation is used if the unicode representation of a character is used, rather than the character itself. <br/>
 This can be useful for characters not present on a normal keyboard, e.g. the guillemets can be removed using their unicodes (00AB and 00BB).
 <br/><br/>
-let sql  = format!(r#"update src.names_pad<br/>
+let sql  = format!(r#"update ppr.names_pad<br/>
             set name = replace(name, U&'\{}', '')<br/>
             where name like U&'%\{}%'; "#, unicode, unicode);<br/>
 <br/>
@@ -95,13 +95,13 @@ The unicodes within the names can now be examined to determine the scripts being
 
 For scripts with boundaries, in hex, that are 4 characters long, or less, whether or not a name contains characters of that script can be tested using regular expressions. The formulation 
 <br/><br/>
-               let sql  = format!(r#"update src.names_pad<br/>
+               let sql  = format!(r#"update ppr.names_pad<br/>
                     set script_code = script_code||', '||'{}'<br/>
                     where name ~ '[\u{:0>4}-\u{:0>4}]'"#, <br/>
                     r.code, r.hex_start, r.hex_end);<br/>
 interpolates the code and start and end hex positions obtained from the current script (‘r’) to obtain a sql statement like:<br/>
 <br/>
-	       update src.names_pad<br/>
+	       update ppr.names_pad<br/>
            set script_code = script_code||', '||'Cyrl'<br/>
            where name ~ '[\u0400-\u04FF]'<br/>
 <br/>
@@ -111,7 +111,7 @@ As the process works through each of the scripts, a name associated with more th
 <br/><br/>
 For scripts with hex boundaries of 5 characters the approach above results in an error – a limitation of the Postgres regular expression syntax. There are relatively few such scripts (12 in total) and they are all extremely obscure.  In these cases the system simply checks the ascii value of the initial letter of the name, and checks that against the ascii (i.e. decimal) script limits:
 <br/><br/>
-         let sql  = format!(r#"update src.names_pad<br/>
+         let sql  = format!(r#"update ppr.names_pad<br/>
             set script_code = script_code||', '||'{}'<br/>  
             where ascii(substr(name, 1, 1)) >= {}<br/>
             and  ascii(substr(name, 1, 1)) <= {}"#, <br/>
@@ -141,7 +141,7 @@ It is useful to separate the two components, the Latin and non Latin, storing th
 Regular expressions are again used to locate and extract the Latin and non-Latin portions of the name.<br/><br/>
 In the SQL below the inner select statement extracts the latin portion(s) of a double coded name using the REGEXP_MATCHES function. Each portion is a separate record, so for each name they are aggregated together as ‘combined_array’, by the outer select statement. The resultant set of records can then be used to update the latin field of names_pad table.
 <br/><br/>
-update src.names_pad n<br/>
+update ppr.names_pad n<br/>
 set latin = combined_array<br/>
 from<br/>
     (SELECT id, name,<br/>
@@ -149,7 +149,7 @@ from<br/>
      FROM <br/>
          (select id, name,<br/>
           REGEXP_MATCHES(name,'[\u0000-\u02FF]+', 'g') as latin<br/>
-          from src.names_pad<br/>
+          from ppr.names_pad<br/>
           where length(script_code) > 4<br/>
           and script_code like '%Latn%') as t<br/>
      GROUP BY id, name ) m<br/>
@@ -158,7 +158,7 @@ and n.name = m.name<br/>
 <br/>
 The corresponding SQL is given below for the non Latin portions of the name.
 <br/><br/>
-update src.names_pad n<br/>
+update ppr.names_pad n<br/>
 set nonlatin = combined_array<br/>
 from<br/>
     (SELECT id, name, <br/>
@@ -166,7 +166,7 @@ from<br/>
      FROM <br/>
             (select id, name, <br/>
             REGEXP_MATCHES(name,'[\u0300-\uD800]+', 'g') as nonlatin<br/>
-            from src.names_pad<br/>
+            from ppr.names_pad<br/>
             where length(script_code) > 4<br/>
             and script_code like '%Latn%') as t<br/>
      GROUP BY id, name ) m<br/>
@@ -176,7 +176,7 @@ and n.name = m.name<br/>
 It is clear that in many cases the ‘double coding’ is nominal, with the only latin component often being a single letter or a few numbers. The following rules are applied to make the coding more accurate and to reduce the ‘double script’ names to a more realistic set:
 <br/><br/>
 i) Greek and Cyrillic scripts have, so far as I know, the same numerals as Latin script. If the Latin component of a ‘Latn, Grek’ or ‘Latn, Cyrl’ coded name is simply numerals then they are really just Greek or Cyrillic respectively and not double coded at all. The system makes this change by again using regular expressions to identify names with Latin portions that are all numeric, e.g:<br/><br/>
-			update src.names_pad<br/>
+			update ppr.names_pad<br/>
     			set script_code = 'Cyrl'<br/>
     			where script_code = 'Latn, Cyrl'<br/>
     			and latin ~ '^\d*$'<br/>
@@ -194,7 +194,7 @@ It therefore makes sense to reclassify the double coded names as the majority sc
 	b) the majority script is at least 6 characters long.<br/><br/>
 The second criterion is to avoid recoding some double scripted names where both components are very short (e.g. ‘LG화학’, or ‘智谱ai’) – possibly double scripted acronyms. These limits are arbitrary, and could be tweaked to other values, but they seem a reasonable starting point. The SQL for recoding the ‘short Latin – longer nonLatin’ scenario is given below. Similar code is used for the converse recoding.<br/>
 <br/>
-     			update src.names_pad<br/>
+     			update ppr.names_pad<br/>
     			set script_code = substring(script_code, 7)<br/>
     			where length(script_code) > 4<br/>
     			and length(latin) < 3 <br/>
@@ -209,16 +209,16 @@ Only a very few seem like genuine and deliberate attempts to provide a full name
 are two possible examples.
 
 <h2>Applying the Codes.</h2>
-At the end of the process the main src.names table can be updated with the codes as calculated within the src.name_pads table and the name_pads table can be dropped.
+At the end of the process the main ppr.names table can be updated with the codes as calculated within the ppr.name_pads table and the name_pads table can be dropped.
 
 <h2>Additional Language Codes.</h2>
 As a bonus, the script codes can help in reducing the numbers of names without language codes. <br/>
 The assumption here is that if a name is in a non Latin script and that script is used for the country’s main language, then that name is almost certainly in that language, or if an acronym was derived from words in that language.<br/>
 This allows a few hundred names to have a language code allocated automatically, and this is the final stage of the script coding process. The SQL is generated within a generic routine, the language code and country code being inserted into the template each time.
 <br/><br/>
-	let sql  = format!(r#"update src.names n<br/>
+	let sql  = format!(r#"update ppr.names n<br/>
         	set lang_code = '{}'<br/>
-        	from src.core_data c<br/>
+        	from ppr.core_data c<br/>
         	where n.id = c.id<br/>
         	and n.lang_code is null<br/> 
         	and n.script_code <> 'Latn'<br/>

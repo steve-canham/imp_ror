@@ -26,12 +26,12 @@ async fn execute_sql(sql: &str, pool: &Pool<Postgres>) -> Result<PgQueryResult, 
 
 fn get_schema_sql <'a>() -> &'a str {
     r#"SET client_min_messages TO WARNING; 
-    create schema if not exists src;"#
+    create schema if not exists ppr;"#
 }
     
 fn get_version_details_sql <'a>() -> &'a str {
-    r#"drop table if exists src.version_details;
-    create table src.version_details
+    r#"drop table if exists ppr.version_details;
+    create table ppr.version_details
     (
           version           varchar     not null
         , data_date         varchar     not null
@@ -41,8 +41,8 @@ fn get_version_details_sql <'a>() -> &'a str {
 }
 
 fn get_core_data_sql <'a>() -> &'a str {
-    r#"drop table if exists src.core_data;
-    create table src.core_data
+    r#"drop table if exists ppr.core_data;
+    create table ppr.core_data
     (
           id                varchar     not null primary key
         , ror_full_id       varchar     not null
@@ -56,8 +56,8 @@ fn get_core_data_sql <'a>() -> &'a str {
 }
 
 fn get_names_sql <'a>() -> &'a str {
-    r#"drop table if exists src.names;
-    create table src.names
+    r#"drop table if exists ppr.names;
+    create table ppr.names
     (
           id                varchar     not null
         , value             varchar     not null  
@@ -66,13 +66,13 @@ fn get_names_sql <'a>() -> &'a str {
         , lang_code         varchar     null
         , script_code       varchar     null
     );
-    create index names_idx on src.names(id);"#
+    create index names_idx on ppr.names(id);"#
 }
 
 
 fn get_names_pad_sql <'a>() -> &'a str {
-    r#"drop table if exists src.names_pad;
-    create table src.names_pad
+    r#"drop table if exists ppr.names_pad;
+    create table ppr.names_pad
     (
           id                varchar     not null
         , original_name     varchar     not null    
@@ -82,13 +82,13 @@ fn get_names_pad_sql <'a>() -> &'a str {
         , latin             varchar     null
         , nonlatin          varchar     null
     );
-    create index names_pad_idx on src.names_pad(id);"#
+    create index names_pad_idx on ppr.names_pad(id);"#
 }
 
 
 fn get_locations_sql <'a>() -> &'a str {
-    r#"drop table if exists src.locations;
-    create table src.locations
+    r#"drop table if exists ppr.locations;
+    create table ppr.locations
     (
           id                varchar     not null
         , ror_name          varchar     not null
@@ -103,12 +103,12 @@ fn get_locations_sql <'a>() -> &'a str {
         , csubdiv_code      varchar     null  
         , csubdiv_name      varchar     null	
     );
-    create index locations_idx on src.locations(id);"#
+    create index locations_idx on ppr.locations(id);"#
 }
 
 fn get_external_ids_sql <'a>() -> &'a str {
-    r#"drop table if exists src.external_ids;
-    create table src.external_ids
+    r#"drop table if exists ppr.external_ids;
+    create table ppr.external_ids
     (
           id                varchar     not null
         , ror_name          varchar     not null	
@@ -116,35 +116,35 @@ fn get_external_ids_sql <'a>() -> &'a str {
         , id_value          varchar     not null
         , is_preferred      bool        not null default false
     );
-    create index external_ids_idx on src.external_ids(id);"#
+    create index external_ids_idx on ppr.external_ids(id);"#
 }
 
 fn get_links_sql <'a>() -> &'a str {
-    r#"drop table if exists src.links;
-    create table src.links
+    r#"drop table if exists ppr.links;
+    create table ppr.links
     (
           id                varchar     not null
         , ror_name          varchar     not null  	  
         , link_type         int         not null
         , link              varchar     not null
     );
-    create index links_idx on src.links(id);"#
+    create index links_idx on ppr.links(id);"#
 }
 
 fn get_org_types_sql <'a>() -> &'a str {
-    r#"drop table if exists src.type;
-    create table src.type
+    r#"drop table if exists ppr.type;
+    create table ppr.type
     (
           id                varchar     not null
         , ror_name          varchar     not null
         , org_type          int         not null
     );  
-    create index type_idx on src.type(id);"#
+    create index type_idx on ppr.type(id);"#
 }
 
 fn get_relationships_sql <'a>() -> &'a str {
-    r#"drop table if exists src.relationships;
-    create table src.relationships
+    r#"drop table if exists ppr.relationships;
+    create table ppr.relationships
     (
           id                varchar     not null
         , ror_name          varchar     not null
@@ -152,18 +152,18 @@ fn get_relationships_sql <'a>() -> &'a str {
         , related_id        varchar     not null
         , related_name      varchar     not null
     );  
-    create index relationships_idx on src.relationships(id);"#
+    create index relationships_idx on ppr.relationships(id);"#
 }
 
 fn get_domains_sql <'a>() -> &'a str {
-    r#"drop table if exists src.domains;
-    create table src.domains
+    r#"drop table if exists ppr.domains;
+    create table ppr.domains
     (
           id                varchar     not null
         , ror_name          varchar     not null
         , domain            varchar     not null
     );
-    create index domains_idx on src.domains(id);"#
+    create index domains_idx on ppr.domains(id);"#
 }
 
 fn get_message_sql <'a>() -> &'a str {
@@ -174,8 +174,8 @@ fn get_message_sql <'a>() -> &'a str {
 pub async fn create_admin_data_table(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
     let sql = r#"
-    drop table if exists src.admin_data;
-    create table src.admin_data
+    drop table if exists ppr.admin_data;
+    create table ppr.admin_data
     (
           id                varchar     not null primary key
         , ror_name          varchar     not null	              

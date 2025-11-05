@@ -50,8 +50,8 @@ pub async fn run(args: Vec<OsString>) -> Result<(), AppError> {
     let pool = setup::get_db_pool().await?;
     let test_run = flags.test_run;
 
-    // The first two routines below normally run only as an initial 
-    // 'setup' of the program's config file and DB, but can be repeated later if required.
+    // The first two routines below normally run only as part of an initial 
+    // 'setup' of the program, after setting up the config file and DB, but can be repeated later if required.
 
     if flags.create_lookups
     {  
@@ -64,11 +64,11 @@ pub async fn run(args: Vec<OsString>) -> Result<(), AppError> {
     }
     
     // The routines below run as part of the 'normal' functioning of the program.
-    // Exactluy which is dependent on the flags provided in the CLI
+    // Exactly which is dependent on the flags provided in the CLI
 
-    if flags.import_ror    // import ror from json file and store in ror schema tables
+    if flags.import_ror    // import ror from json file and store in src schema tables
     {
-        import::create_ror_tables(&pool).await?;
+        import::create_src_tables(&pool).await?;
         import::import_data(&params.data_folder, &params.source_file_name, 
                             &params.data_version, &params.data_date, &pool).await?;
         if !test_run {
@@ -77,9 +77,9 @@ pub async fn run(args: Vec<OsString>) -> Result<(), AppError> {
     }
 
 
-    if flags.process_data  // transfer data to src tables, and summarise in smm tables
+    if flags.process_data  // transfer data to ppr tables, and summarise in smm tables
     {
-        process::create_src_tables(&pool).await?;
+        process::create_ppr_tables(&pool).await?;
         process::process_data(&params.data_version, &pool).await?;
         summarise::summarise_data(&pool).await?;
     }

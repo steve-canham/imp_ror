@@ -11,7 +11,7 @@ pub async fn store_summary_data (pool: &Pool<Postgres>) -> Result<(), AppError> 
     // and derive standard first two items of many sql statements below.
 
     let sql = r#"SELECT version as vcode, data_date as vdate_as_string, 
-               data_days as vdays from src.version_details;"#;
+               data_days as vdays from ppr.version_details;"#;
     let fp: FileParams = sqlx::query_as(sql).fetch_one(pool).await
             .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     let vcode = fp.vcode;
@@ -20,18 +20,18 @@ pub async fn store_summary_data (pool: &Pool<Postgres>) -> Result<(), AppError> 
     let sdv = "select \'".to_string() + &vcode + "\' as vcode, ";
 
     // Delete existing data in smm. tables and construct the initial version
-    // summary table by obtaining record counts of all src tables.                  
+    // summary table by obtaining record counts of all ppr tables.                  
 
     smm_helper::delete_any_existing_data(&vcode, pool).await?;
 
-    let num_orgs = smm_helper::get_count("select count(*) from src.core_data", pool).await?;
-    let num_names = smm_helper::get_count("select count(*) from src.names", pool).await?;
-    let num_types= smm_helper::get_count("select count(*) from src.type", pool).await?;
-    let num_links= smm_helper::get_count("select count(*) from src.links", pool).await?;
-    let num_ext_ids= smm_helper::get_count("select count(*) from src.external_ids", pool).await?;
-    let num_rels= smm_helper::get_count("select count(*) from src.relationships", pool).await?;
-    let num_locations= smm_helper::get_count("select count(*) from src.locations", pool).await?;
-    let num_domains= smm_helper::get_count("select count(*) from src.domains", pool).await?;
+    let num_orgs = smm_helper::get_count("select count(*) from ppr.core_data", pool).await?;
+    let num_names = smm_helper::get_count("select count(*) from ppr.names", pool).await?;
+    let num_types= smm_helper::get_count("select count(*) from ppr.type", pool).await?;
+    let num_links= smm_helper::get_count("select count(*) from ppr.links", pool).await?;
+    let num_ext_ids= smm_helper::get_count("select count(*) from ppr.external_ids", pool).await?;
+    let num_rels= smm_helper::get_count("select count(*) from ppr.relationships", pool).await?;
+    let num_locations= smm_helper::get_count("select count(*) from ppr.locations", pool).await?;
+    let num_domains= smm_helper::get_count("select count(*) from ppr.domains", pool).await?;
     
     let sql = r#"INSERT into smm.version_summaries (vcode, vdate, vdays, num_orgs, num_names,
                       num_types, num_links, num_ext_ids, num_rels, num_locations, num_domains)
@@ -59,9 +59,9 @@ pub async fn store_summary_data (pool: &Pool<Postgres>) -> Result<(), AppError> 
 
     info!("Count distributions created");
 
-    //let num_ne = smm_helper::get_count("select count(*) from src.names where lang_code <> 'en'", pool).await?;
-    //let num_nltn = smm_helper::get_count("select count(*) from src.names where script_code <> 'Latn'", pool).await?;
-    //let num_nus = smm_helper::get_count("select count(*) from src.locations where country_code <> 'US'", pool).await?;
+    //let num_ne = smm_helper::get_count("select count(*) from ppr.names where lang_code <> 'en'", pool).await?;
+    //let num_nltn = smm_helper::get_count("select count(*) from ppr.names where script_code <> 'Latn'", pool).await?;
+    //let num_nus = smm_helper::get_count("select count(*) from ppr.locations where country_code <> 'US'", pool).await?;
 
     smm_helper::create_ranked_count_distributions(&vcode, &sdv, num_names, num_locations, pool).await?;   
 

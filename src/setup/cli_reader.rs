@@ -39,7 +39,7 @@ pub fn fetch_valid_arguments(args: Vec<OsString>) -> Result<CliPars, AppError>
 
     // These parameters guaranteed to unwrap OK as all have a default value of "".
 
-    let source_file = parse_result.get_one::<String>("src_file").unwrap();
+    let source_file = parse_result.get_one::<String>("ppr_file").unwrap();
 
     let test_folder_as_string = parse_result.get_one::<String>("test_folder").unwrap();
     let test_folder = PathBuf::from(test_folder_as_string);
@@ -156,7 +156,7 @@ fn parse_args(args: Vec<OsString>) -> Result<ArgMatches, clap::Error> {
     command!()
         .about("Imports data from ROR json file (v2) and imports it into a database")
         .arg(
-             Arg::new("src_file")
+             Arg::new("ppr_file")
             .short('s')
             .long("source")
             .visible_aliases(["source file"])
@@ -192,7 +192,7 @@ fn parse_args(args: Vec<OsString>) -> Result<ArgMatches, clap::Error> {
            .short('r')
            .long("import")
            .required(false)
-           .help("A flag signifying import from ror file to ror schema tables only")
+           .help("A flag signifying import from ror file to src schema tables only")
            .action(clap::ArgAction::SetTrue)
         )
         .arg(
@@ -200,7 +200,7 @@ fn parse_args(args: Vec<OsString>) -> Result<ArgMatches, clap::Error> {
             .short('p')
             .long("process")
             .required(false)
-            .help("A flag signifying process ror data to src data and analyse and store results")
+            .help("A flag signifying process src data to ppr data and analyse and store results")
             .action(clap::ArgAction::SetTrue)
         )
         .arg(

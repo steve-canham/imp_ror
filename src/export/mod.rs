@@ -12,7 +12,7 @@ pub async fn export_as_text(output_folder : &PathBuf, data_version: &String,
 {
     // Write out summary data for this dataset into the designated file
 
-    // if data version = "" obtain it from the src tables
+    // if data version = "" obtain it from the ppr tables
 
     let mut dv = data_version.to_string();
     if data_version == "" {
@@ -94,7 +94,7 @@ async fn check_data_version_present_in_summ_data(data_version: &String, pool: &P
 
 async fn get_current_data_version(pool: &Pool<Postgres>) -> Result<String, AppError> {
     
-    let sql = "select version from src.version_details";
+    let sql = "select version from ppr.version_details";
     sqlx::query_scalar(sql).fetch_one(pool).await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))
 

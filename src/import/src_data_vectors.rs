@@ -1,6 +1,6 @@
 use chrono::NaiveDate;
 use sqlx::{postgres::PgQueryResult, Pool, Postgres};
-use crate::import::ror_json_models::RorRecord;
+use crate::import::src_json_models::RorRecord;
 use crate::AppError;
 use log::info;
 
@@ -52,7 +52,7 @@ impl CoreDataVecs{
     pub async fn store_data(&self, pool : &Pool<Postgres>) -> Result<PgQueryResult, AppError> {
     
         // do the core data
-        let sql = r#"INSERT INTO ror.core_data (id, ror_full_id, status, established) 
+        let sql = r#"INSERT INTO src.core_data (id, ror_full_id, status, established) 
             SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::int[])"#;
 
         sqlx::query(sql)
@@ -64,7 +64,7 @@ impl CoreDataVecs{
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
         
         // do the admin data
-        let sql = r#"INSERT INTO ror.admin_data (id, created, cr_schema, last_modified, lm_schema) 
+        let sql = r#"INSERT INTO src.admin_data (id, created, cr_schema, last_modified, lm_schema) 
             SELECT * FROM UNNEST($1::text[], $2::timestamp[], $3::text[], $4::timestamp[], $5::text[])"#;
 
         sqlx::query(sql)
@@ -209,7 +209,7 @@ impl RequiredDataVecs{
     pub async fn store_data(&self, pool : &Pool<Postgres>) -> Result<PgQueryResult, AppError> {
         
         // do the name data
-        let sql = r#"INSERT INTO ror.names (id, value, name_type, is_ror_name, lang) 
+        let sql = r#"INSERT INTO src.names (id, value, name_type, is_ror_name, lang) 
         SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::bool[], $5::text[])"#;
 
         sqlx::query(sql)
@@ -219,22 +219,22 @@ impl RequiredDataVecs{
         .bind(&self.is_rors)
         .bind(&self.langs)
         .execute(pool)
-        .await.map_err(|e| AppError::SqlxError(e, "Storing ror names".to_string()))?;
+        .await.map_err(|e| AppError::SqlxError(e, "Storing src names".to_string()))?;
 
         // do the type data
 
-        let sql = r#"INSERT INTO ror.type (id, org_type) 
+        let sql = r#"INSERT INTO src.type (id, org_type) 
         SELECT * FROM UNNEST($1::text[], $2::text[])"#;
 
         sqlx::query(sql)
         .bind(&self.type_db_ids)
         .bind(&self.org_types)
         .execute(pool)
-        .await.map_err(|e| AppError::SqlxError(e, "Storing ror types".to_string()))?;
+        .await.map_err(|e| AppError::SqlxError(e, "Storing src types".to_string()))?;
 
         // do the location data
 
-        let sql = r#"INSERT INTO ror.locations (id, geonames_id, name, lat, lng, 
+        let sql = r#"INSERT INTO src.locations (id, geonames_id, name, lat, lng, 
         continent_code, continent_name, country_code, country_name, country_subdivision_code, country_subdivision_name ) 
         SELECT * FROM UNNEST($1::text[], $2::int[], $3::text[], $4::real[], $5::real[], $6::text[], $7::text[], $8::text[], $9::text[], $10::text[], $11::text[])"#;
 
@@ -251,7 +251,7 @@ impl RequiredDataVecs{
         .bind(&self.cy_subdiv_codes)
         .bind(&self.cy_subdiv_names)
         .execute(pool)
-        .await.map_err(|e| AppError::SqlxError(e, "Storing ror locations".to_string()))
+        .await.map_err(|e| AppError::SqlxError(e, "Storing src locations".to_string()))
 
     }
 }
@@ -398,7 +398,7 @@ impl NonRequiredDataVecs{
 
         // do the relationships data
 
-        let sql = r#"INSERT INTO ror.relationships (id, rel_type, related_id, related_label) 
+        let sql = r#"INSERT INTO src.relationships (id, rel_type, related_id, related_label) 
         SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::text[])"#;
 
         sqlx::query(sql)
@@ -407,11 +407,11 @@ impl NonRequiredDataVecs{
         .bind(&self.rel_ids)
         .bind(&self.rel_labels)
         .execute(pool)
-        .await.map_err(|e| AppError::SqlxError(e, "Storing ror rels".to_string()))?;
+        .await.map_err(|e| AppError::SqlxError(e, "Storing src rels".to_string()))?;
     
         // do the links data
 
-        let sql = r#"INSERT INTO ror.links (id, link_type, value) 
+        let sql = r#"INSERT INTO src.links (id, link_type, value) 
         SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[])"#;
 
         sqlx::query(sql)
@@ -419,11 +419,11 @@ impl NonRequiredDataVecs{
         .bind(&self.link_types)
         .bind(&self.links)
         .execute(pool)
-        .await.map_err(|e| AppError::SqlxError(e, "Storing ror links".to_string()))?;
+        .await.map_err(|e| AppError::SqlxError(e, "Storing src links".to_string()))?;
     
         // do the external ids data
 
-        let sql = r#"INSERT INTO ror.external_ids (id, id_type, id_value, is_preferred) 
+        let sql = r#"INSERT INTO src.external_ids (id, id_type, id_value, is_preferred) 
         SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::bool[])"#;
 
         sqlx::query(sql)
@@ -432,18 +432,18 @@ impl NonRequiredDataVecs{
         .bind(&self.id_values)
         .bind(&self.is_prefs)
         .execute(pool)
-        .await.map_err(|e| AppError::SqlxError(e, "Storing ror external_ids".to_string()))?;
+        .await.map_err(|e| AppError::SqlxError(e, "Storing src external_ids".to_string()))?;
     
         // do the domain data
 
-        let sql = r#"INSERT INTO ror.domains (id, value) 
+        let sql = r#"INSERT INTO src.domains (id, value) 
         SELECT * FROM UNNEST($1::text[], $2::text[])"#;
 
         sqlx::query(sql)
         .bind(&self.dom_db_ids)
         .bind(&self.doms)
         .execute(pool)
-        .await.map_err(|e| AppError::SqlxError(e, "Storing ror domains".to_string()))
+        .await.map_err(|e| AppError::SqlxError(e, "Storing src domains".to_string()))
 
     }
 
@@ -459,7 +459,7 @@ pub fn extract_id_from(full_id: &String) -> &str {
 pub async fn store_mising_type_ror_record(id: &str, name: &str, pool : &Pool<Postgres>) -> Result<PgQueryResult, AppError> {
     
         // do the core data
-        let sql = r#"INSERT INTO ror.bare_ror_names (id, value) values ($1, $2);"#;
+        let sql = r#"INSERT INTO src.bare_ror_names (id, value) values ($1, $2);"#;
 
         sqlx::query(sql)
         .bind(id)
@@ -479,7 +479,7 @@ mod tests {
 
     #[test]
     fn test_extracting_id() {
-        let test_id = "https://ror.org/123456789".to_string();
+        let test_id = "https://src.org/123456789".to_string();
         assert_eq!(extract_id_from(&(test_id)), "123456789")
     }
 }

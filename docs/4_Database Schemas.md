@@ -1,9 +1,9 @@
 <h2>Database Schemas</h2>
 
-<h3>The base ror data schema</h3>
+<h3>The base 'src' data schema</h3>
 
 The initial import is to tables that almost exactly mirror the original structure of the json file. 
-These tables are all grouped within a schema called 'ror'. The import process recreates the tables each time.
+These tables are all grouped within a schema called 'src'. The import process recreates the tables each time.
 
 The id used to identify each ror entry, in all tables, is the last 9 characters of the full ROR id, 
 i.e. the ROR URL with the prefix "https://ror.org/" removed. This is clearer than using the full 
@@ -24,12 +24,12 @@ compatibility the following changes are made:
 <li>'type' in relationships becomes'rel_type'.</li>
 </ul>
 
-The ror schema data also includes a tiny single-row table ('version details') that holds the version and 
+The src schema data also includes a tiny single-row table ('version details') that holds the version and 
 date of the data within the system. This means that these parameters need only be input once. 
 
-<h3>The src data schema</h3>
+<h3>The 'ppr' data schema</h3>
 
-The 'ror' schema data can be processed to form a new set of tables within the 'src' schema. 
+The 'src' schema data can be processed to form a new set of tables within the 'ppr' schema. 
 The processing is relatively limited but includes:
 
 a) Replacement of the strings of categorised values by integers. The integers are as given by
@@ -82,12 +82,12 @@ country_subdivision_code becomes csubdiv_code, lang becomes lang_code, etc.
 
 h) For one record, the replacement of a deprecated language code with the current equivalent.
  
-The src data is designed to be used as the basis for ad hoc SQL queries of the data. They are also used as 
+The ppr data is designed to be used as the basis for ad hoc SQL queries of the data. They are also used as 
 the basis of the summary statistics described below, and are designed to provide a more useful set of base 
-data when integrating ror data into other systems. Only one set of src data exists at any one time - the 
+data when integrating ror data into other systems. Only one set of ppr data exists at any one time - the 
 tables are recreated each time a version's data is transformed into them.
 
-<h3>Summary data and the smm schema</h3>
+<h3>Summary data and the 'smm' schema</h3>
 
 The Summary (smm) schema includes a set of persistent tables that summarise various aspects of the ROR dataset. 
 It includes records for all versions of the ROR data that have been imported (within each table the initial field 
@@ -96,7 +96,7 @@ and export easier, many of the summary tables are aggregate, i.e. they hold data
 same table, because that data has the same structure. The tables are:
 
 <ul>
-<li>version_summary - Gives the number of organisations, and the numbers of linked entities (names, organisation types, locations, external ids, links, relationships, domains), for a specified version, equivalent to the record numbers in each of the tables in the src schemas when the version is processed. It also includes the version date, and the number of days that date represents since 29/04/2024, the earliest of the datasets in the system. This was the date of the 1.45.2 patch - in general the latest patch of any version is preferred.</li>
+<li>version_summary - Gives the number of organisations, and the numbers of linked entities (names, organisation types, locations, external ids, links, relationships, domains), for a specified version, equivalent to the record numbers in each of the tables in the ppr schemas when the version is processed. It also includes the version date, and the number of days that date represents since 29/04/2024, the earliest of the datasets in the system. This was the date of the 1.45.2 patch - in general the latest patch of any version is preferred.</li>
 
 <li>attributes_summary - Entities in the system often have categorised attributes, e.g. the various types of name, organisation, relationship, external id and link. For each attribute category this table provides the numbers found, and the percentage this represents of the total attributes of this type, the number of organisations with this attribute type, and the percentage this represents of all organisations. For names, additional rows are given for 'nacro' or non-acronym names, i.e. labels and aliases together, and also for names (of each type) that are without a language code ('wolc').</li>
 

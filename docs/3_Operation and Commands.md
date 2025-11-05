@@ -12,12 +12,12 @@ Alternatively the source file name can be provided within the configuration file
 
 The -a command will take the data in the json file through a four stage pipeline: 
 <ul>
-<li>importing it into a set of 'ror' schema tables, with very little change;</li>
-<li>transforming it, albeit lightly, into a series of 'src' schema tables, and </li>
+<li>importing it into a set of 'src' schema tables, with very little change;</li>
+<li>transforming it, albeit lightly, into a series of 'ppr' schema tables, and </li>
 <li>summarising statistics of the data set and storing those in 'smm' schema tables.</li>
 <li>generating a text file presenting the summary data from the imported version, in a series of tables.</li>
 </ul>
-Note that successive use of the -a command will overwrite the data in the ror and src schema tables, with data from whatever is the most recently imported version, but that the smm schema data for each version is stored permanently.<br/>
+Note that successive use of the -a command will overwrite the data in the src and ppr schema tables, with data from whatever is the most recently imported version, but that the smm schema data for each version is stored permanently.<br/>
 <i>To extract data as CSV</i>
 <ul>
 <li>cargo run -- -x</i> will generate a set of 7 csv files with the summary data linked to the current (most recently imported) version. Specifying a different version is also possible as long as it has been previously imported and summarised.</li>
@@ -39,13 +39,13 @@ The folowing command line arguments are available:
 
 <i><b>-a</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -all]. Run all three main processes for a particular ROR data version (equivalent to -r, -p, and -t together). The source file, data version and data date must be specified, but the latter two can usually be derived from the first.
 
-<i><b>-r</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -import]. A flag that causes import of the specified source data to ror schema tables, but not to the src schema. The source file, data version and data date must be specified. Allows the initial import process to take place in isolation. 
+<i><b>-r</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -import]. A flag that causes import of the specified source data to src schema tables, but not to the ppr schema. The source file, data version and data date must be specified. Allows the initial import process to take place in isolation. 
 
-<i><b>-p</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -process]. A flag that causes processing and summarising of the data in the ror schema tables to the src and smm schema tables. The system necessarily uses the version that is currently resident in the ror tables.  If a version is specified and it is different from that in the ror tables the user is prompted to run -r (or -a) to first add the data to the ror tables.
+<i><b>-p</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -process]. A flag that causes processing and summarising of the data in the src schema tables to the ppr and smm schema tables. The system necessarily uses the version that is currently resident in the src tables.  If a version is specified and it is different from that in the src tables the user is prompted to run -r (or -a) to first add the data to the src tables.
 
-<i><b>-t</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -text]. A flag that causes production of a text file summarising the main features of a version currently held within the system's summary tables. The version can be specified explicitly using the -v flag (it must have been summarised previously). If not specified the 'current' version is used, i.e. the last imported one, which has its data in the ror and src schema. The name of the file is constructed from the version and the date-time of the run. 
+<i><b>-t</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -text]. A flag that causes production of a text file summarising the main features of a version currently held within the system's summary tables. The version can be specified explicitly using the -v flag (it must have been summarised previously). If not specified the 'current' version is used, i.e. the last imported one, which has its data in the src and ppr schema. The name of the file is constructed from the version and the date-time of the run. 
 
-<i><b>-x</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -export]. A flag that causes production of a collection of 7 csv files, representing the data in the summary tables for the specified version. The version can be specified explicitly using the -v flag (it must have been summarised previously). If not specified the 'current' version is used, i.e. the last imported one, which has its data in the ror and src schema. The name of the files are constructed from the version and the date-time of the run. Note that the files are generated on the Postgres server. 
+<i><b>-x</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -export]. A flag that causes production of a collection of 7 csv files, representing the data in the summary tables for the specified version. The version can be specified explicitly using the -v flag (it must have been summarised previously). If not specified the 'current' version is used, i.e. the last imported one, which has its data in the src and ppr schema. The name of the files are constructed from the version and the date-time of the run. Note that the files are generated on the Postgres server. 
 
 <i><b>-y</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -exportall]. A flag that causes production of a collection of 7 csv files, representing <i>all</i> the data in the summary tables, for all imported versions. (v1.57 data is not exported, as it appears to be exactly the same as v1.58, just without the added geographical details of the v2.1 schema). The name of the files are constructed from the version and the date-time of the run. Note that the files are generated on the Postgres server.
 

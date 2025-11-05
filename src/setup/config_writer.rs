@@ -166,14 +166,14 @@ pub fn create_config_file() -> Result<(), AppError>
     let section = format!("\n{}\n\n{}\n\n{}\n{}\n{}\n\n{}\n{}\n{}\n", p1, p2, star_line, p3, p4, p5, p6, star_line);
     println!("{}", section);
 
-    let src_file = user_input()?;
-    let src_file_name = format!("src_file_name=\"{}\"", src_file);
-    println!("{}", src_file_name);
+    let ppr_file = user_input()?;
+    let ppr_file_name = format!("ppr_file_name=\"{}\"", ppr_file);
+    println!("{}", ppr_file_name);
 
     let mut data_version = format!("data_version=\"\"");
     let mut data_date = format!("data_date=\"\"");
 
-    if src_file != "" {
+    if ppr_file != "" {
 
         let p1 = "As you have stored a source file name in the configuration you may need to also store";
         let p2 = "the associated data version and date. These can be left as the defaults (empty strings)";
@@ -236,7 +236,7 @@ pub fn create_config_file() -> Result<(), AppError>
 
     let database_section = format!("[database]\n{}\n{}\n{}\n{}\n{}\n", db_host, db_user, db_password, db_port, db_name);
     let folders_section = format!("[folders]\n{}\n{}\n{}\n", data_folder_path, output_folder_path, log_folder_path);
-    let data_section = format!("[data]\n{}\n{}\n{}\n", src_file_name, data_version, data_date);
+    let data_section = format!("[data]\n{}\n{}\n{}\n", ppr_file_name, data_version, data_date);
     let config_string = format!("\n{}\n\n{}\n\n{}\n", data_section, folders_section, database_section);
 
     let mut file = File::create("./app_config.toml")     // creates new or truncates existing

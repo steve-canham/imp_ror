@@ -65,12 +65,12 @@ and the folders to be used for outputs and logs. It will also ask for an optiona
 <li>The -a command will take the data in the json file through a four stage pipeline:</li> 
 <ul>
     <li>importing it into a set of 'ror' schema tables, with very little change;</li>
-    <li>transforming it, albeit lightly, into a series of 'src' schema tables, and </li>
+    <li>transforming it, albeit lightly, into a series of 'ppr' schema tables, and </li>
     <li>summarising statistics of the data set and storing those in 'smm' schema tables.</li>
     <li>generating a text file presenting the summary data from the imported version, in a series of tables.</li>
-    <li>more information on the ror, src and smm tables is provided inthe Docs.</li>
+    <li>more information on the ror, ppr and smm tables is provided inthe Docs.</li>
 </ul>
-<li>Successive use of the -a command will overwrite the data in the ror and src schema tables, with data from whatever is the most recently imported version. The summary smm schema data for each version is, however, stored permanently.</li>
+<li>Successive use of the -a command will overwrite the data in the src and ppr schema tables, with data from whatever is the most recently imported version. The summary smm schema data for each version is, however, stored permanently.</li>
 <li><i>cargo run -- -x</i> will generate a set of 7 csv files with the summary data linked to the current (most recently imported) version. Specifying a different version is also possible as long as it has been previously imported and summarised.</li>
 <li><i>cargo run -- -y</i> will generate a set of 7 csv files with the summary data from all the versions imported to that point.</li>
 </ul>
@@ -89,9 +89,9 @@ The folowing command line arguments are available:
 
 <i><b>-a</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -all]. Run all three main processes for a particular ROR data version (equivalent to -r, -p, and -t together). The source file, data version and data date must be specified, but the latter two can usually be derived from the first.
 
-<i><b>-r</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -import]. A flag that causes import of the specified source data to ror schema tables, but not to the src schema. The source file, data version and data date must be specified.  
+<i><b>-r</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -import]. A flag that causes import of the specified source data to src schema tables, but not to the ppr schema. The source file, data version and data date must be specified.  
 
-<i><b>-p</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -process]. A flag that causes processing and summarising of the data in the ror schema tables to the src and smm schema tables. By default the system uses the version that is currently resident in the ror tables.
+<i><b>-p</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -process]. A flag that causes processing and summarising of the data in the src schema tables to the ppr and smm schema tables. By default the system uses the version that is currently resident in the ror tables.
 
 <i><b>-t</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -text]. A flag that causes production of a text file summarising the main features of a version currently held within the system's summary tables.
 
@@ -120,4 +120,14 @@ The folowing command line arguments are available:
 <li>Location data in core table improved to handle organisations with multiple locations more accurately</li>
 <li>Location data - number of orgs with multiple locations, states, countries - added to summary report</li>
 <li>Fixed bug where orgs with completely duplicate names (same name, language, type) are better handled (only one organisation affected)</li>
+</ul>
+
+<h4>Version 1.2</h4>
+05/11/2025  -  Changes:
+<ul>
+<li>Code to transform ppr data into more mdr compatible data, whilst initially developed here, moved out of the project (and into the mk_org project)</li>
+<li>Schema used to store data post-processing renamed from 'src' to 'ppr'</li>
+<li>Initial schema used for import of ror data renamed from 'ror' to 'src'</li>
+<li>Improved (and simplified) handling of duplicate names in source ror data</li>
+<li>Added a few data points relating to duplicate name processing to the summary tables / reports</li>
 </ul>

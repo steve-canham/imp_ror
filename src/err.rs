@@ -78,7 +78,7 @@ pub fn report_error(e: AppError) -> () {
                  s, "INCONSISTENT PARAMETERS"),
 
         AppError::IncompatibleVersions(v_requested, v_stored)  =>  print_error (
-                    format!("The version specified ('{}'), does not match the data stored in the ror schema ('{}').", v_requested, v_stored),
+                    format!("The version specified ('{}'), does not match the data stored in the src schema ('{}').", v_requested, v_stored),
                     " Run -r or -a with the specified version, to re-import the data and allow its processing and summarising.".to_string(), 
                     " INCOMPATIBLE VERSIONS"),
 

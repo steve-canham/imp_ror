@@ -2,9 +2,9 @@
 // It makes use of the other modules in the folder, each corresponding to a file of the same name.
 // The folder modules do not need to be public - they are referenced only within this module.
 
-mod ror_json_models;
-mod ror_data_vectors;
-mod ror_create_tables;
+mod src_json_models;
+mod src_data_vectors;
+mod src_create_tables;
 
 use log::{info, error};
 use std::path::PathBuf;
@@ -13,12 +13,12 @@ use sqlx::{Pool, Postgres};
 use crate::AppError;
 use chrono::NaiveDate;
 
-use ror_json_models::RorRecord;
-use ror_data_vectors::{CoreDataVecs, RequiredDataVecs, NonRequiredDataVecs, extract_id_from};
+use src_json_models::RorRecord;
+use src_data_vectors::{CoreDataVecs, RequiredDataVecs, NonRequiredDataVecs, extract_id_from};
 
-pub async fn create_ror_tables(pool : &Pool<Postgres>) -> Result<(), AppError>
+pub async fn create_src_tables(pool : &Pool<Postgres>) -> Result<(), AppError>
 {
-    match ror_create_tables::create_tables(pool).await {
+    match src_create_tables::create_tables(pool).await {
         Ok(()) => info!("Tables created for ror schema"),
         Err(e) => {
             error!("An error occured while creating the ror schema tables: {}", e);
@@ -38,7 +38,7 @@ pub async fn import_data(data_folder : &PathBuf, source_file_name: &String,
     let start_of_period = NaiveDate::parse_from_str("2024-04-29", "%Y-%m-%d").unwrap();
     let duration = end_of_period - start_of_period;
  
-    let sql = r#"INSERT into ror.version_details (version, data_date, data_days)
+    let sql = r#"INSERT into src.version_details (version, data_date, data_days)
                     values ($1, $2, $3);"#;
     sqlx::query(&sql).bind(data_version).bind(data_date).bind(duration.num_days())
     .execute(pool).await
@@ -153,12 +153,12 @@ pub async fn summarise_import(pool : &Pool<Postgres>) -> Result<(), AppError>
 
   
 pub async fn write_record_num (table_name: &str, pool: &Pool<Postgres>) -> Result<(), AppError> {
-    let sql = "SELECT COUNT(*) FROM ror.".to_owned() + table_name;
+    let sql = "SELECT COUNT(*) FROM src.".to_owned() + table_name;
     let res: i64 = sqlx::query_scalar(&sql)
     .fetch_one(pool).await
     .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
    
-    info!("Total records in ror.{}: {}", table_name, res);
+    info!("Total records in src.{}: {}", table_name, res);
     Ok(())
 }
   
