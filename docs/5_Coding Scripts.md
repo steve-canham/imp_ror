@@ -58,7 +58,8 @@ create table ppr.names_pad<br/>
     from ppr.names;<br/>
 
 <h2>4. Pre-process the name data.</h2>
-A variety of punctuation marks that are traditionally included in the ‘Latin’ block also occur within non-Latin names. They need to be removed or the script will report, wrongly, a huge number of mixed script names. The characters are listed below:
+A variety of punctuation marks that are traditionally included in the ‘Latin’ block also occur within non-Latin names. They need to be removed or the script will report, wrongly, a huge number of mixed script names. 
+In addition, one character that occurs in Katakana (the katakana middle dot) also needs to be removed, as this turns up in a few latin text Japanese names. The characters are listed below:
 
 <ul>
 <li>Full stop (period), comma, semi-colon, colon,</li>
@@ -70,8 +71,6 @@ A variety of punctuation marks that are traditionally included in the ‘Latin�
 <li>All spaces</li>
 </ul>
 
-In addition, one character that occurs in Katakana (the katakana middle dot) also needs to be removed, as this turns up in a few latin text Japanese names.
-<br/>
 Character removal is done using the SQL replace function, targeted to the appropriate records, the SQL being constructed in Rust by interpolating the character to be removed (char) as below
 <br/><br/>
 let sql  = format!(r#"update ppr.names_pad<br/>

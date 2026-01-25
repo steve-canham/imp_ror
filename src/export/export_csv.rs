@@ -2,57 +2,138 @@ use sqlx::{Pool, Postgres};
 use std::path::PathBuf;
 use crate::err::AppError;
 use chrono::Local;
+use super::export_structs::{CSVSummaryRow, CSVAttributeRow, CSVDistribRow, CSVRankedRow, 
+                            CSVSingletonRow, CSVOrgAndLangRow, CSVOrgAndRelRow};
+use serde::Serialize;
 
-pub async fn generate_csv(output_folder : &PathBuf, data_version: &String, pool : &Pool<Postgres>) -> Result<(), AppError>
+pub async fn generate_csv(output_folder : &PathBuf, data_version: &String, pool : &Pool<Postgres> ) -> Result<(), AppError>
 {
-    let datetime_string = Local::now().format("%m-%d %H%M%S").to_string();
-
+    let datetime_string = Local::now().format("%Y-%m-%d %H%M%S").to_string();
+    
     // 1) Version Summary 
 
-    let table_type = "summary".to_string();
-    let select_statement = r#"select * from smm.version_summaries where vcode = '"#.to_string() + data_version + r#"'"#;
-    generate_file(output_folder, data_version, &select_statement, &datetime_string, &table_type, pool).await?;
+    let output_file_name = format!("{} {} {}.csv", data_version, "summary", datetime_string);
+    let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
+           
+    let sql = format!("SELECT vcode, vdate::text, vdays, num_orgs, num_names, 
+                               num_types, num_links, num_ext_ids, num_rels, num_locations, num_domains 
+                               from smm.version_summaries WHERE vcode = '{}';", data_version);
+    let summ: CSVSummaryRow = sqlx::query_as(&sql).fetch_one(pool).await
+           .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    let summ_as_vec = vec![summ];
+    generate_file(&file_path, summ_as_vec)?;
+   
 
     // 2) Attribute Summaries
     
-    let table_type = "attributes".to_string();
-    let select_statement = r#"select * from smm.attributes_summary where vcode = '"#.to_string() 
-                           + data_version + r#"' order by att_name, id"#;
-    generate_file(output_folder, data_version, &select_statement, &datetime_string, &table_type, pool).await?;
+    let output_file_name = format!("{} {} {}.csv", data_version, "attributes", datetime_string);
+    let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
+
+    let sql = format!(r#"SELECT vs.vcode, vs.vdate::text, vs.vdays, att_type as att_id, att_name, 
+                            id as cat_id, name as cat_name, number_atts, pc_of_atts, number_orgs, pc_of_orgs
+                            from smm.attributes_summary ss
+                            inner join smm.version_summaries vs 
+                            on vs.vcode = ss.vcode 
+                            where vs.vcode = '{}'
+                            order by att_name, id;"#, data_version);
+
+    let att_rows: Vec<CSVAttributeRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    generate_file(&file_path, att_rows)?;
+
+    // set up csv writer and pass vector of data structs (in this case only one)
+
     
+
     // 3) Count distributions
 
-    let table_type = "counts".to_string();
-    let select_statement = r#"select * from smm.count_distributions where vcode = '"#.to_string() 
-                           + data_version + r#"' order by count_type, count"#;
-    generate_file(output_folder, data_version, &select_statement, &datetime_string, &table_type, pool).await?;
+    let output_file_name = format!("{} {} {}.csv", data_version, "counts", datetime_string);
+    let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
+
+    let sql = format!(r#"SELECT vs.vcode, vs.vdate::text, vs.vdays, 
+                            count_type, count, num_of_orgs, pc_of_orgs
+                            from smm.count_distributions ss
+                            inner join smm.version_summaries vs 
+                            on vs.vcode = ss.vcode 
+                            where vs.vcode = '{}'
+                            order by count_type, count;"#, data_version);
+
+    let cdist_rows: Vec<CSVDistribRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    generate_file(&file_path, cdist_rows)?;
+
 
     // 4) Ranked count distributions
 
-    let table_type = "ranked_counts".to_string();
-    let select_statement = r#"select * from smm.ranked_distributions where vcode = '"#.to_string() 
-                           + data_version + r#"' order by dist_type, rank"#;
-    generate_file(output_folder, data_version, &select_statement, &datetime_string, &table_type, pool).await?;
+    let output_file_name = format!("{} {} {}.csv", data_version, "ranked_counts", datetime_string);
+    let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
+
+    let sql = format!(r#"SELECT vs.vcode, vs.vdate::text, vs.vdays, 
+                            dist_type, rank, entity, number, pc_of_entities, pc_of_base_set
+                            from smm.ranked_distributions ss
+                            inner join smm.version_summaries vs 
+                            on vs.vcode = ss.vcode 
+                            where vs.vcode = '{}'
+                            order by dist_type, rank;"#, data_version);
+
+    let rdist_rows: Vec<CSVRankedRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    generate_file(&file_path, rdist_rows)?;
+
 
     // 5) Singletons
 
-    let table_type = "singletons".to_string();
-    let select_statement = r#"select * from smm.singletons where vcode = '"#.to_string() + data_version + r#"'"#;
-    generate_file(output_folder, data_version, &select_statement, &datetime_string, &table_type, pool).await?;
+    let output_file_name = format!("{} {} {}.csv", data_version, "singletons", datetime_string);
+    let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
+    
+    let sql = format!(r#"SELECT vs.vcode, vs.vdate::text, vs.vdays, 
+                            id, description, number, pc
+                            from smm.singletons ss
+                            inner join smm.version_summaries vs 
+                            on vs.vcode = ss.vcode 
+                            where vs.vcode = '{}'
+                            order by id;"#, data_version);
+    
+    let sing_rows: Vec<CSVSingletonRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    generate_file(&file_path, sing_rows)?;
+
 
     // 6) Org types and WOLC
 
-    let table_type = "orgtypes and names wolc".to_string();
-    let select_statement = r#"select * from smm.org_type_and_lang_code where vcode = '"#.to_string() 
-                        + data_version + r#"' order by org_type, name_type"#;
-    generate_file(output_folder, data_version, &select_statement, &datetime_string, &table_type, pool).await?;
+    let output_file_name = format!("{} {} {}.csv", data_version, "orgtypes and names", datetime_string);
+    let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
+   
+    let sql = format!(r#"SELECT vs.vcode, vs.vdate::text, vs.vdays, 
+                            org_type, name_type, names_num,names_wlc, names_wolc, names_wlc_pc, names_wolc_pc
+                            from smm.org_type_and_lang_code ss
+                            inner join smm.version_summaries vs 
+                            on vs.vcode = ss.vcode 
+                            where vs.vcode = '{}'
+                            order by org_type, name_type;"#, data_version);
+
+    let orglang_rows: Vec<CSVOrgAndLangRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    generate_file(&file_path, orglang_rows)?;
+
+
 
     // 7) Orgs types and relationships
 
-    let table_type = "orgtypes and relationships".to_string();
-    let select_statement = r#"select * from smm.org_type_and_relationships where vcode = '"#.to_string() 
-                        + data_version + r#"' order by org_type, rel_type"#;
-    generate_file(output_folder, data_version, &select_statement, &datetime_string, &table_type, pool).await?;
+    let output_file_name = format!("{} {} {}.csv", data_version, "orgtypes and relationships", datetime_string);
+    let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
+
+    let sql = format!(r#"SELECT vs.vcode, vs.vdate::text, vs.vdays, 
+                            org_type, rel_type, ss.num_links, ss.num_orgs, num_orgs_total, num_orgs_pc 
+                            from smm.org_type_and_relationships ss
+                            inner join smm.version_summaries vs 
+                            on vs.vcode = ss.vcode 
+                            where vs.vcode = '{}' 
+                            order by org_type, rel_type;"#, data_version);
+   
+    let orgrel_rows: Vec<CSVOrgAndRelRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;                               
+    generate_file(&file_path, orgrel_rows)?;
 
     Ok(())
 }
@@ -61,104 +142,144 @@ pub async fn generate_csv(output_folder : &PathBuf, data_version: &String, pool 
 
 pub async fn generate_all_versions_csv(output_folder : &PathBuf, pool : &Pool<Postgres>) -> Result<(), AppError>
 {
-
-    let datetime_string = Local::now().format("%m-%d %H%M%S").to_string();
-    let data_version = "All versions".to_string();
+    let datetime_string = Local::now().format("%Y-%m-%d %H%M%S").to_string();
 
     // 1) Version Summary 
 
-    let table_type = "summary".to_string();
-    let select_statement = r#"select * from smm.version_summaries where vcode <> 'v1.57' order by vcode"#.to_string();
-    generate_file(output_folder, &data_version, &select_statement, &datetime_string, &table_type, pool).await?;
+    let output_file_name = format!("{} {} {}.csv", "All versions", "summary", datetime_string);
+    let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
+
+    let sql = format!("SELECT vcode, vdate::text, vdays, num_orgs, num_names, 
+                               num_types, num_links, num_ext_ids, num_rels, num_locations, num_domains 
+                               from smm.version_summaries WHERE vcode <> 'v1.57' 
+                               order by vcode;");
+    let summs: Vec<CSVSummaryRow> = sqlx::query_as(&sql).fetch_all(pool).await
+           .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    generate_file(&file_path, summs)?;
+
 
     // 2) Attribute Summaries
     
-    let table_type = "attributes".to_string();
-    let select_statement = r#"select vs.vcode, vs.vdate, vs.vdays, 
-                             s.att_type, s.att_name, s.id, s.name, s.number_atts, s.pc_of_atts, s.number_orgs, s.pc_of_orgs 
-                             from smm.version_summaries vs 
-                             inner join smm.attributes_summary s
-                             on vs.vcode = s.vcode
-                             where vs.vcode <> 'v1.57' order by vcode, att_name, id"#.to_string();
-    generate_file(output_folder, &data_version, &select_statement, &datetime_string, &table_type, pool).await?;
+    let output_file_name = format!("{} {} {}.csv", "All versions", "attributes", datetime_string);
+    let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
+    
+    let sql = format!(r#"SELECT vs.vcode, vs.vdate::text, vs.vdays, att_type as att_id, att_name, 
+                            id as cat_id, name as cat_name, number_atts, pc_of_atts, number_orgs, pc_of_orgs
+                            from smm.attributes_summary ss
+                            inner join smm.version_summaries vs 
+                            on vs.vcode = ss.vcode 
+                            where vs.vcode <> 'v1.57' 
+                            order by vcode, att_name, id;"#);
+
+    let att_rows: Vec<CSVAttributeRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    generate_file(&file_path, att_rows)?;
+  
 
     // 3) Count distributions
 
-    let table_type = "counts".to_string();
-    let select_statement = r#"select vs.vcode, vs.vdate, vs.vdays, 
-                             s.count_type, s.count_type, s.num_of_orgs, s.pc_of_orgs 
-                             from smm.version_summaries vs 
-                             inner join smm.count_distributions s
-                             on vs.vcode = s.vcode
-                             where vs.vcode <> 'v1.57' order by vcode, count_type, count"#.to_string();
-    generate_file(output_folder, &data_version, &select_statement, &datetime_string, &table_type, pool).await?;
+    let output_file_name = format!("{} {} {}.csv", "All versions", "counts", datetime_string);
+    let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
+
+    let sql = format!(r#"SELECT vs.vcode, vs.vdate::text, vs.vdays, 
+                            count_type, count, num_of_orgs, pc_of_orgs
+                            from smm.count_distributions ss
+                            inner join smm.version_summaries vs 
+                            on vs.vcode = ss.vcode 
+                            where vs.vcode <> 'v1.57' 
+                            order by vcode, count_type, count;"#);
+
+    let cdist_rows: Vec<CSVDistribRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    generate_file(&file_path, cdist_rows)?;
+
 
     // 4) Ranked count distributions
 
-    let table_type = "ranked_counts".to_string();
-    let select_statement = r#"select vs.vcode, vs.vdate, vs.vdays, 
-                             s.dist_type, s.rank, s.entity, s.number, s.pc_of_entities, s.pc_of_base_set 
-                             from smm.version_summaries vs 
-                             inner join smm.ranked_distributions s
-                             on vs.vcode = s.vcode
-                             where vs.vcode <> 'v1.57' order by vcode, dist_type, rank"#.to_string();
-    generate_file(output_folder, &data_version, &select_statement, &datetime_string, &table_type, pool).await?;
+    let output_file_name = format!("{} {} {}.csv", "All versions", "ranked_counts", datetime_string);
+    let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
+
+    let sql = format!(r#"SELECT vs.vcode, vs.vdate::text, vs.vdays, 
+                            dist_type, rank, entity, number, pc_of_entities, pc_of_base_set
+                            from smm.ranked_distributions ss
+                            inner join smm.version_summaries vs 
+                            on vs.vcode = ss.vcode 
+                            where vs.vcode <> 'v1.57' 
+                            order by vcode, dist_type, rank;"#);
+
+    let rdist_rows: Vec<CSVRankedRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    generate_file(&file_path, rdist_rows)?;
+
 
     // 5) Singletons
 
-    let table_type = "singletons".to_string();
-    let select_statement = r#"select vs.vcode, vs.vdate, vs.vdays, 
-                             s.id, s.description, s.number, s.pc
-                             from smm.version_summaries vs 
-                             inner join smm.singletons s
-                             on vs.vcode = s.vcode
-                             where vs.vcode <> 'v1.57' order by vcode"#.to_string();
-    generate_file(output_folder, &data_version, &select_statement, &datetime_string, &table_type, pool).await?;
+    let output_file_name = format!("{} {} {}.csv", "All versions", "singletons", datetime_string);
+    let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
+    let sql = format!(r#"SELECT vs.vcode, vs.vdate::text, vs.vdays, 
+                            id, description, number, pc
+                            from smm.singletons ss
+                            inner join smm.version_summaries vs 
+                            on vs.vcode = ss.vcode 
+                            where vs.vcode <> 'v1.57' 
+                            order by vcode, id;"#);
+    
+    let sing_rows: Vec<CSVSingletonRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    generate_file(&file_path, sing_rows)?;
+
 
     // 6) Org types and WOLC
 
-    let table_type = "orgtypes and names wolc".to_string();
-    let select_statement = r#"select vs.vcode, vs.vdate, vs.vdays, 
-                             s.org_type, s.name_type, s.names_num, s.names_wlc, s.names_wolc, s.names_wlc_pc, s.names_wolc_pc
-                             from smm.version_summaries vs 
-                             inner join smm.org_type_and_lang_code s
-                             on vs.vcode = s.vcode
-                             where vs.vcode <> 'v1.57' order by vcode, org_type, name_type"#.to_string();
-    generate_file(output_folder, &data_version, &select_statement, &datetime_string, &table_type, pool).await?;
+    let output_file_name = format!("{} {} {}.csv", "All versions", "orgtypes and names", datetime_string);
+    let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
+
+    let sql = format!(r#"SELECT vs.vcode, vs.vdate::text, vs.vdays, 
+                            org_type, name_type, names_num, names_wlc, names_wolc, names_wlc_pc, names_wolc_pc
+                            from smm.org_type_and_lang_code ss
+                            inner join smm.version_summaries vs 
+                            on vs.vcode = ss.vcode 
+                            where vs.vcode <> 'v1.57' 
+                            order by vcode, org_type, name_type;"#);
+
+    let orglang_rows: Vec<CSVOrgAndLangRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    generate_file(&file_path, orglang_rows)?;
 
 
     // 7) Orgs types and relationships
 
-    let table_type = "orgtypes and relationships".to_string();
-    let select_statement = r#"select vs.vcode, vs.vdate, vs.vdays, 
-                             s.org_type, s.rel_type, s.num_links, s.num_orgs, s.num_orgs_total, s.num_orgs_pc
-                             from smm.version_summaries vs 
-                             inner join smm.org_type_and_relationships s
-                             on vs.vcode = s.vcode
-                             where vs.vcode <> 'v1.57' order by vcode, org_type, rel_type"#.to_string();
-                             r#"select * from smm.org_type_and_relationships where vcode <> 'v1.57' order by vcode, org_type, rel_type"#;
-    generate_file(output_folder, &data_version, &select_statement, &datetime_string, &table_type, pool).await?;
+    let output_file_name = format!("{} {} {}.csv", "All versions", "orgtypes and relationships", datetime_string);
+    let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
+
+        let sql = format!(r#"SELECT vs.vcode, vs.vdate::text, vs.vdays, 
+                            org_type, rel_type, ss.num_links, ss.num_orgs, num_orgs_total, num_orgs_pc 
+                            from smm.org_type_and_relationships ss
+                            inner join smm.version_summaries vs 
+                            on vs.vcode = ss.vcode 
+                            where vs.vcode <> 'v1.57' 
+                            order by vcode, org_type, rel_type;"#);
+   
+    let orgrel_rows: Vec<CSVOrgAndRelRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;       
+    generate_file(&file_path, orgrel_rows)?;
 
     Ok(())
 }
 
 
-
-async fn  generate_file(output_folder: &PathBuf, data_version: &String, select_statement: &String,
-                    datetime_string: &String, table_type: &String, pool : &Pool<Postgres>) -> Result<(), AppError> {
+fn generate_file<T: Serialize>(file_path: &PathBuf, data:Vec<T>) -> Result<(), AppError> {
     
-    let output_file_name = format!("{} {} {}.csv", data_version, table_type, datetime_string);
-    let output_file_path: PathBuf = [output_folder,  &PathBuf::from(&output_file_name)].iter().collect();
-    let output_file = match output_file_path.to_str() {
-        Some(s) => s.to_string(),
-        None => {
-            return Err(AppError::FileSystemError("Unable to construct the output file name".to_string(), 
-                       format!("File name was: {},", output_file_name)))
-        },
-    };
-    let sql = r#"copy ("#.to_string() + select_statement + r#") to '"# + &output_file + r#"' DELIMITER ',' CSV HEADER"#;
-    sqlx::raw_sql(&sql).execute(pool).await
-        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    let mut wtr = csv::Writer::from_path(file_path)
+                .map_err(|e|AppError::CsvError(e))?;
 
+    for d in data {
+        wtr.serialize(d)
+        .map_err(|e|AppError::CsvError(e))?;
+    }
+    
+    wtr.flush()?;
     Ok(())
 }
+
+    

@@ -30,7 +30,7 @@ pub async fn summarise_data(pool : &Pool<Postgres>) -> Result<(), AppError>
             return Ok(())
         },
         Err(e) => {
-            error!("An error occured while constructing  summary data: {}", e);
+            error!("An error occured while constructing summary data: {}", e);
             return Err(e)
             },
     }

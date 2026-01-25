@@ -1,10 +1,5 @@
-/***************************************************************************
- * Module uses clap crate to read command line arguments. These include 
- * possible A, S, T and C flags, and possible strings for the data folder and 
- * source file name. If no flags 'S' (= import data) is returned by default.
- * Folder and file names return an empty string ("") rather than null if not 
- * present. 
- ***************************************************************************/
+
+// Module uses clap crate to read command line arguments. 
 
 use clap::{command, Arg, ArgMatches};
 use crate::err::AppError;

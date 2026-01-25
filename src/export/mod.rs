@@ -19,6 +19,7 @@ pub async fn export_as_text(output_folder : &PathBuf, data_version: &String,
         dv = get_current_data_version(pool).await?;
     }
 
+    
     check_data_version_present_in_summ_data(&dv, pool).await?;
 
     let r = export_text::generate_text(output_folder, &dv, pool).await;

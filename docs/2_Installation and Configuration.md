@@ -4,7 +4,7 @@ The system is designed to be flexible, but uses reasonable defaults to make rout
 For the moment, some basic familiarity with running Postgres and Rust (in a development environment) is required.
 
 <h3>Installing the system and pre-requisites</h3>
-a) Download and install Rust, and download the code from this GitHub page, accessing it within a Rust development environment. VS Code, with Rust extensions installed, 
+a) Download and install Rust, and download the imp_ror code from this GitHub page, accessing it within a Rust development environment. VS Code, with Rust extensions installed, 
 is strongly recommended, and is used by about 75% of current Rust developers.<br/>
 b) Install Postgres if not already available and establish an empty database (by default called 'ror', though any name cn be used). The empty database must be
 created prior to the initial run of the system, but all other database operations are handled by the system.<br/>
@@ -36,7 +36,7 @@ The system uses a configuration file (app_config.toml) to provide details of the
     <li>The name of the source file, as downloaded from ROR. This has a standard name pattern, with a version indicator followed by a date indicator followed by some text. If the intention is to always use the command line to indicate the source file this can be left as an empty string 
     by simply pressing return. In that case the two remaining parameters (data version and data date) are also set as empty strings and the configuration process ends. 
     N.B. Even when a source file name is provided, any source file in the command line will take precedence over and 'mask' one provided in the configuration file. The file is a .json file. If the '.json' is not present in the source file name the system will add it.</li> 
-    <li>The ROR version of the file to be imported. This is a string, with a 'v' followed by a set of numbers in a semantic versioning format, e.g. 'v1.45.1', 'v1.57'. In most cases, including when retaining the name as downloaded from ROR, 
+    <li>The ROR version of the file to be imported. This is a string, with a 'v' followed by a set of numbers in a semantic versioning format, e.g. 'v1.45.1', 'v1.57', 'v2.1'. In most cases, including when retaining the name as downloaded from ROR, 
     the system can parse this from the source file name (see Operation and Commands for details). In these circumstances it can be stored in the configuration file as an empty string by simply pressing return.</li>
     <li>The date of the file to be imported, as 'data_date'. This should be in the YYYY-mm-DD ISO format. In most cases, including when retaining the name as downloaded from ROR, the system can parse this from the source file name. 
     In these circumstances it can be stored in the configuration file as an empty string by simply pressing return.</li>

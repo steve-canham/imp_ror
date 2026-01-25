@@ -14,7 +14,7 @@ or create a set of CSV files representing the stored summary data, for a single 
 for all those so far imported.
 
 The system uses the version 2 schema files as input, and so covers data 
-made available from April 2024 onwards. It can handle versions 2.0 and 2.1, the latter in 
+made available from April 2024 onwards. It can handle schema versions 2.0 and 2.1, the latter in 
 use from December 2024.
 
 The system is written in Rust and uses a command line interface (CLI) for control. 
@@ -31,7 +31,7 @@ a) To provide a mechanism to quickly download and integrate ROR data within othe
 systems, on a regular basis (e.g. as each new version is published). The ROR data is available
 both in its 'raw' state, i.e. with almost no additional processing applied (see 
 'The base src data schema' in doc.4), and in a lightly modified state, with a limited degree 
-of processing applied (see 'The ppr data schema' in doc 4.elow). The latter is likely to be of more immediate
+of processing applied (see 'The ppr data schema' in doc 4. below). The latter is likely to be of more immediate
 use in many use cases, as well as a better basis for additional processing.
 
 b) To allow comparison of the different ROR data versions over time, allowing monitoring of 
@@ -39,8 +39,8 @@ the development of ROR data, and the easier identification of possible inconsist
 anomalies in the data (to help with possible feedback to ROR).
 
 c) To become more familiar with Rust, by using the language in a small but realistic development scenario, 
-implementing features that would be necessary in most similar CLIs. These include data access and 
-manipulation, processing of command line arguments and configuration file variables (and interactions 
+implementing features that would be necessary in many similar CLIs. These include data access and 
+manipulation, processing of command line arguments and configuration of file variables (and interactions 
 between the two), logging, file handling (of both JSON and text files), and unit and integration tests. 
 The system is still 'basic' Rust, however, and does not use more advanced features of the language.
 

@@ -13,13 +13,14 @@ name = "imp_ror"
 
 [dependencies]
 serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.145"
-thiserror = "2.0.17"
+serde_json = "1.0.149"
+thiserror = "2.0.18"
 sqlx = { version = "0.8.6", features = [ "runtime-tokio", "postgres", "macros", "chrono" ] }
-tokio = { version = "1.48.0", features = ["macros", "rt", "time"]}
-clap = { version = "4.5.53", features = ["cargo"] }
+tokio = { version = "1.49.0", features = ["macros", "rt", "time"]}
+clap = { version = "4.5.54", features = ["cargo"] }
 regex = "1.12.2"
-chrono = { version = "0.4.42", features = ["clock"] }
+chrono = { version = "0.4.43", features = ["clock"] }
 log = "0.4.29"
 log4rs = "1.4.0"
 toml = "0.9.8"
+csv = "1.4.0"
