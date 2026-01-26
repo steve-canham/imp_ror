@@ -17,9 +17,11 @@ use super::src_record_structs::{SrcCoreData, SrcRelationship, SrcExternalId,
                             SrcName, SrcLocation, SrcLink, SrcType, SrcAdminData};
 
 /**************************************************************
- * Run with cargo test -- --test-threads = 1
+ * ************************************************************
+ * Run with cargo test -- --test-threads=1
  * to keep tests running in (alphabetical!) order
- ***************************************************************/
+ * ************************************************************
+ *************************************************************/
 
 #[tokio::test] 
 async fn a_import_v2_0_data_to_src_and_check_org_numbers() {

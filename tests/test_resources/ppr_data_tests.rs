@@ -10,9 +10,11 @@ use super::ppr_record_structs::{PprCoreData, PprRelationship, PprExternalId,
 
 
 /**************************************************************
- * Run with cargo test -- --test-threads = 1
+ * ************************************************************
+ * Run with cargo test -- --test-threads=1
  * to keep tests running in (alphabetical!) order
- ***************************************************************/
+ * ************************************************************
+ *************************************************************/
 
 #[tokio::test] 
 async fn k_process_v2_0_data_to_ppr_and_summarise() {

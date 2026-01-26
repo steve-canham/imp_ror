@@ -50,3 +50,10 @@ The system was originally developed on a Windows 11 machine, using Rust 1.80.1, 
 DBeaver. 
 It is now being developed / maintained on a Linux machine (Kubuntu 24.04), using Rust 1.91, Postgres 18 and pgAdmin.
 Efforts will be made to make the system cross-platform, though this has not yet been tested.
+<br/><br/>
+N.B. If running tests against the code, using cargo test, use the command<br/>
+<b>cargo test -- --test-threads=1</b><br/>
+This forces all tests onto a single thread and allows the integration tests to occur in the correct (alphabeticakl) order. <br/>
+A standard 'cargo test' command will allow unit test to pass, but the integration tests will fail, complaining that they cannot obtain database parameters.<br/>
+(By default, cargo will attempt to run all tests in parallel).
+
