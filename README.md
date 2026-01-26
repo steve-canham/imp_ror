@@ -131,3 +131,11 @@ The folowing command line arguments are available:
 <li>Improved (and simplified) handling of duplicate names in source ror data</li>
 <li>Added a few data points relating to duplicate name processing to the summary tables / reports</li>
 </ul>
+
+<h4>Version 1.3</h4>
+25/01/2026  -  Changes:
+<ul>
+<li>Export csv code process changed to use Rust code directly (using the 'csv' crate) rather than delegating to the Postgres 'Copy' command. <br/>
+This was because on Linux permissions to write files are more restricted, (compared to Windows) and setting the required permissions for the Postgres account is difficult.<br/>
+Using the user's own permissions, running the Rust executable through cargo run, is easier and more transparent to manage.</li>
+</ul>

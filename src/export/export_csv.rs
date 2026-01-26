@@ -41,10 +41,7 @@ pub async fn generate_csv(output_folder : &PathBuf, data_version: &String, pool 
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     generate_file(&file_path, att_rows)?;
 
-    // set up csv writer and pass vector of data structs (in this case only one)
-
-    
-
+   
     // 3) Count distributions
 
     let output_file_name = format!("{} {} {}.csv", data_version, "counts", datetime_string);
@@ -115,7 +112,6 @@ pub async fn generate_csv(output_folder : &PathBuf, data_version: &String, pool 
     let orglang_rows: Vec<CSVOrgAndLangRow> = sqlx::query_as(&sql).fetch_all(pool).await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     generate_file(&file_path, orglang_rows)?;
-
 
 
     // 7) Orgs types and relationships
@@ -266,6 +262,7 @@ pub async fn generate_all_versions_csv(output_folder : &PathBuf, pool : &Pool<Po
 
     Ok(())
 }
+
 
 
 fn generate_file<T: Serialize>(file_path: &PathBuf, data:Vec<T>) -> Result<(), AppError> {

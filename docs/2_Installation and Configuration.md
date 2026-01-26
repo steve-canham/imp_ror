@@ -28,8 +28,8 @@ The system uses a configuration file (app_config.toml) to provide details of the
 <ul>
     <li>The path of the folder where the ROR data files will be stored. This 'data folder' must be provided. It can be expressed in either 'Windows' form, with back slashes between path segments, or in 'posix' form, with forward slashes. 
     Internally any back slashes are concerted to forward slashes. On a Windows machine file paths can be read and processed using either back or forward slashes (or indeed a mixture of the two) so the use of forward slashes internally is not a problem.</li>
-    <li>The path of the folder where the program will put its outputs (text and csv files). <i>Note that this folder should be on the Postgres server.</i> If not provided, i.e. the user simply presses return, this value will default to be the same as the data folder already provided above.</li>
-    <li>The path of the folder where the program will put its logs (a log is generated for each run of the program). If not provided, i.e. the user simply presses return, this value will default to be the same as the data folder already provided above.</li>
+    <li>The path of the folder where the program will put its outputs (text and csv files). <i>Note that the user must have write permissions for this folder.</i> If not provided, i.e. the user simply presses return, this value will default to be the same as the data folder already provided above.</li>
+    <li>The path of the folder where the program will put its logs (a log is generated for each run of the program). <i>Note that the user must have write permissions for this folder.</i> If not provided, i.e. the user simply presses return, this value will default to be the same as the data folder already provided above.</li>
 </ul>
 <li>The final group of parameters relate to the source data and are optional, in the sense that they are more normally provided in the command line, but there are times (e.g. if testing) when it can be useful to include them in the configuration. They include:
 <ul>
