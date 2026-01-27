@@ -5,6 +5,7 @@ use chrono::Local;
 use super::export_structs::{CSVSummaryRow, CSVAttributeRow, CSVDistribRow, CSVRankedRow, 
                             CSVSingletonRow, CSVOrgAndLangRow, CSVOrgAndRelRow};
 use serde::Serialize;
+use super::export_helpers;
 
 pub async fn generate_csv(output_folder : &PathBuf, data_version: &String, pool : &Pool<Postgres> ) -> Result<(), AppError>
 {
@@ -192,7 +193,9 @@ pub async fn generate_all_versions_csv(output_folder : &PathBuf, pool : &Pool<Po
 
     // 4) Ranked count distributions
 
-    let output_file_name = format!("{} {} {}.csv", "All versions", "ranked_counts", datetime_string);
+    // a) languages 
+
+    let output_file_name = format!("{} {} {}.csv", "All versions", "ranked_languages", datetime_string);
     let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
 
     let sql = format!(r#"SELECT vs.vcode, vs.vdate::text, vs.vdays, 
@@ -201,11 +204,50 @@ pub async fn generate_all_versions_csv(output_folder : &PathBuf, pool : &Pool<Po
                             inner join smm.version_summaries vs 
                             on vs.vcode = ss.vcode 
                             where vs.vcode <> 'v1.57' 
+                            and dist_type = 1
                             order by vcode, dist_type, rank;"#);
 
     let rdist_rows: Vec<CSVRankedRow> = sqlx::query_as(&sql).fetch_all(pool).await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     generate_file(&file_path, rdist_rows)?;
+
+    // b) scripts
+
+    let output_file_name = format!("{} {} {}.csv", "All versions", "ranked_scripts", datetime_string);
+    let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
+
+    let sql = format!(r#"SELECT vs.vcode, vs.vdate::text, vs.vdays, 
+                            dist_type, rank, entity, number, pc_of_entities, pc_of_base_set
+                            from smm.ranked_distributions ss
+                            inner join smm.version_summaries vs 
+                            on vs.vcode = ss.vcode 
+                            where vs.vcode <> 'v1.57' 
+                            and dist_type = 2
+                            order by vcode, dist_type, rank;"#);
+
+    let rdist_rows: Vec<CSVRankedRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    generate_file(&file_path, rdist_rows)?;
+
+    // c) countries
+
+    let output_file_name = format!("{} {} {}.csv", "All versions", "ranked_countries", datetime_string);
+    let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
+
+    let sql = format!(r#"SELECT vs.vcode, vs.vdate::text, vs.vdays, 
+                            dist_type, rank, entity, number, pc_of_entities, pc_of_base_set
+                            from smm.ranked_distributions ss
+                            inner join smm.version_summaries vs 
+                            on vs.vcode = ss.vcode 
+                            where vs.vcode <> 'v1.57' 
+                            and dist_type = 3
+                            order by vcode, dist_type, rank;"#);
+
+    let rdist_rows: Vec<CSVRankedRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    generate_file(&file_path, rdist_rows)?;
+
+    export_helpers::set_up_country_grid(pool).await?;
 
 
     // 5) Singletons

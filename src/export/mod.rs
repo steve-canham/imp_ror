@@ -1,6 +1,7 @@
 mod export_text;
 mod export_csv;
 mod export_structs;
+mod export_helpers;
 
 use log::{info, error};
 use sqlx::{Pool, Postgres};
