@@ -249,6 +249,10 @@ pub async fn generate_all_versions_csv(output_folder : &PathBuf, pool : &Pool<Po
 
     export_helpers::set_up_country_grid(pool).await?;
 
+    // N.B. The country grid data is most easily extracted manually, from the table (e.g. in pgAdmin).
+    // Partly becaue the columns may vary for each extraction so it is difficult to construct a struct
+    // for deserialisation.
+
 
     // 5) Singletons
 

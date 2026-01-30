@@ -1,8 +1,9 @@
 use serde::Serialize;
+use chrono::NaiveDate;
 
 #[derive(sqlx::FromRow)]
 pub struct VSummary {
-    pub vdate: String,
+    pub vdate: NaiveDate,
     pub vdays: i32,
     pub num_orgs: i32,
     pub num_names: i32,
