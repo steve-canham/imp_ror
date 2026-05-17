@@ -1,8 +1,5 @@
 /**********************************************************************************
-The setup module, and the get_params function in this file in particular, 
-orchestrates the collection and fusion of parameters as provided in 
-1) a config toml file, and 
-2) command line arguments. 
+
 Where a parameter may be given in either the config file or command line, the 
 command line version always over-writes anything from the file.
 The module also checks the parameters for completeness (those required will vary, 
@@ -14,23 +11,21 @@ The module also provides a database connection pool on demand.
 
 pub mod cli_reader;
 pub mod config_reader;
+pub mod db_pars;
 pub mod log_helper;
 mod config_writer;
 mod config_editor;
-mod lup_create_tables;
-mod lup_fill_tables;
+//mod lup_create_tables;
+//mod lup_fill_tables;
 
 use std::sync::OnceLock;
 use crate::err::AppError;
 use chrono::NaiveDate;
-use sqlx::postgres::{PgPoolOptions, PgConnectOptions, PgPool};
 use sqlx::{Postgres, Pool};
 use log::{info, error};
 use std::path::PathBuf;
 use std::fs;
-use std::time::Duration;
 use regex::Regex;
-use sqlx::ConnectOptions;
 use config_reader::Config;
 use cli_reader::{CliPars, Flags};
 
@@ -48,6 +43,12 @@ pub static LOG_RUNNING: OnceLock<bool> = OnceLock::new();
 
 pub fn get_params(cli_pars: CliPars, config_string: &String) -> Result<InitParams, AppError> {
 
+    // The call from lib includes the CLI flags and parameters, previously processed,
+    // and the toml config data as a string derived from the toml file.
+    // The config data is analysed to create a Config object, and parent folders for
+    // logs and json data are created if not already in existence.
+    // CLI and config data are then combined into a struct with all the initial parameters.
+    
     let flags = cli_pars.flags;
     let config_file: Config = config_reader::populate_config_vars(&config_string)?; 
     
@@ -97,7 +98,7 @@ pub fn get_params(cli_pars: CliPars, config_string: &String) -> Result<InitParam
 
     let mut source_file_name = cli_pars.source_file;
     if source_file_name == "".to_string() {
-        source_file_name =  data_pars.ppr_file_name;
+        source_file_name =  data_pars.src_file_name;
         if source_file_name == "".to_string() && flags.import_ror {   // Required data is missing
             return Result::Err(AppError::MissingProgramParameter("ppr_file_name".to_string()));
         }
@@ -178,38 +179,10 @@ pub fn get_params(cli_pars: CliPars, config_string: &String) -> Result<InitParam
 
 
 fn folder_exists(folder_name: &PathBuf) -> bool {
-    let res = match folder_name.try_exists() {
+    match folder_name.try_exists() {
         Ok(true) => true,
-        Ok(false) => false, 
-        Err(_e) => false,           
-    };
-    res
-}
-
-
-pub async fn get_db_pool() -> Result<PgPool, AppError> {  
-
-    // Establish DB name and thence the connection string
-    // (done as two separate steps to allow for future development).
-    // Use the string to set up a connection options object and change 
-    // the time threshold for warnings. Set up a DB pool option and 
-    // connect using the connection options object.
-
-    let db_name = match config_reader::fetch_db_name() {
-        Ok(n) => n,
-        Err(e) => return Err(e),
-    };
-
-    let db_conn_string = config_reader::fetch_db_conn_string(&db_name)?;  
-   
-    let mut opts: PgConnectOptions = db_conn_string.parse()
-                    .map_err(|e| AppError::DBPoolError("Problem with parsing conection string".to_string(), e))?;
-    opts = opts.log_slow_statements(log::LevelFilter::Warn, Duration::from_secs(3));
-
-    PgPoolOptions::new()
-        .max_connections(5) 
-        .connect_with(opts).await
-        .map_err(|e| AppError::DBPoolError(format!("Problem with connecting to database {} and obtaining Pool", db_name), e))
+        _ => false,   // includes Ok(false) as well as Err
+    }
 }
 
 
@@ -264,6 +237,23 @@ pub fn edit_config() -> Result<(), AppError>
 
 pub async fn create_lup_tables(pool : &Pool<Postgres>) -> Result<(), AppError>
 {
+    let sql = include_str!("../../sql/create_lup_tables.sql");
+    sqlx::raw_sql(sql).execute(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+
+    let sql = include_str!("../../sql/create_countries_table.sql");
+    sqlx::raw_sql(sql).execute(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+
+    let sql = include_str!("../../sql/create_lang_codes_table.sql");
+    sqlx::raw_sql(sql).execute(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+
+    let sql = include_str!("../../sql/create_scripts_table.sql");
+    sqlx::raw_sql(sql).execute(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+
+    /* 
     match lup_create_tables::create_tables(pool).await {
         Ok(()) => info!("Tables created for lup schema"),
         Err(e) => {
@@ -278,6 +268,8 @@ pub async fn create_lup_tables(pool : &Pool<Postgres>) -> Result<(), AppError>
             return Err(e)
             },
     };
+    */
+    
     Ok(())
 }
 
@@ -406,12 +398,12 @@ mod tests {
 [data]
 data_version="v1.60"
 data_date="2025-12-11"
-ppr_file_name="v1.58 20241211.json"
+src_file_name="v1.58 20241211.json"
 
 [folders]
 data_folder_path="/home/steve/Data/MDR source data/ROR/data"
 output_folder_path="/home/steve/Data/MDR source data/ROR/outputs"
-log_folder_path="/home/steve/Data/MDR/MDR_Logs/ror"
+log_folder_path="/home/steve/Data/MDR logs/ror"
 
 [database]
 db_host="localhost"
@@ -438,7 +430,7 @@ db_name="ror"
         assert_eq!(res.flags.create_lookups, false);
         assert_eq!(res.flags.create_summary, false);
         assert_eq!(res.data_folder, PathBuf::from("/home/steve/Data/MDR source data/ROR/data"));
-        assert_eq!(res.log_folder, PathBuf::from("/home/steve/Data/MDR/MDR_Logs/ror"));
+        assert_eq!(res.log_folder, PathBuf::from("/home/steve/Data/MDR logs/ror"));
         assert_eq!(res.output_folder, PathBuf::from("/home/steve/Data/MDR source data/ROR/outputs"));
         assert_eq!(res.source_file_name, "v1.58 20241211.json");
         assert_eq!(res.data_version, "v1.58");
@@ -452,12 +444,12 @@ db_name="ror"
 [data]
 data_version="v1.60"
 data_date="2025-12-11"
-ppr_file_name="v1.58 20241211.json"
+src_file_name="v1.58 20241211.json"
 
 [folders]
 data_folder_path="/home/steve/Data/MDR source data/ROR/data"
 output_folder_path="/home/steve/Data/MDR source data/ROR/outputs"
-log_folder_path="/home/steve/Data/MDR/MDR_Logs/ror"
+log_folder_path="/home/steve/Data/MDR logs/ror"
 
 [database]
 db_host="localhost"
@@ -483,7 +475,7 @@ db_name="ror"
         assert_eq!(res.flags.create_lookups, false);
         assert_eq!(res.flags.create_summary, false);
         assert_eq!(res.data_folder, PathBuf::from("/home/steve/Data/MDR source data/ROR/data"));
-        assert_eq!(res.log_folder, PathBuf::from("/home/steve/Data/MDR/MDR_Logs/ror"));
+        assert_eq!(res.log_folder, PathBuf::from("/home/steve/Data/MDR logs/ror"));
         assert_eq!(res.output_folder, PathBuf::from("/home/steve/Data/MDR source data/ROR/outputs"));        assert_eq!(res.source_file_name, "schema2 data.json");
         assert_eq!(res.data_version, "v1.60");
         assert_eq!(res.data_date, "2026-12-25");
@@ -495,14 +487,14 @@ db_name="ror"
 
         let config = r#"
 [data]
-ppr_file_name="v1.58 20241211.json"
+src_file_name="v1.58 20241211.json"
 data_version="v1.50"
 data_date="2025-12-11"
 
 [folders]
 data_folder_path="/home/steve/Data/MDR source data/ROR/data"
 output_folder_path="/home/steve/Data/MDR source data/ROR/outputs"
-log_folder_path="/home/steve/Data/MDR/MDR_Logs/ror"
+log_folder_path="/home/steve/Data/MDR logs/ror"
 
 [database]
 db_host="localhost"
@@ -528,7 +520,7 @@ db_name="ror"
         assert_eq!(res.flags.create_lookups,false);
         assert_eq!(res.flags.create_summary, true);
         assert_eq!(res.data_folder, PathBuf::from("/home/steve/Data/MDR source data/ROR/data"));
-        assert_eq!(res.log_folder, PathBuf::from("/home/steve/Data/MDR/MDR_Logs/ror"));
+        assert_eq!(res.log_folder, PathBuf::from("/home/steve/Data/MDR logs/ror"));
         assert_eq!(res.output_folder, PathBuf::from("/home/steve/Data/MDR source data/ROR/outputs"));
         assert_eq!(res.source_file_name, "schema2 data.json");
         assert_eq!(res.data_version, "v1.60");
@@ -541,14 +533,14 @@ db_name="ror"
 
         let config = r#"
 [data]
-ppr_file_name="v1.58 20241211.json"
+src_file_name="v1.58 20241211.json"
 data_version="v1.60"
 data_date="2025-12-11"
 
 [folders]
 data_folder_path="/home/steve/Data/MDR source data/ROR/data"
 output_folder_path="/home/steve/Data/MDR source data/ROR/outputs"
-log_folder_path="/home/steve/Data/MDR/MDR_Logs/ror"
+log_folder_path="/home/steve/Data/MDR logs/ror"
 
 [database]
 db_host="localhost"
@@ -573,7 +565,7 @@ db_name="ror"
         assert_eq!(res.flags.create_lookups, false);
         assert_eq!(res.flags.create_summary, false);
         assert_eq!(res.data_folder, PathBuf::from("/home/steve/Data/MDR source data/ROR/data"));
-        assert_eq!(res.log_folder, PathBuf::from("/home/steve/Data/MDR/MDR_Logs/ror"));
+        assert_eq!(res.log_folder, PathBuf::from("/home/steve/Data/MDR logs/ror"));
         assert_eq!(res.output_folder, PathBuf::from("/home/steve/Data/MDR source data/ROR/outputs"));
         assert_eq!(res.source_file_name, "schema2 data.json");
         assert_eq!(res.data_version, "v1.60");
@@ -585,14 +577,14 @@ db_name="ror"
 
         let config = r#"
 [data]
-ppr_file_name="v1.58 20241211.json"
+src_file_name="v1.58 20241211.json"
 data_version=""
 data_date=""
 
 [folders]
 data_folder_path="/home/steve/Data/MDR source data/ROR/data"
 output_folder_path="/home/steve/Data/MDR source data/ROR/outputs"
-log_folder_path="/home/steve/Data/MDR/MDR_Logs/ror"
+log_folder_path="/home/steve/Data/MDR logs/ror"
 
 [database]
 db_host="localhost"
@@ -619,7 +611,7 @@ db_name="ror"
         assert_eq!(res.flags.create_lookups, false);
         assert_eq!(res.flags.create_summary, false);
         assert_eq!(res.data_folder, PathBuf::from("/home/steve/Data/MDR source data/ROR/data"));
-        assert_eq!(res.log_folder, PathBuf::from("/home/steve/Data/MDR/MDR_Logs/ror"));
+        assert_eq!(res.log_folder, PathBuf::from("/home/steve/Data/MDR logs/ror"));
         assert_eq!(res.output_folder, PathBuf::from("/home/steve/Data/MDR source data/ROR/outputs"));
         assert_eq!(res.source_file_name, "v1.58 20241211.json");
         assert_eq!(res.data_version, "v1.58");
@@ -632,14 +624,14 @@ db_name="ror"
     
         let config = r#"
 [data]
-ppr_file_name="v1.58 20241211.json"
+src_file_name="v1.58 20241211.json"
 data_version="v1.60"
 data_date="2025-12-11"
 
 [folders]
 data_folder_path="/home/steve/Data/MDR source data/ROR/no_data"
 output_folder_path="/home/steve/Data/MDR source data/ROR/outputs"
-log_folder_path="/home/steve/Data/MDR/MDR_Logs/ror"
+log_folder_path="/home/steve/Data/MD logs/ror"
 
 [database]
 db_host="localhost"
@@ -662,14 +654,14 @@ db_name="ror"
     
         let config = r#"
 [data]
-ppr_file_name="v1.58 20241211.json"
+src_file_name="v1.58 20241211.json"
 data_version="v1.60"
 data_date="2025-12-11"
 
 [folders]
 data_folder_path="/home/steve/Data/MDR source data/ROR/no_data"
 output_folder_path="/home/steve/Data/MDR source data/ROR/outputs"
-log_folder_path="/home/steve/Data/MDR/MDR_Logs/ror"
+log_folder_path="/home/steve/Data/MDR logs/ror"
 
 [database]
 db_host="localhost"
@@ -696,7 +688,7 @@ db_name="ror"
         assert_eq!(res.flags.create_lookups, false);
         assert_eq!(res.flags.create_summary, false);
         assert_eq!(res.data_folder, PathBuf::from("/home/steve/Data/MDR source data/ROR/no_data"));
-        assert_eq!(res.log_folder, PathBuf::from("/home/steve/Data/MDR/MDR_Logs/ror"));
+        assert_eq!(res.log_folder, PathBuf::from("/home/steve/Data/MDR logs/ror"));
         assert_eq!(res.output_folder, PathBuf::from("/home/steve/Data/MDR source data/ROR/outputs"));
         assert_eq!(res.source_file_name, "v1.58 20241211.json");
         assert_eq!(res.data_version, "v1.58");

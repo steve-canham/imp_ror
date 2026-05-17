@@ -113,16 +113,14 @@ pub fn fetch_valid_arguments(args: Vec<OsString>) -> Result<CliPars, AppError>
 
 pub fn config_file_exists()-> bool {
     let config_path = PathBuf::from("./app_config.toml");
-    let res = match config_path.try_exists() {
+    match config_path.try_exists() {
         Ok(true) => true,
-        Ok(false) => false, 
-        Err(_e) => false,           
-    };
-    res
+        _ => false, 
+    }
 }
 
 
-pub fn get_initalising_cli_pars()  -> CliPars {
+pub fn get_initalising_cli_pars() -> CliPars {
     
     let flags = Flags {
         import_ror: false,

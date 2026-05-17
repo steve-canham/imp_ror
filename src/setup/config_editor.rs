@@ -161,7 +161,7 @@ pub fn edit_config_file() -> Result<(), AppError>
 
     let p1 = "Section 3: DATA PARAMETERS";
     let p2 = "SOURCE FILE NAME";
-    let curr_value = current_config.data_details.ppr_file_name;
+    let curr_value = current_config.data_details.src_file_name;
     let p3 = "The source file can be provided as a command line argument, or in the configuration file, or in both.";
     let p4 = "NOTE that any source file name provided in the command line will over-write the value in the config file.";
     let p5 = "NOTE also that without a source file named in the configuration file, i.e. if enter is pressed without ";

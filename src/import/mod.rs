@@ -1,37 +1,30 @@
-// The import module. Referenced in main by 'mod import'.
-// It makes use of the other modules in the folder, each corresponding to a file of the same name.
-// The folder modules do not need to be public - they are referenced only within this module.
 
-mod src_json_models;
-mod src_data_vectors;
-mod src_create_tables;
+mod json_models;
+mod data_vectors;
 
-use log::{info, error};
+use log::info;
 use std::path::PathBuf;
 use std::fs;
 use sqlx::{Pool, Postgres};
 use crate::AppError;
 use chrono::NaiveDate;
 
-use src_json_models::RorRecord;
-use src_data_vectors::{CoreDataVecs, RequiredDataVecs, NonRequiredDataVecs, extract_id_from};
+use json_models::RorRecord;
+use data_vectors::{CoreDataVecs, RequiredDataVecs, NonRequiredDataVecs, extract_id_from};
 
-pub async fn create_src_tables(pool : &Pool<Postgres>) -> Result<(), AppError>
-{
-    match src_create_tables::create_tables(pool).await {
-        Ok(()) => info!("Tables created for ror schema"),
-        Err(e) => {
-            error!("An error occured while creating the ror schema tables: {}", e);
-            return Err(e)
-            },
-    };
-    Ok(())
-}
 
 pub async fn import_data(data_folder : &PathBuf, source_file_name: &String, 
                         data_version: &String, data_date: &String, 
                         pool : &Pool<Postgres>) -> Result<(), AppError>
 {
+    // First recreate the src schema tables - sqlscript in file (path is relative
+    // and Linux specific - Windows would need a similar string but with backslashes)
+
+    let sql = include_str!("../../sql/create_src_tables.sql");
+    sqlx::raw_sql(sql).execute(pool)
+        .await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+       
     // Record data version, date and elapsed days in single record table.
     
     let end_of_period = NaiveDate::parse_from_str(data_date, "%Y-%m-%d").unwrap();
@@ -129,9 +122,9 @@ pub async fn summarise_import(pool : &Pool<Postgres>) -> Result<(), AppError>
     // Goes through each table and get total record number.
 
     info!("");
-    info!("************************************");
-    info!("Total record numbers for each table:");
-    info!("************************************");
+    info!("**************************************************");
+    info!("Total record numbers for each table in src schema:");
+    info!("**************************************************");
     info!("");
   
     write_record_num("core_data", pool).await?;

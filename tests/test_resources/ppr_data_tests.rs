@@ -3,7 +3,7 @@ use imp_ror::run;
 use std::ffi::OsString;
 use chrono::NaiveDate;
 
-use imp_ror::setup::get_db_pool;
+use imp_ror::setup::db_pars::get_db_pool;
 use super::ppr_data_access;
 use super::ppr_record_structs::{PprCoreData, PprRelationship, PprExternalId, 
     PprName, PprLocation, PprLink, PprType, PprAdminData};

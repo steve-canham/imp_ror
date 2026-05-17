@@ -11,7 +11,7 @@ use std::path::PathBuf;
 use chrono::NaiveDate;
 //use tokio::time::sleep;
 
-use imp_ror::setup::get_db_pool;
+use imp_ror::setup::db_pars::get_db_pool;
 use super::src_data_access;
 use super::src_record_structs::{SrcCoreData, SrcRelationship, SrcExternalId, 
                             SrcName, SrcLocation, SrcLink, SrcType, SrcAdminData};
