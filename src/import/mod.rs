@@ -13,8 +13,8 @@ use json_models::RorRecord;
 use data_vectors::{CoreDataVecs, RequiredDataVecs, NonRequiredDataVecs, extract_id_from};
 
 
-pub async fn import_data(data_folder : &PathBuf, source_file_name: &String, 
-                        data_version: &String, data_date: &String, 
+pub async fn import_data(data_folder : &PathBuf, source_file_name: &String,
+                        data_version: &String, data_date: &String,
                         pool : &Pool<Postgres>) -> Result<(), AppError>
 {
     // First recreate the src schema tables - sqlscript in file (path is relative
@@ -24,13 +24,13 @@ pub async fn import_data(data_folder : &PathBuf, source_file_name: &String,
     sqlx::raw_sql(sql).execute(pool)
         .await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-       
+
     // Record data version, date and elapsed days in single record table.
-    
+
     let end_of_period = NaiveDate::parse_from_str(data_date, "%Y-%m-%d").unwrap();
     let start_of_period = NaiveDate::parse_from_str("2024-04-29", "%Y-%m-%d").unwrap();
     let duration = end_of_period - start_of_period;
- 
+
     let sql = r#"INSERT into src.version_details (version, data_date, data_days)
                     values ($1, $2, $3);"#;
     sqlx::query(&sql).bind(data_version).bind(data_date).bind(duration.num_days())
@@ -46,7 +46,7 @@ pub async fn import_data(data_folder : &PathBuf, source_file_name: &String,
         Ok(d) => {
             info!("Got the data from the file");
             d
-        }, 
+        },
         Err(e) => return Err(AppError::IoReadErrorWithPath(e, source_file_path)),
     };
 
@@ -57,10 +57,10 @@ pub async fn import_data(data_folder : &PathBuf, source_file_name: &String,
         Ok(r) => {
             info!("Parsed the data into ROR json objects");
             r
-        }, 
-        Err(e) => return Err(AppError::SerdeError(e)), 
+        },
+        Err(e) => return Err(AppError::SerdeError(e)),
     };
-    
+
     info!("{} records found", res.len());
 
     // Set up vector variables.
@@ -74,26 +74,26 @@ pub async fn import_data(data_folder : &PathBuf, source_file_name: &String,
     // Run through each record and store contents in relevant vectors.
     // After every (vector_size) records store vector contents to database
     // and clear vectors, but continue looping through records.
-    
+
     let mut n = 0;
     for (i, r) in res.iter().enumerate() {
-    
+
         let db_id = extract_id_from(&r.id).to_string();
 
-        cdv.add_core_data(r, &db_id); 
-        rdv.add_name_data(r, &db_id, pool).await?; 
+        cdv.add_core_data(r, &db_id);
+        rdv.add_name_data(r, &db_id, pool).await?;
         rdv.add_locs_and_types_data(r, &db_id);
-        ndv.add_non_required_data(r, &db_id); 
-        
+        ndv.add_non_required_data(r, &db_id);
+
         //if i > 705 { break;  }
 
-        if (i + 1) % vector_size == 0 {  
-            
+        if (i + 1) % vector_size == 0 {
+
             n += vector_size;
-            if n % 5000 == 0 { 
+            if n % 5000 == 0 {
                 info!("{} records processed", n);
             }
-            
+
             // store records to DB and clear vectors
             cdv.store_data(&pool).await?;
             cdv = CoreDataVecs::new(vector_size);
@@ -103,7 +103,7 @@ pub async fn import_data(data_folder : &PathBuf, source_file_name: &String,
             ndv = NonRequiredDataVecs::new(vector_size);
         }
     }
-    
+
     //store any residual vector contents
 
     cdv.store_data(pool).await?;
@@ -126,7 +126,7 @@ pub async fn summarise_import(pool : &Pool<Postgres>) -> Result<(), AppError>
     info!("Total record numbers for each table in src schema:");
     info!("**************************************************");
     info!("");
-  
+
     write_record_num("core_data", pool).await?;
     write_record_num("admin_data", pool).await?;
     write_record_num("names", pool).await?;
@@ -136,25 +136,21 @@ pub async fn summarise_import(pool : &Pool<Postgres>) -> Result<(), AppError>
     write_record_num("type", pool).await?;
     write_record_num("relationships", pool).await?;
     write_record_num("domains", pool).await?;
-    
+
     info!("");
     info!("************************************");
     info!("");
-   
+
     Ok(())
 }
 
-  
+
 pub async fn write_record_num (table_name: &str, pool: &Pool<Postgres>) -> Result<(), AppError> {
     let sql = "SELECT COUNT(*) FROM src.".to_owned() + table_name;
     let res: i64 = sqlx::query_scalar(&sql)
     .fetch_one(pool).await
     .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-   
+
     info!("Total records in src.{}: {}", table_name, res);
     Ok(())
 }
-  
-  
-  
-
