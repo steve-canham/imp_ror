@@ -9,37 +9,27 @@ use super::export_structs::{VSummary, TypeRow, DistribRow, RankedRow,
 use log::info;
 
 
-pub async fn generate_text(output_folder : &PathBuf, data_version: &String, 
+pub async fn generate_text(output_folder : &PathBuf, vcode: &String, 
                             pool : &Pool<Postgres>) -> Result<(), AppError>
 {
-    // If data version and date not given explicitly derive them from the data version table
-    // as being the version, date of the currently stored version
-
-    let mut vcode: String = data_version.clone();
-    if vcode == "" {
-        let sql = "SELECT version as vcode from ppr.version_details;";
-        vcode = sqlx::query_scalar(sql).fetch_one(pool).await
-            .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    }
-
     // Get path and set up file for writing.
 
     let datetime_string = Local::now().format("%m-%d %H%M%S").to_string();
     let output_file_name = format!("{} summary at {}.txt", &vcode, &datetime_string);
     let output_file_path: PathBuf = [output_folder, &PathBuf::from(output_file_name)].iter().collect();
             
-    let singvals:HashMap<String, Singleton> = collect_singleton_values(&vcode, pool).await?;
-    write_header_and_summary(&output_file_path, &vcode, pool).await?;
+    let singvals:HashMap<String, Singleton> = collect_singleton_values(vcode, pool).await?;
+    write_header_and_summary(&output_file_path, vcode, pool).await?;
     write_explanation(&output_file_path).await?;
-    write_name_info(&output_file_path, &vcode, pool, &singvals).await?;
-    write_name_wolc_info(&output_file_path, &vcode, pool, &singvals).await?;
+    write_name_info(&output_file_path, vcode, pool, &singvals).await?;
+    write_name_wolc_info(&output_file_path, vcode, pool, &singvals).await?;
     write_ror_name_details(&output_file_path, &singvals).await?;
-    write_ranked_name_info(&output_file_path, &vcode, pool, &singvals).await?;
-    write_type_details(&output_file_path, &vcode, pool).await?;
-    write_location_details(&output_file_path, &vcode, pool, &singvals).await?;
-    write_links_and_extid_details(&output_file_path, &vcode, pool).await?;
-    write_relationship_details(&output_file_path, &vcode, pool, &singvals).await?;
-    write_domain_details(&output_file_path, &vcode, pool).await?;
+    write_ranked_name_info(&output_file_path, vcode, pool, &singvals).await?;
+    write_type_details(&output_file_path, vcode, pool).await?;
+    write_location_details(&output_file_path, vcode, pool, &singvals).await?;
+    write_links_and_extid_details(&output_file_path, vcode, pool).await?;
+    write_relationship_details(&output_file_path, vcode, pool, &singvals).await?;
+    write_domain_details(&output_file_path, vcode, pool).await?;
 
     info!("Content appended successfully");
     Ok(())
@@ -48,9 +38,9 @@ pub async fn generate_text(output_folder : &PathBuf, data_version: &String,
 async fn collect_singleton_values(vcode: &String, pool: &Pool<Postgres>) -> Result<HashMap<String, Singleton>, AppError> {
 
     let mut sstructs = HashMap::new();
-    let sql = r#"SELECT id, description, number, pc from smm.singletons WHERE vcode = '"#.to_string() + vcode  + r#"';"#;
+    let sql = format!(r#"SELECT id, description, number, pc from smm.singletons WHERE vcode = '{vcode}';"#);
     let srows: Vec<SingletonRow> = sqlx::query_as(&sql).fetch_all(pool).await
-        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+        .map_err(|e| AppError::SqlxError(e, sql))?;
     for r in srows { 
         let s = Singleton {
             description: r.description,
@@ -65,15 +55,15 @@ async fn collect_singleton_values(vcode: &String, pool: &Pool<Postgres>) -> Resu
 
 async fn write_header_and_summary(output_file_path: &PathBuf, vcode: &String, pool: &Pool<Postgres>) -> Result<(), AppError> {
     
-    // Get import date from the ror table, other summary detrails from the smm.version_summaries table
+    // Get import date from the ror table, other summary details from the smm.version_summaries table
 
     let sql = "SELECT import_datetime from src.version_details;";
     let import_dt: NaiveDateTime = sqlx::query_scalar(sql).fetch_one(pool).await 
            .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
-    let sql = "SELECT * from smm.version_summaries WHERE vcode = \'".to_string() + &vcode  + "\' ;";
+    let sql = format!("SELECT * from smm.version_summaries WHERE vcode = '{vcode}';");
     let summ: VSummary = sqlx::query_as(&sql).fetch_one(pool).await
-           .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+           .map_err(|e| AppError::SqlxError(e, sql))?;
     let header_txt = get_hdr_line("SUMMARY OF ROR DATASET")
                    + "\n\n\tVersion: " + vcode  
                    + "\n\tDate: " + &summ.vdate.to_string() 
@@ -117,7 +107,6 @@ async fn write_explanation(output_file_path: &PathBuf) -> Result<(), AppError> {
     + "\n\tThe occasional very small deviations from 100% for percentage totals are because"
     + "\n\tthe source data are stored in the database to only 2 decimal places of accuracy.";
     append_to_file(output_file_path, &expl_text)
-    
 }
 
 async fn write_name_info(output_file_path: &PathBuf, vcode: &String, pool: &Pool<Postgres>, 
@@ -176,9 +165,9 @@ async fn write_name_wolc_info(output_file_path: &PathBuf, vcode: &String, pool: 
    
     // org type and lang code data 
 
-    let sql = r#"select org_type, name_type, names_num, names_wolc, names_wolc_pc 
-                 from smm.org_type_and_lang_code where vcode = '"#.to_string() + vcode + r#"' order by 
-                 org_type, name_type;"#;
+    let sql = format!(r#"select org_type, name_type, names_num, names_wolc, names_wolc_pc 
+                 from smm.org_type_and_lang_code where vcode = '{vcode}' order by 
+                 org_type, name_type;"#);
     let rows: Vec<OrgAndLangCode> = sqlx::query_as(&sql).fetch_all(pool).await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     let mut tbl_text = "\n\n\tNumbers of name types without language codes for different organisational types:".to_string() 
@@ -193,7 +182,7 @@ async fn write_name_wolc_info(output_file_path: &PathBuf, vcode: &String, pool: 
 }
 
 async fn write_ranked_name_info(output_file_path: &PathBuf, vcode: &String, pool: &Pool<Postgres>, 
-                                                       singvals: &HashMap<String, Singleton>) -> Result<(), AppError> {
+                                        singvals: &HashMap<String, Singleton>) -> Result<(), AppError> {
     
     append_to_file(output_file_path, &get_hdr_line("LANGUAGE AND SCRIPT USAGE"))?;
 
@@ -379,12 +368,11 @@ async fn write_relationship_details(output_file_path: &PathBuf, vcode: &String, 
 
     // Org type and relationship data.
 
-    let sql = r#"select org_type, rel_type, num_links, num_orgs, num_orgs_pc 
-                 from smm.org_type_and_relationships 
-                 where vcode = '"#.to_string() + vcode + r#"' order by org_type, rel_type;"#;
-
+    let sql = format!(r#"select org_type, rel_type, num_links, num_orgs, num_orgs_pc 
+            from smm.org_type_and_relationships 
+            where vcode = '{vcode}' order by org_type, rel_type;"#);
     let rows: Vec<OrgAndRel> = sqlx::query_as(&sql).fetch_all(pool).await
-        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;                               
+        .map_err(|e| AppError::SqlxError(e, sql))?;                               
                                         
     let mut tbl_text = "\n\n\tNumbers of relationship links for different organisational types:".to_string() 
                      + "\n\n\t                                             number        number          %age"
@@ -413,10 +401,12 @@ async fn write_domain_details(output_file_path: &PathBuf, vcode: &String, pool: 
 async fn get_attrib_table(att_type: i32, header_type: &str, total_text: &str, 
                           vcode: &String, pool: &Pool<Postgres>) -> Result<String, AppError> {
 
-    let sql = r#"select name, number_atts, pc_of_atts, number_orgs, pc_of_orgs from smm.attributes_summary
-    where vcode = '"#.to_string() + vcode + r#"' and att_type = "# + &att_type.to_string() + " order by id;";
+    let sql = format!(r#"select name, number_atts, pc_of_atts, number_orgs, pc_of_orgs 
+            from smm.attributes_summary
+            where vcode = '{vcode}' and att_type = {att_type} order by id; "#);
     let rows: Vec<TypeRow> = sqlx::query_as(&sql).fetch_all(pool).await
-        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+        .map_err(|e| AppError::SqlxError(e, sql))?;
+    
     let mut tbl_text = "\n\n\t".to_string() + header_type + ", categories and numbers:"
           + "\n\n\t                              number         %age         number          %age"
             + "\n\tCategory                      in cat       all cats        orgs        total orgs"
@@ -455,12 +445,12 @@ fn get_attrib_line(category: &str, num_atts: i32, pc_atts: f32, num_orgs: i32, p
 }
 
 async fn get_distrib_table(count_type: &str, header_type: &str, vcode: &String, 
-                                             pool: &Pool<Postgres>) -> Result<String, AppError> {
-let sql = r#"select count, num_of_orgs, pc_of_orgs from smm.count_distributions
-                 where vcode = '"#.to_string() + vcode + r#"' and count_type = '"# + count_type + r#"' 
-                 order by count;"#;
+                                 pool: &Pool<Postgres>) -> Result<String, AppError> {
+    let sql = format!(r#"select count, num_of_orgs, pc_of_orgs from smm.count_distributions
+            where vcode = '{vcode}' and count_type = '{count_type}' 
+            order by count;"#);
     let rows: Vec<DistribRow> = sqlx::query_as(&sql).fetch_all(pool).await
-        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+        .map_err(|e| AppError::SqlxError(e, sql))?;
 
     let hdr_spacer = " ".repeat(33 - header_type.len());
     let mut tbl_text = "\n\n\tNumbers of organisations with specified       count        number         %age".to_string()
@@ -495,11 +485,11 @@ fn get_distrib_line(count: i32, num: i32, pc: f32)-> String {
 
 async fn get_ranked_distrib_table(dist_type: i32, vcode: &String, pool: &Pool<Postgres>) -> Result<String, AppError> {
 
-    let sql = r#"SELECT entity, number, pc_of_entities, pc_of_base_set from smm.ranked_distributions 
-                 where vcode = '"#.to_string() + vcode + r#"' and dist_type = "# + 
-                 &dist_type.to_string() + " order by rank";
+    let sql = format!(r#"SELECT entity, number, pc_of_entities, pc_of_base_set from smm.ranked_distributions 
+            where vcode = '{vcode}' and dist_type = {dist_type} order by rank; "#);
     let lang_rows: Vec<RankedRow> = sqlx::query_as(&sql).fetch_all(pool).await
-        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+            .map_err(|e| AppError::SqlxError(e, sql))?;
+
     let mut tbl_text = "".to_string();
     let mut rt_numberents: i32 = 0;
     let mut rt_numberents_pc: f32 = 0.0;

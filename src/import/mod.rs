@@ -25,25 +25,13 @@ pub async fn import_data(data_folder : &PathBuf, source_file_name: &String,
         .await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
-    // Record data version, date and elapsed days in single record table.
-
-    let end_of_period = NaiveDate::parse_from_str(data_date, "%Y-%m-%d").unwrap();
-    let start_of_period = NaiveDate::parse_from_str("2024-04-29", "%Y-%m-%d").unwrap();
-    let duration = end_of_period - start_of_period;
-
-    let sql = r#"INSERT into src.version_details (version, data_date, data_days)
-                    values ($1, $2, $3);"#;
-    sqlx::query(&sql).bind(data_version).bind(data_date).bind(duration.num_days())
-    .execute(pool).await
-    .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-
     // Import data into matching tables. First obtain the raw data as text
     // This also checks the file exists...by opening it and checking no error
 
     let source_file_path: PathBuf = [data_folder, &PathBuf::from(source_file_name)].iter().collect();
     let data: String = match fs::read_to_string(&source_file_path)
     {
-        Ok(d) => {
+        Ok(d) => { 
             info!("Got the data from the file");
             d
         },
@@ -60,9 +48,12 @@ pub async fn import_data(data_folder : &PathBuf, source_file_name: &String,
         },
         Err(e) => return Err(AppError::SerdeError(e)),
     };
-
     info!("{} records found", res.len());
 
+    // First record data version, date and elapsed days in single record table.
+    
+    record_version_and_dates(data_version, data_date, pool).await?;
+  
     // Set up vector variables.
     // Vectors are grouped into structs for ease of reference.
 
@@ -76,44 +67,54 @@ pub async fn import_data(data_folder : &PathBuf, source_file_name: &String,
     // and clear vectors, but continue looping through records.
 
     let mut n = 0;
-    for (i, r) in res.iter().enumerate() {
-
+    for r in res {
+        n += 1;
         let db_id = extract_id_from(&r.id).to_string();
 
-        cdv.add_core_data(r, &db_id);
-        rdv.add_name_data(r, &db_id, pool).await?;
-        rdv.add_locs_and_types_data(r, &db_id);
-        ndv.add_non_required_data(r, &db_id);
+        cdv.add_core_data(&r, &db_id);
+        rdv.add_name_data(&r, &db_id, pool).await?;
+        rdv.add_locs_and_types_data(&r, &db_id);
+        ndv.add_non_required_data(&r, &db_id);
 
-        //if i > 705 { break;  }
-
-        if (i + 1) % vector_size == 0 {
-
-            n += vector_size;
+        if n % vector_size == 0 {
             if n % 5000 == 0 {
                 info!("{} records processed", n);
             }
 
-            // store records to DB and clear vectors
+            // Store records to DB and clear vectorsl.
+                        
             cdv.store_data(&pool).await?;
-            cdv = CoreDataVecs::new(vector_size);
             rdv.store_data(&pool).await?;
-            rdv = RequiredDataVecs::new(vector_size);
             ndv.store_data(&pool).await?;
+            
+            cdv = CoreDataVecs::new(vector_size);
+            rdv = RequiredDataVecs::new(vector_size);
             ndv = NonRequiredDataVecs::new(vector_size);
         }
     }
 
-    //store any residual vector contents
+    // Store any residual vector contents.
 
     cdv.store_data(pool).await?;
     rdv.store_data(pool).await?;
     ndv.store_data(pool).await?;
 
-    info!("Total records processed: {}", n + cdv.db_ids.len());
-
+    info!("Total records processed: {n}");
     Ok(())
+}
 
+async fn record_version_and_dates(data_version: &String, data_date: &String, pool: &Pool<Postgres>) -> Result<(), AppError> {
+
+    let end_of_period = NaiveDate::parse_from_str(data_date, "%Y-%m-%d").unwrap();
+    let start_of_period = NaiveDate::parse_from_str("2024-04-29", "%Y-%m-%d").unwrap();  // date v2 schema introduced
+    let duration = end_of_period - start_of_period;
+    
+    let sql = r#"INSERT into src.version_details (version, data_date, data_days)
+                    values ($1, $2, $3);"#;
+    sqlx::query(&sql).bind(data_version).bind(data_date).bind(duration.num_days())
+        .execute(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    Ok(())
 }
 
 
@@ -146,11 +147,10 @@ pub async fn summarise_import(pool : &Pool<Postgres>) -> Result<(), AppError>
 
 
 pub async fn write_record_num (table_name: &str, pool: &Pool<Postgres>) -> Result<(), AppError> {
-    let sql = "SELECT COUNT(*) FROM src.".to_owned() + table_name;
+    let sql = format!("SELECT COUNT(*) FROM src.{table_name}");
     let res: i64 = sqlx::query_scalar(&sql)
-    .fetch_one(pool).await
-    .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-
-    info!("Total records in src.{}: {}", table_name, res);
+        .fetch_one(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    info!("Total records in src.{table_name}: {res}");
     Ok(())
 }

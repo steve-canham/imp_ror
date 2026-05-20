@@ -12,16 +12,15 @@ pub async fn export_as_text(output_folder : &PathBuf, data_version: &String,
                             pool : &Pool<Postgres>) -> Result<(), AppError>
 {
     // Write out summary data for this dataset into the designated file
-
-    // if data version = "" obtain it from the ppr tables
+    // The data version may have been provided as an explicit parameter
+    // or that may have been left blank, when the 'current' ppr version is used.
 
     let mut dv = data_version.to_string();
-    if data_version == "" {
+    if data_version == "" {             // if data version = "" obtain it from the ppr tables
         dv = get_current_data_version(pool).await?;
     }
-
     
-    check_data_version_present_in_summ_data(&dv, pool).await?;
+    check_data_version_present_in_summary_data(&dv, pool).await?;  // ensure version summary is present
 
     let r = export_text::generate_text(output_folder, &dv, pool).await;
     match r {
@@ -46,7 +45,7 @@ pub async fn export_as_csv(output_folder : &PathBuf, data_version: &String, pool
 
     // Write out summary data for this as a set of csv files into the designated folder
 
-    check_data_version_present_in_summ_data(&dv, pool).await?;
+    check_data_version_present_in_summary_data(&dv, pool).await?;
 
     let r = export_csv::generate_csv(output_folder, &dv, pool).await;
     match r {
@@ -79,7 +78,7 @@ pub async fn export_all_as_csv(output_folder : &PathBuf, pool : &Pool<Postgres>)
     }
 }
 
-async fn check_data_version_present_in_summ_data(data_version: &String, pool: &Pool<Postgres>)-> Result<(), AppError> {
+async fn check_data_version_present_in_summary_data(data_version: &String, pool: &Pool<Postgres>)-> Result<(), AppError> {
     
     let sql = r#"SELECT EXISTS(select vcode from smm.version_summaries where vcode = '"#.to_string() + data_version + r#"')"#;
     let check_result: bool  = sqlx::query_scalar(&sql).fetch_one(pool).await

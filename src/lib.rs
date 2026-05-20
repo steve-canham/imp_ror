@@ -76,7 +76,7 @@ pub async fn run(args: Vec<OsString>) -> Result<(), AppError> {
 
     if flags.process_data  { // transfer data to ppr tables, and summarise in smm tables
         process::process_data(&params.data_version, &pool).await?;
-        summarise::summarise_data(&pool).await?;
+        summarise::store_summary_data(&pool).await?;
     }
 
     if flags.export_text  // write out summary data from data in smm tables

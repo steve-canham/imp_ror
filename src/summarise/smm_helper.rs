@@ -86,8 +86,8 @@ pub async fn create_name_attributes(sdv: &str, vcode: &String, num_orgs_str: &St
 
 
     let sql  = format!(r#"Update smm.attributes_summary set 
-            pc_of_atts = ROUND(number_atts*100::float / {num_names}::float, 2),
-            pc_of_orgs = ROUND(number_orgs*100::float / {num_orgs_str}::float, 2)
+            pc_of_atts = ROUND(number_atts*10000::float / {num_names})/100.0,
+            pc_of_orgs = ROUND(number_orgs*10000::float / {num_orgs_str})/100.0
             where vcode = '{vcode}' and att_type in (1, 11) "#);
     sqlx::raw_sql(&sql).execute(pool).await
             .map_err(|e| AppError::SqlxError(e, sql))
@@ -99,6 +99,17 @@ num_ext_ids: &String, num_links: &String, num_rels: &String, pool: &Pool<Postgre
     
     // Org type attributes summary
 
+    let sql  = format!(r#"{sdv} gt.id, gt.name, count(t.id) as number_atts, 
+            round(count(t.id)*10000::float/{num_types})/100.0 as pc_of_atts,
+            count(distinct t.id) as number_orgs,
+            round(count(distinct t.id)*10000::float/{num_orgs_str})/100.0 as pc_of_orgs
+            from lup.ror_org_types gt
+            inner join ppr.type t
+            on gt.id = t.org_type 
+            group by gt.id, gt.name
+            order by gt.id;"#);
+    
+    /* 
     let sql  = sdv.to_owned() + r#"gt.id, gt.name, count(t.id) as number_atts, 
             round(count(t.id) * 10000::float/"# + num_types + r#"::float)/100::float as pc_of_atts,
             count(distinct t.id) as number_orgs,
@@ -108,51 +119,53 @@ num_ext_ids: &String, num_links: &String, num_rels: &String, pool: &Pool<Postgre
             on gt.id = t.org_type 
             group by gt.id, gt.name
             order by gt.id;"#;
+    */
+    
     let rows: Vec<TypeRow> = sqlx::query_as(&sql).fetch_all(pool).await
         .map_err(|e| AppError::SqlxError(e, sql))?;
     store_summary(rows, pool, 2, "org types").await?;
 
     // External ids attributes summary
 
-    let sql = sdv.to_owned() + r#"it.id, it.name, count(t.id) as number_atts, 
-            round(count(t.id) * 10000::float / "# + num_ext_ids + r#"::float)/100::float as pc_of_atts,
+   let sql  = format!(r#"{sdv} it.id, it.name, count(t.id) as number_atts, 
+            round(count(t.id)*10000::float / {num_ext_ids})/100.0 as pc_of_atts,
             count(distinct t.id) as number_orgs,
-            round(count(distinct t.id) * 10000::float / "# + num_orgs_str + r#"::float)/100::float as pc_of_orgs
+            round(count(distinct t.id)*10000::float / {num_orgs_str})/100.0 as pc_of_orgs
             from lup.ror_id_types it
             inner join ppr.external_ids t
             on it.id = t.id_type 
             group by it.id, it.name
-            order by it.id;"#;
+            order by it.id;"#);
     let rows: Vec<TypeRow> = sqlx::query_as(&sql).fetch_all(pool).await
         .map_err(|e| AppError::SqlxError(e, sql))?;
     store_summary(rows, pool, 3, "external id types").await?;
 
     // Links attributes summary
 
-    let sql = sdv.to_owned() + r#"lt.id, lt.name, count(t.id) as number_atts, 
-            round(count(t.id) * 10000::float / "# + num_links + r#"::float)/100::float as pc_of_atts,
+    let sql  = format!(r#"{sdv} lt.id, lt.name, count(t.id) as number_atts, 
+            round(count(t.id)*10000::float / {num_links})/100.0 as pc_of_atts,
             count(distinct t.id) as number_orgs,
-            round(count(distinct t.id) * 10000::float / "# + num_orgs_str + r#"::float)/100::float as pc_of_orgs
+            round(count(distinct t.id)*10000::float / {num_orgs_str})/100.0 as pc_of_orgs
             from lup.ror_link_types lt
             inner join ppr.links t
             on lt.id = t.link_type 
             group by lt.id, lt.name
-            order by lt.id;"#;
+            order by lt.id;"#);
     let rows: Vec<TypeRow> = sqlx::query_as(&sql).fetch_all(pool).await
         .map_err(|e| AppError::SqlxError(e, sql))?;
     store_summary(rows, pool, 4, "link types").await?;
 
     // Relationships attributes summary
 
-    let sql = sdv.to_owned() + r#"rr.id, rr.name, count(t.id) as number_atts, 
-            round(count(t.id) * 10000::float / "# + num_rels + r#"::float)/100::float as pc_of_atts,
+    let sql = format!(r#"{sdv} rr.id, rr.name, count(t.id) as number_atts, 
+            round(count(t.id)*10000::float / {num_rels})/100.0 as pc_of_atts,
             count(distinct t.id) as number_orgs,
-            round(count(distinct t.id) * 10000::float / "# + num_orgs_str + r#"::float)/100::float as pc_of_orgs
+            round(count(distinct t.id)*10000::float / {num_orgs_str})/100.0 as pc_of_orgs
             from lup.ror_rel_types rr
             inner join ppr.relationships t
             on rr.id = t.rel_type 
             group by rr.id, rr.name
-            order by rr.id;"#;
+            order by rr.id;"#);
     let rows: Vec<TypeRow> = sqlx::query_as(&sql).fetch_all(pool).await
         .map_err(|e| AppError::SqlxError(e, sql))?;
     store_summary(rows, pool, 5, "rel types").await?;
@@ -166,9 +179,9 @@ pub async fn create_count_distributions(sdv: &str, num_orgs_str: &String, pool: 
     // All names count distribution
 
     let core_sql = format!(r#" as count, count(id) as num_of_orgs, 
-            ROUND(count(id)*100::float / {}::float, 2) as pc_of_orgs
+            ROUND(count(id)*10000::float / {num_orgs_str})/100.0 as pc_of_orgs
             from ppr.admin_data
-            group by "#, num_orgs_str);
+            group by "#);
 
     get_and_store_count_distribution(sdv, &core_sql, "n_names", "names", pool).await?;
     get_and_store_count_distribution(sdv, &core_sql, "n_labels", "labels", pool).await?;
@@ -290,7 +303,7 @@ pub async fn create_count_distributions(sdv: &str, num_orgs_str: &String, pool: 
 
 async fn get_and_store_count_distribution(sdv: &str, core_sql: &str, fld_name: &str, row_type: &str, pool: &Pool<Postgres>) ->  Result<(), AppError> {
 
-    let sql = format!(r#"{sdv} {fld_name} {core_sql} {fld_name} by {fld_name};"#);
+    let sql = format!(r#"{sdv} {fld_name} {core_sql} {fld_name} order by {fld_name};"#);
     let rows: Vec<DistribRow> = sqlx::query_as(&sql).fetch_all(pool).await
         .map_err(|e| AppError::SqlxError(e, sql))?;
     store_distrib(rows, row_type, pool).await?;
@@ -305,14 +318,14 @@ num_locs: i64, pool: &Pool<Postgres>) ->  Result<(), AppError> {
     
     let num_nacro = get_count("select count(*) from ppr.names where name_type <> 10", pool).await?;
     let num_nacne = get_count("select count(*) from ppr.names where name_type <> 10 and lang_code <> 'en'", pool).await?;
-    let sql = format!(r#"{} lc.name as entity, count(n.id) as number,
-            ROUND(count(n.id)*100::float / {}::float, 2) as pc_of_entities,
-            ROUND(count(distinct n.id)*100::float / {}::float, 2) as pc_of_base_set
+    let sql = format!(r#"{sdv} lc.name as entity, count(n.id) as number,
+            ROUND(count(n.id)*10000::float / {num_nacne})/100::float as pc_of_entities,
+            ROUND(count(distinct n.id)*10000::float / {num_nacro})/100::float as pc_of_base_set
             from ppr.names n inner join lup.lang_codes lc 
             on n.lang_code = lc.code 
             where name_type <> 10 and lang_code <> 'en'
             group by lc.name
-            order by count(n.id) desc;"#, sdv, num_nacne, num_nacro);
+            order by count(n.id) desc;"#);
     /*
     let sql = sdv.to_owned() + r#"lc.name as entity, count(n.id) as number,
             ROUND(count(n.id) * 10000 :: float / "# + &num_nacne.to_string() + r#":: float)/100 :: float as pc_of_entities,
@@ -331,14 +344,14 @@ num_locs: i64, pool: &Pool<Postgres>) ->  Result<(), AppError> {
     // Non-Latin script ranked distribution.
     
     let num_nltn = get_count("select count(*) from ppr.names where script_code <> 'Latn'", pool).await?;
-    let sql = format!(r#"{} ls.iso_name as entity, count(n.id) as number,
-            ROUND(count(n.id)* 100::float / {}:: float, 2) as pc_of_entities,
-            ROUND(count(distinct n.id)*100::float / {}:: float, 2) as pc_of_base_set
+    let sql = format!(r#"{sdv} ls.iso_name as entity, count(n.id) as number,
+            ROUND(count(n.id)* 10000::float / {num_nltn})/100::float as pc_of_entities,
+            ROUND(count(distinct n.id)*10000::float / {num_names})/100::float as pc_of_base_set
             from ppr.names n inner join lup.lang_scripts ls 
             on n.script_code = ls.code 
             where script_code <> 'Latn'
             group by ls.iso_name
-            order by count(n.id) desc; "#, sdv, num_nltn, num_names);
+            order by count(n.id) desc; "#);
     /*
     let sql = sdv.to_owned() + r#"ls.iso_name as entity, count(n.id) as number,
             ROUND(count(n.id) * 10000 :: float / "# + &num_nltn.to_string() + r#":: float)/100 :: float as pc_of_entities,
@@ -357,12 +370,12 @@ num_locs: i64, pool: &Pool<Postgres>) ->  Result<(), AppError> {
     // Country ranked distribution (and non US pc).
 
     let num_nus = get_count("select count(*) from ppr.locations where country_code <> 'US'", pool).await?;
-    let sql = format!(r#"{} country_name as entity, count(id) as number, 
-            ROUND(count(c.id)*100::float / {}::float, 2) as pc_of_entities,
-            ROUND(count(distinct c.id)*100::float / {}::float, 2) as pc_of_base_set
+    let sql = format!(r#"{sdv} country_name as entity, count(id) as number, 
+            ROUND(count(c.id)*10000::float / {num_nus})/100::float as pc_of_entities,
+            ROUND(count(distinct c.id)*10000::float / {num_locs})/100::float as pc_of_base_set
             from ppr.locations c
             group by country_name
-            order by count(country_name) desc;"#, sdv, num_nus, num_locs);
+            order by count(country_name) desc;"#);
     /*
     let sql = sdv.to_owned() + r#"country_name as entity, count(id) as number, 
             ROUND(count(c.id) * 10000 :: float / "# + &num_nus.to_string() + r#":: float)/100 :: float as pc_of_entities,
@@ -426,15 +439,15 @@ pub async fn store_types_with_lang_code(sdv: &str, org_rows: &Vec<OrgRow>, pool:
 
         // Get the data on the names linked to these organisations
 
-        let lc_sql = format!(r#"{} 
+        let lc_sql = format!(r#"{sdv} 
                 case name_type
                     when 5 then 'label' 
                     when 7 then 'alias'  
                     when 10 then 'acronym' 
                 end as ntype, 
                 count(lc) as names_wlc, count(nolc) as names_wolc, count(id) as total,
-                (ROUND(count(lc)*100::float / (count(id)::float), 2) as names_wlc_pc,
-                (ROUND(count(nolc)*100::float / (count(id)::float), 2) as names_wolc_pc
+                ROUND(count(lc)*10000::float / count(id))/100::float as names_wlc_pc,
+                ROUND(count(nolc)*10000::float / count(id))/100::float as names_wolc_pc
                 from
                     (select n.id, n.name_type,
                     case 
@@ -448,7 +461,7 @@ pub async fn store_types_with_lang_code(sdv: &str, org_rows: &Vec<OrgRow>, pool:
                     on n.id = t.id
                     where t.org_type = {}) ns
                 group by ns.name_type 
-                order by ns.name_type;"#, sdv, t.type_id);
+                order by ns.name_type;"#, t.type_id);
         /*
         let lc_sql = sdv.to_owned() + r#"case name_type
                     when 5 then 'label' 
@@ -524,7 +537,7 @@ pub async fn store_types_and_relationships(sdv: &str, org_rows: &Vec<OrgRow>, po
                 end as rtype, 
             count(rs.id) as num_rels,
             count(distinct rs.id) as num_orgs,
-            ROUND((count(distinct rs.id) * 100::float / {}::float), 2) as num_orgs_pc
+            ROUND(count(distinct rs.id)*10000::float / {})/100::float as num_orgs_pc
             from
                 (select r.id, r.rel_type
                 from ppr.relationships r 
@@ -588,42 +601,43 @@ pub async fn store_singletons(vcode: &String, num_orgs: i64, num_names: i64, poo
     let num_added_labels = get_count("select count(id) from src.bare_ror_names", pool).await?;
     let pc_added = get_pc (num_added_labels, num_names);  
     store_singleton(vcode, "added_labels", "Labels added to designated ROR names without a name type", 
-    num_added_labels, Some(pc_added), pool).await?;
+            num_added_labels, Some(pc_added), pool).await?;
     
     // Duplicated names that have been removed
 
     let num_duplicated_names = get_count("select count(id) from src.dup_names", pool).await? / 2;
     let pc_dup = get_pc (num_duplicated_names, num_names);  
     store_singleton(vcode, "dup_names", "Duplicated names removed, number & pc of total names", 
-    num_duplicated_names, Some(pc_dup), pool).await?;
+            num_duplicated_names, Some(pc_dup), pool).await?;
 
     // Names without a language code
 
     let total_wolc = get_count("select count(*) from ppr.names where lang_code is null", pool).await?;
     let pc_total_wolc = get_pc (total_wolc, num_names);
     store_singleton(vcode, "total_wolc", "Names that are wolc, number & pc of total names",  
-                        total_wolc, Some(pc_total_wolc), pool).await?;
+            total_wolc, Some(pc_total_wolc), pool).await?;
 
     let nacro_wolc = get_count("select count(*) from ppr.names where name_type <> 10 and lang_code is null", pool).await?;
     let pc_nacro_wolc =  get_pc (nacro_wolc, num_nacro);
     store_singleton(vcode, "nacro_wolc", "Nacro names wolc, number and pc of nacro names",  
-    nacro_wolc, Some(pc_nacro_wolc), pool).await?;
+            nacro_wolc, Some(pc_nacro_wolc), pool).await?;
 
     let nacro_ncmp_wolc = get_count(r#"select count(n.id) from 
-                    ppr.names n
-                    inner join ppr.admin_data ad
-                    on n.id = ad.id 
-                    where n.name_type <> 10 and ad.is_company = false
-                    and n.lang_code is null"#, pool).await?;   
+            ppr.names n
+            inner join ppr.admin_data ad
+            on n.id = ad.id 
+            where n.name_type <> 10 and ad.is_company = false
+            and n.lang_code is null"#, pool).await?;   
     
     let num_ncmp_names = get_count(r#"select count(n.id) from 
-                    ppr.names n
-                    inner join ppr.admin_data ad
-                    on n.id = ad.id 
-                    where n.name_type <> 10 and ad.is_company = false"#, pool).await?; 
+            ppr.names n
+            inner join ppr.admin_data ad
+            on n.id = ad.id 
+            where n.name_type <> 10 and ad.is_company = false"#, pool).await?; 
+    
     let pc_nacro_ncmp_wolc =  get_pc (nacro_ncmp_wolc, num_ncmp_names);
     store_singleton(vcode, "nacncmp_wolc", "Nac-ncmp names wolc, number and pc of nac-ncmp names",  
-    nacro_ncmp_wolc, Some(pc_nacro_ncmp_wolc), pool).await?;
+            nacro_ncmp_wolc, Some(pc_nacro_ncmp_wolc), pool).await?;
   
     // Names not in English or not in Latin script
 
@@ -644,25 +658,25 @@ pub async fn store_singletons(vcode: &String, num_orgs: i64, num_names: i64, poo
     let pc_nacro_nl = get_pc (num_nacro_nl, num_nacro);  
 
     store_singleton(vcode, "names_ne", "Names not in English, number & pc of names",  
-                    num_names_ne, Some(pc_names_ne), pool).await?;
+            num_names_ne, Some(pc_names_ne), pool).await?;
     store_singleton(vcode, "acro_ne", "Acronyms not in English, number & pc of acronyms",  
-                    num_acro_ne, Some(pc_acro_ne), pool).await?;
+            num_acro_ne, Some(pc_acro_ne), pool).await?;
     store_singleton(vcode, "nacro_ne", "Nacro names not in English, number & pc of nacro names",  
-                    num_nacro_ne, Some(pc_nacro_ne), pool).await?;
+            num_nacro_ne, Some(pc_nacro_ne), pool).await?;
 
     store_singleton(vcode, "names_nl", "Names not in Latin, number and pc of names",  
-                    num_names_nl, Some(pc_names_nl), pool).await?;
+            num_names_nl, Some(pc_names_nl), pool).await?;
     store_singleton(vcode, "acro_nl", "Acronyms not in Latin, number and pc of acronyms",  
-                    num_acro_nl, Some(pc_acro_nl), pool).await?;
+            num_acro_nl, Some(pc_acro_nl), pool).await?;
     store_singleton(vcode, "nacro_nl", "Nacro names not in Latin, number and pc of nacro names",  
-                    num_nacro_nl, Some(pc_nacro_nl), pool).await?;          
+            num_nacro_nl, Some(pc_nacro_nl), pool).await?;          
     
     // Relationship data points
 
     let parch_orgs =  get_count("select count(*) from ppr.admin_data where n_chrels > 0 and n_parrels > 0", pool).await?;
     let parch_orgs_pc =  get_pc(parch_orgs, num_orgs);   
     store_singleton(vcode, "parch", "Orgs both parent and child, number & pc of total orgs",  
-                        parch_orgs, Some(parch_orgs_pc), pool).await?;
+            parch_orgs, Some(parch_orgs_pc), pool).await?;
 
     let par_no_child = get_rel_imbalance(1, 2, pool).await.unwrap();
     let par_no_parent = get_rel_imbalance(2, 1, pool).await.unwrap();
@@ -681,31 +695,31 @@ pub async fn store_singletons(vcode: &String, num_orgs: i64, num_names: i64, poo
     let pc_non_recip_ps = get_pc(non_recip_ps, predsucc_total);  
 
     store_singleton(vcode, "nrecip_pc", "Non-paired parent-child links, number & pc of such links", 
-                    non_recip_pc, Some(pc_non_recip_pc), pool).await?;
+            non_recip_pc, Some(pc_non_recip_pc), pool).await?;
     store_singleton(vcode, "nrecip_rr", "Non-paired 'related' links, number & pc of such links", 
-                    non_recip_rr, Some(pc_non_recip_rr), pool).await?;
+            non_recip_rr, Some(pc_non_recip_rr), pool).await?;
     store_singleton(vcode, "nrecip_ps", "Non-paired pred-succ links, number & pc of such links", 
-                    non_recip_ps, Some(pc_non_recip_ps), pool).await?;
+            non_recip_ps, Some(pc_non_recip_ps), pool).await?;
 
     // Data on ROR labels
 
     let num_label_ror = get_count(r#"select count(*) from ppr.names 
-                                     where name_type = 5 and is_ror_name = true"#, pool).await?; 
+            where name_type = 5 and is_ror_name = true"#, pool).await?; 
     let num_label_nror = get_count(r#"select count(*) from ppr.names 
-                                     where name_type = 5 and is_ror_name = false"#, pool).await?; 
+            where name_type = 5 and is_ror_name = false"#, pool).await?; 
     let num_nlabel_ror = get_count(r#"select count(*) from ppr.names 
-                                     where name_type <> 5 and is_ror_name = true"#, pool).await?; 
+            where name_type <> 5 and is_ror_name = true"#, pool).await?; 
 
     store_singleton(vcode, "label_ror", "Labels that are designated ROR names, number", num_label_ror, None, pool).await?;
     store_singleton(vcode, "label_nror", "Labels that are not designated ROR names, number", num_label_nror, None, pool).await?;
     store_singleton(vcode, "nlabel_ror", "Non-Label ROR names, number", num_nlabel_ror, None, pool).await?;
 
     let num_en_ror = get_count(r#"select count(*) from ppr.names 
-                                  where is_ror_name = true and lang_code = 'en'"#, pool).await?;                                                    
+            where is_ror_name = true and lang_code = 'en'"#, pool).await?;                                                    
     let num_nen_ror = get_count(r#"select count(*) from ppr.names 
-                                  where is_ror_name = true and lang_code <> 'en' and lang_code is not null"#, pool).await?; 
+            where is_ror_name = true and lang_code <> 'en' and lang_code is not null"#, pool).await?; 
     let num_wolc_ror = get_count(r#"select count(*) from ppr.names 
-                                  where is_ror_name = true and lang_code is null"#, pool).await?; 
+            where is_ror_name = true and lang_code is null"#, pool).await?; 
 
     let pc_en_ror = get_pc(num_en_ror, num_orgs);
     let pc_nen_ror = get_pc(num_nen_ror, num_orgs);
@@ -713,23 +727,24 @@ pub async fn store_singletons(vcode: &String, num_orgs: i64, num_names: i64, poo
 
     store_singleton(vcode, "ror_en", "ROR names in English, number & pc of total orgs", num_en_ror, Some(pc_en_ror), pool).await?;
     store_singleton(vcode, "ror_nen", "ROR names not in English, number & pc of total orgs", 
-                        num_nen_ror, Some(pc_nen_ror), pool).await?;
+            num_nen_ror, Some(pc_nen_ror), pool).await?;
     store_singleton(vcode, "ror_wolc", "ROR names wolc, number & pc of total orgs", 
-                        num_wolc_ror, Some(pc_wolc_ror), pool).await?;
+            num_wolc_ror, Some(pc_wolc_ror), pool).await?;
 
     // Consider non-company organisations only.
 
     let num_ncmp_wolc_ror = get_count(r#"select count(n.id) from 
-                    ppr.names n
-                    inner join ppr.admin_data ad
-                    on n.id = ad.id
-                    where ad.is_company = false
-                    and n.is_ror_name = true
-                    and n.lang_code is null"#, pool).await?;   
+            ppr.names n
+            inner join ppr.admin_data ad
+            on n.id = ad.id
+            where ad.is_company = false
+            and n.is_ror_name = true
+            and n.lang_code is null"#, pool).await?;   
+    
     let num_ncmp_orgs = get_count(r#"select count(*) from ppr.admin_data where is_company = false"#, pool).await?;  
     let pc_ncmp_wolc_ror = get_pc(num_ncmp_wolc_ror, num_ncmp_orgs); 
     store_singleton(vcode, "ror_wolc_ncmp", "Noncmp ROR names wolc, number & pc of noncmp orgs", 
-    num_ncmp_wolc_ror, Some(pc_ncmp_wolc_ror), pool).await?;
+            num_ncmp_wolc_ror, Some(pc_ncmp_wolc_ror), pool).await?;
 
     // Location data
 
@@ -741,11 +756,11 @@ pub async fn store_singletons(vcode: &String, num_orgs: i64, num_names: i64, poo
     let pc_poly_countries = get_pc(num_poly_countries, num_orgs); 
 
     store_singleton(vcode, "poly_locs", "Orgs with more than one location, number & pc of orgs", 
-    num_poly_locs, Some(pc_poly_locs), pool).await?;
+            num_poly_locs, Some(pc_poly_locs), pool).await?;
     store_singleton(vcode, "poly_subdivs", "Orgs in more than one ‘state’, number & pc of orgs",  
-    num_poly_subdivs, Some(pc_poly_subdivs), pool).await?;
+            num_poly_subdivs, Some(pc_poly_subdivs), pool).await?;
     store_singleton(vcode, "poly_countries", "Orgs in more than one country, number & pc of orgs",  
-    num_poly_countries, Some(pc_poly_countries), pool).await?;
+            num_poly_countries, Some(pc_poly_countries), pool).await?;
 
     Ok(())
 }
@@ -771,9 +786,7 @@ fn get_pc (top:i64, bottom:i64) -> f64 {
 
 async fn store_singleton(vcode: &String, id: &str, description: &str, number: i64, pc: Option<f64>, pool: &Pool<Postgres>)-> Result<PgQueryResult, AppError> {
 
-    let sql = format!(r#"INSERT INTO smm.singletons (vcode, id, 
-    description, number, pc) values($1, $2, $3, $4, $5)"#);
-
+    let sql = format!(r#"INSERT INTO smm.singletons (vcode, id, description, number, pc) values($1, $2, $3, $4, $5)"#);
     sqlx::query(&sql)
     .bind(vcode).bind(id).bind(description).bind(number).bind(pc)
     .execute(pool).await

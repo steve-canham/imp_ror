@@ -5,7 +5,7 @@ use smm_structs::FileParams;
 use sqlx::{Pool, Postgres};
 use chrono::NaiveDate;
 use crate::AppError;
-use log::{info, error};
+use log::info;
 
 pub async fn create_smm_tables(pool : &Pool<Postgres>) -> Result<(), AppError>
 {
@@ -16,24 +16,7 @@ pub async fn create_smm_tables(pool : &Pool<Postgres>) -> Result<(), AppError>
     Ok(())
 }
 
-pub async fn summarise_data(pool : &Pool<Postgres>) -> Result<(), AppError>
-{
-    // Store data into smm tables.
-
-    match store_summary_data(pool).await
-    {
-        Ok(()) => {
-            info!("All summary data transferred to smm tables"); 
-            return Ok(())
-        },
-        Err(e) => {
-            error!("An error occured while constructing summary data: {}", e);
-            return Err(e)
-        },
-    }
-}
-
-async fn store_summary_data (pool: &Pool<Postgres>) -> Result<(), AppError> {
+pub async fn store_summary_data (pool: &Pool<Postgres>) -> Result<(), AppError> {
     
     // Obtain the data version and date (as previously stored in table during import process)
     // and derive standard first item of many sql statements below.
