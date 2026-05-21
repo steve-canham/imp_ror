@@ -1,3 +1,7 @@
+use sqlx::{Postgres, Pool, postgres::PgQueryResult};
+use crate::AppError;
+
+
 #[derive(sqlx::FromRow)]
 pub struct FileParams {
     pub vcode: String,
@@ -35,8 +39,56 @@ pub struct TypeRow {
 
 #[derive(sqlx::FromRow)]
 pub struct OrgRow {
-    pub type_id: i32, 
+    pub type_id: i32,
     pub name: String,
-    pub org_num: i64, 
+    pub org_num: i64,
 }
 
+pub struct Singletons {
+    pub vcodes: Vec<String>,
+    pub ids: Vec<String>,
+    pub descriptions: Vec<String>,
+    pub numbers: Vec<i64>,
+    pub pcs: Vec<Option<f64>>,
+}
+
+impl Singletons {
+
+    pub fn new(vsize: usize) -> Self {
+        Singletons {
+            vcodes: Vec::with_capacity(vsize),
+            ids: Vec::with_capacity(vsize),
+            descriptions: Vec::with_capacity(vsize),
+            numbers: Vec::with_capacity(vsize),
+            pcs: Vec::with_capacity(vsize),
+        }
+    }
+
+    pub fn add(&mut self, vcode: &String, id: &str, description: &str, number: i64, pc: Option<f64>) {
+        self.vcodes.push(vcode.to_string());
+        self.ids.push(id.to_string());
+        self.descriptions.push(description.to_string());
+        self.numbers.push(number);
+        self.pcs.push(pc);
+    }
+
+    pub async fn store(&self, pool : &Pool<Postgres>)  -> Result<PgQueryResult, AppError> {
+
+        let sql = format!(r#"INSERT INTO smm.singletons (vcode, id, description, number, pc)
+            SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::int[], $5::real[])"#);
+        sqlx::query(&sql)
+        .bind(&self.vcodes)
+        .bind(&self.ids)
+        .bind(&self.descriptions)
+        .bind(&self.numbers)
+        .bind(&self.pcs)
+        .execute(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))
+
+
+
+
+    }
+
+
+}

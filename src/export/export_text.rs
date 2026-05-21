@@ -3,7 +3,7 @@ use std::{collections::HashMap, path::PathBuf};
 use crate::AppError;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
-use chrono::{NaiveDateTime, Local};
+use chrono::{DateTime, Local};
 use super::export_structs::{VSummary, TypeRow, DistribRow, RankedRow, 
                             SingletonRow, Singleton, OrgAndLangCode, OrgAndRel};
 use log::info;
@@ -14,7 +14,7 @@ pub async fn generate_text(output_folder : &PathBuf, vcode: &String,
 {
     // Get path and set up file for writing.
 
-    let datetime_string = Local::now().format("%m-%d %H%M%S").to_string();
+    let datetime_string = Local::now().format("%Y-%m-%d %H-%M").to_string();
     let output_file_name = format!("{} summary at {}.txt", &vcode, &datetime_string);
     let output_file_path: PathBuf = [output_folder, &PathBuf::from(output_file_name)].iter().collect();
             
@@ -58,7 +58,7 @@ async fn write_header_and_summary(output_file_path: &PathBuf, vcode: &String, po
     // Get import date from the ror table, other summary details from the smm.version_summaries table
 
     let sql = "SELECT import_datetime from src.version_details;";
-    let import_dt: NaiveDateTime = sqlx::query_scalar(sql).fetch_one(pool).await 
+    let import_dt: DateTime<Local> = sqlx::query_scalar(sql).fetch_one(pool).await 
            .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
     let sql = format!("SELECT * from smm.version_summaries WHERE vcode = '{vcode}';");

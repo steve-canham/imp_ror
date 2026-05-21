@@ -5,10 +5,10 @@ create schema if not exists src;
 drop table if exists src.version_details;
 create table src.version_details
 (
-      version           varchar     not null
-    , data_date         varchar     not null
-    , data_days         int         not null
-    , import_datetime   timestamp   not null  default current_timestamp
+      version           varchar       not null
+    , data_date         varchar       not null
+    , data_days         int           not null
+    , import_datetime   timestamptz   not null  default current_timestamp
 );
 
 drop table if exists src.core_data;

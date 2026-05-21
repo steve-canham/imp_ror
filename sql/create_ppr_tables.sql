@@ -5,10 +5,10 @@ create schema if not exists ppr;
 drop table if exists ppr.version_details;
 create table ppr.version_details
 (
-      version           varchar     not null
-    , data_date         varchar     not null
-    , data_days         int         not null
-    , process_datetime  timestamp   not null  default current_timestamp
+      version           varchar       not null
+    , data_date         varchar       not null
+    , data_days         int           not null
+    , process_datetime  timestamptz   not null  default current_timestamp
 );
 
 drop table if exists ppr.core_data;
