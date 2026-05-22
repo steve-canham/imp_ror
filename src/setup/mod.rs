@@ -1,10 +1,10 @@
 /**********************************************************************************
 
-Where a parameter may be given in either the config file or command line, the 
+Where a parameter may be given in either the config file or command line, the
 command line version always over-writes anything from the file.
-The module also checks the parameters for completeness (those required will vary, 
-depending on the activity specified). If possible, defaults are used to stand in for 
-mising parameters. If not possible the program stops with a message explaining the 
+The module also checks the parameters for completeness (those required will vary,
+depending on the activity specified). If possible, defaults are used to stand in for
+mising parameters. If not possible the program stops with a message explaining the
 problem.
 The module also provides a database connection pool on demand.
 ***********************************************************************************/
@@ -13,16 +13,11 @@ pub mod cli_reader;
 pub mod config_reader;
 pub mod db_pars;
 pub mod log_helper;
-mod config_writer;
-mod config_editor;
-//mod lup_create_tables;
-//mod lup_fill_tables;
 
 use std::sync::OnceLock;
 use crate::err::AppError;
 use chrono::NaiveDate;
 use sqlx::{Postgres, Pool};
-use log::{info, error};
 use std::path::PathBuf;
 use std::fs;
 use regex::Regex;
@@ -48,12 +43,12 @@ pub fn get_params(cli_pars: CliPars, config_string: &String) -> Result<InitParam
     // The config data is analysed to create a Config object, and parent folders for
     // logs and json data are created if not already in existence.
     // CLI and config data are then combined into a struct with all the initial parameters.
-    
+
     let flags = cli_pars.flags;
-    let config_file: Config = config_reader::populate_config_vars(&config_string)?; 
-    
+    let config_file: Config = config_reader::populate_config_vars(&config_string)?;
+
     let folder_pars = config_file.folders;  // guaranteed to exist
-    let data_pars = config_file.data_details; 
+    let data_pars = config_file.data_details;
 
     let empty_pb = PathBuf::from("");
     let data_folder: PathBuf;
@@ -64,12 +59,12 @@ pub fn get_params(cli_pars: CliPars, config_string: &String) -> Result<InitParam
     }
     else {
         data_folder  =  folder_pars.data_folder_path;
-        if !folder_exists (&data_folder) 
-        {   
+        if !folder_exists (&data_folder)
+        {
             data_folder_good = false;
         }
 
-        if !data_folder_good && flags.import_ror { 
+        if !data_folder_good && flags.import_ror {
             return Result::Err(AppError::MissingProgramParameter("data_folder".to_string()));
         }
     }
@@ -79,7 +74,7 @@ pub fn get_params(cli_pars: CliPars, config_string: &String) -> Result<InitParam
         log_folder = data_folder.clone();
     }
     else {
-        if !folder_exists (&log_folder) { 
+        if !folder_exists (&log_folder) {
             fs::create_dir_all(&log_folder)?;
         }
     }
@@ -89,7 +84,7 @@ pub fn get_params(cli_pars: CliPars, config_string: &String) -> Result<InitParam
         output_folder = data_folder.clone();
     }
     else {
-        if !folder_exists (&output_folder) { 
+        if !folder_exists (&output_folder) {
             fs::create_dir_all(&output_folder)?;
         }
     }
@@ -113,12 +108,12 @@ pub fn get_params(cli_pars: CliPars, config_string: &String) -> Result<InitParam
             source_file_name = source_file_name + ".json";
        }
     }
-        
+
     let mut data_version = "".to_string();
     let mut data_date = "".to_string();
 
     // If file name conforms to the correct pattern data version and data date can be derived.
-    
+
     if cli_pars.flags.test_run {
         data_version = "v99".to_string();
         data_date = "2030-01-01".to_string()
@@ -132,9 +127,9 @@ pub fn get_params(cli_pars: CliPars, config_string: &String) -> Result<InitParam
     }
 
 
-    if data_version == "".to_string() ||  data_date == "".to_string()     
+    if data_version == "".to_string() ||  data_date == "".to_string()
     {
-        // Parsing of file name has not been completely successful, so get the version and date 
+        // Parsing of file name has not been completely successful, so get the version and date
         // of the data from the CLI, or failing that the config file.
 
         data_version= cli_pars.data_version;
@@ -144,13 +139,13 @@ pub fn get_params(cli_pars: CliPars, config_string: &String) -> Result<InitParam
                 return Result::Err(AppError::MissingProgramParameter("data_version".to_string()));
             }
         }
-    
+
         data_date = match NaiveDate::parse_from_str(&cli_pars.data_date, "%Y-%m-%d") {
             Ok(_) => cli_pars.data_date,
             Err(_) => "".to_string(),
         };
 
-        if data_date == "" {  
+        if data_date == "" {
                 let config_date = &data_pars.data_date;
                 data_date = match NaiveDate::parse_from_str(config_date, "%Y-%m-%d") {
                 Ok(_) => config_date.to_string(),
@@ -164,7 +159,7 @@ pub fn get_params(cli_pars: CliPars, config_string: &String) -> Result<InitParam
     }
 
     // For execution flags read from the environment variables
-    
+
     Ok(InitParams {
         data_folder,
         log_folder,
@@ -206,10 +201,10 @@ pub fn log_set_up() -> bool {
     }
 }
 
-
+/* 
 pub fn create_config() -> Result<(), AppError>
 {
-    match config_writer::create_config_file() 
+    match config_writer::create_config_file()
     {
         Ok(()) => info!("Configuration file creation completed"),
         Err(e) => {
@@ -223,7 +218,7 @@ pub fn create_config() -> Result<(), AppError>
 
 pub fn edit_config() -> Result<(), AppError>
 {
-    match config_editor::edit_config_file() 
+    match config_editor::edit_config_file()
     {
         Ok(()) => info!("Configuration file edits completed"),
         Err(e) => {
@@ -233,7 +228,7 @@ pub fn edit_config() -> Result<(), AppError>
     }
     Ok(())
 }
-
+*/
 
 pub async fn create_lup_tables(pool : &Pool<Postgres>) -> Result<(), AppError>
 {
@@ -253,7 +248,7 @@ pub async fn create_lup_tables(pool : &Pool<Postgres>) -> Result<(), AppError>
     sqlx::raw_sql(sql).execute(pool).await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
-    /* 
+    /*
     match lup_create_tables::create_tables(pool).await {
         Ok(()) => info!("Tables created for lup schema"),
         Err(e) => {
@@ -269,7 +264,7 @@ pub async fn create_lup_tables(pool : &Pool<Postgres>) -> Result<(), AppError>
             },
     };
     */
-    
+
     Ok(())
 }
 
@@ -293,8 +288,8 @@ fn get_data_version(input: &str) -> String {
     }
 }
 
-fn get_data_date(input: &str) -> String {            
-    
+fn get_data_date(input: &str) -> String {
+
     let date_pattern = r#"20[0-9]{2}-?[01][0-9]-?[0-3][0-9]"#;
     let re = Regex::new(date_pattern).unwrap();
     if re.is_match(&input) {
@@ -305,7 +300,7 @@ fn get_data_date(input: &str) -> String {
             Ok(nd) => nd.to_string(),  // returns as YYY-mm-DD
             Err(_) => "".to_string(),
         }
-    } 
+    }
     else {
         "".to_string()
     }
@@ -334,7 +329,7 @@ mod tests {
       assert_eq!(is_compliant_file_name(&test_file_name), true);
       assert_eq!(get_data_version(&test_file_name), "v1.50");
       assert_eq!(get_data_date(&test_file_name), "2024-12-11");
-   }  
+   }
 
    #[test]
    fn check_file_name_regex_works_3 () {
@@ -367,7 +362,7 @@ mod tests {
       assert_eq!(get_data_version(&test_file_name), "v1.59");
       assert_eq!(get_data_date(&test_file_name), "2025-01-23");
    }
-   
+
    #[test]
     fn check_file_name_regex_works_7 () {
         let test_file_name = "1.50 2024-12-11.json".to_string();
@@ -385,15 +380,15 @@ mod tests {
         let test_file_name = "v1.50.20241211.json".to_string();
         assert_eq!(is_compliant_file_name(&test_file_name), false);
     }
- 
+
     // Ensure the parameters are being correctly combined.
 
     #[test]
     fn check_config_vars_overwrite_blank_cli_values() {
 
-        // Note that in most cases the data folder path given must exist, and be 
-        // accessible, or get_params will panic and an error will be thrown. 
-        
+        // Note that in most cases the data folder path given must exist, and be
+        // accessible, or get_params will panic and an error will be thrown.
+
         let config = r#"
 [data]
 data_version="v1.60"
@@ -527,7 +522,7 @@ db_name="ror"
         assert_eq!(res.data_date, "2026-12-25");
     }
 
-   
+
     #[test]
     fn check_with_x_and_y_flags() {
 
@@ -617,11 +612,11 @@ db_name="ror"
         assert_eq!(res.data_version, "v1.58");
         assert_eq!(res.data_date, "2024-12-11");
     }
- 
+
     #[test]
     #[should_panic]
     fn check_wrong_data_folder_panics_if_r() {
-    
+
         let config = r#"
 [data]
 src_file_name="v1.58 20241211.json"
@@ -651,7 +646,7 @@ db_name="ror"
 
     #[test]
     fn check_wrong_data_folder_does_not_panic_if_not_r() {
-    
+
         let config = r#"
 [data]
 src_file_name="v1.58 20241211.json"
@@ -696,4 +691,3 @@ db_name="ror"
     }
 
 }
-

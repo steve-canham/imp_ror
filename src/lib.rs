@@ -1,4 +1,5 @@
 pub mod setup;
+pub mod config;
 pub mod err;
 mod import;
 mod process;
@@ -7,6 +8,8 @@ mod export;
 
 
 use setup::cli_reader;
+use config::config_writer::create_config_file;
+use config::config_editor::edit_config_file;
 use err::AppError;
 use std::ffi::OsString;
 use std::fs;
@@ -33,10 +36,10 @@ pub async fn run(args: Vec<OsString>) -> Result<(), AppError> {
 
     if flags.create_config {
         if cli_reader::config_file_exists() {
-            setup::edit_config()?;
+            edit_config_file()?;
         }
         else {
-            setup::create_config()?;
+            create_config_file()?;
         }
     }
 
