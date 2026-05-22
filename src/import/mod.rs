@@ -26,7 +26,7 @@ pub async fn import_data(data_folder : &PathBuf, source_file_name: &String,
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
     // Import data into matching tables. First obtain the raw data as text
-    // This also checks the file exists...by opening it and checking no error
+    // This also checks the file exists.
 
     let source_file_path: PathBuf = [data_folder, &PathBuf::from(source_file_name)].iter().collect();
     let data: String = match fs::read_to_string(&source_file_path)

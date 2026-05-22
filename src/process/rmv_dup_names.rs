@@ -4,7 +4,7 @@ use crate::AppError;
 
 pub async fn remove_dups (pool: &Pool<Postgres>) -> Result<(), AppError> {
     
-    // Before further processing the duplicate names need to be removed from ppr.names. 
+    // Before further processing the duplicate names need to be removed from src.names. 
     // If this is not done the import to the core data, that follows, will fail, 
     // as some organisations have more than one name marked as the 'ror name' (the 
     // import therefore fails because of a duplicated PK). 
@@ -26,7 +26,7 @@ pub async fn remove_dups (pool: &Pool<Postgres>) -> Result<(), AppError> {
     info!("{} Duplicate name pairs identified", res / 2) ;
   
     // Use a 'scratch pad' table, src.dups, to hold duplicate pairs - reduces in size as
-    // process driops duplicates and the table is reformed.
+    // process drops duplicates and the table is reformed.
 
     recreate_dups(pool).await?;  
 
@@ -77,6 +77,10 @@ async fn execute_sql(sql: &str, pool: &Pool<Postgres>) -> Result<PgQueryResult, 
 }
 
 fn make_duplicates_table <'a>() -> &'a str {
+
+    // This table holds a permanent record (e.g. for later inspection)
+    // of the organisations found with duplicate names, and the way in
+    // which the duplication was resolved.
     
     r#"insert into src.dup_names (ident, id, value, name_type, is_ror_name, lang_code)
     select n.ident, d.id, n.value, n.name_type, n.is_ror_name, n.lang
@@ -92,6 +96,9 @@ fn make_duplicates_table <'a>() -> &'a str {
 
 
 async fn recreate_dups(pool: &Pool<Postgres>) -> Result<(), AppError> {
+
+    // Table recreated after each duplicate drop operatrion -  i.e.
+    // has the current (but diminishing) duplicate name orgs
     
     let sql = r#"drop table if exists src.dups;
         create table src.dups 
@@ -121,7 +128,6 @@ async fn recreate_dups(pool: &Pool<Postgres>) -> Result<(), AppError> {
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
         Ok(())
-
 }
 
 
@@ -200,6 +206,8 @@ async fn drop_alias_dups(pool: &Pool<Postgres>) -> Result<u64, AppError> {
 }
 
 async fn drop_long_acros_dups(pool: &Pool<Postgres>) -> Result<u64, AppError> {
+
+    // Names >= 5 in length are viewed as non-acronyms.
     
     let sql = r#"update src.dup_names d
         set fate = 'Dropped because an acronym when equivalent alias or label present'
@@ -239,6 +247,8 @@ async fn drop_long_acros_dups(pool: &Pool<Postgres>) -> Result<u64, AppError> {
 
 async fn drop_short_alias_dups(pool: &Pool<Postgres>) -> Result<u64, AppError> {
 
+    // Names <= 5 in length are viewed as acronyms.
+    
     let sql = r#"update src.dup_names d
         set fate = 'Dropped because an alias or label when equivalent acronym present'
         from 
@@ -276,6 +286,9 @@ async fn drop_short_alias_dups(pool: &Pool<Postgres>) -> Result<u64, AppError> {
 }
 
 async fn drop_specific_dups(pool: &Pool<Postgres>) -> Result<u64, AppError> {
+
+    // These specific drops included after manual inspection of pairs 
+    // (not already dealt witgh above automatically).
     
     let mut total = 0;
     total += drop_specific_dup("00bep5t26", "Biblioteca de Catalunya", "gl" , pool).await?;
@@ -292,7 +305,6 @@ async fn drop_specific_dups(pool: &Pool<Postgres>) -> Result<u64, AppError> {
     total += drop_specific_dup("05c2g3729", "Ministarstvo vanjskih poslova", "hr" , pool).await?;
     total += drop_specific_dup("05e0vkr08", "Bibliothèque nationale de Luxembourg", "de" , pool).await?;
     Ok(total)
-
 }
 
 
@@ -307,12 +319,14 @@ async fn drop_specific_dup(id: &str, name: &str, lang: &str, pool: &Pool<Postgre
     let res = execute_sql(&sql, pool).await?.rows_affected();
    
     Ok(res)
-
 }
 
 
 async fn drop_lowest_ident_dups(pool: &Pool<Postgres>) -> Result<u64, AppError> {
 
+    // Final 'catch all' drop mechanism. On an arbitrary basis  the duplicate with 
+    // the lowest Id - all other fields being equal.
+    
     let sql = r#"update src.dup_names d
         set fate = 'Dropped because the lower ident, other fields being equivalent'
         from 

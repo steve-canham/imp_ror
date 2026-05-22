@@ -57,7 +57,8 @@ pub async fn store_org_attribute_numbers (pool: &Pool<Postgres>) -> Result<(), A
     execute_sql(update_core_data_sql4(), pool).await?;
  
     info!("Location data added to core data table");
-
+    info!("All org attributes counted and results added to admin table"); 
+    info!(""); 
     Ok(())
 }
 

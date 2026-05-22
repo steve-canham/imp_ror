@@ -3,7 +3,7 @@ use log::info;
 use crate::err::AppError;
 use super::rmv_dup_names;
 
-pub async fn import_data (data_version: String, pool: &Pool<Postgres>) -> Result<(), AppError> {
+pub async fn transfer_data (data_version: &String, pool: &Pool<Postgres>) -> Result<(), AppError> {
 
     check_data_version_matches_ror_schema_data(data_version, pool).await?;
     execute_sql(get_version_details_sql(), pool).await?;
@@ -17,7 +17,6 @@ pub async fn import_data (data_version: String, pool: &Pool<Postgres>) -> Result
     execute_sql(get_import_names_sql(), pool).await?;
     info!("Name data transferred to ppr table");
     
-
     execute_sql(get_links_sql(), pool).await?;
     execute_sql(get_external_ids_sql(), pool).await?;
     execute_sql(get_types_sql(), pool).await?;
@@ -27,12 +26,17 @@ pub async fn import_data (data_version: String, pool: &Pool<Postgres>) -> Result
     execute_sql(get_relationships_sql(), pool).await?;
     execute_sql(get_domains_sql(), pool).await?;
     info!("Location, relationship and domain data transferred to ppr table");
+    info!("Data imported from ror to ppr tables"); 
+    info!(""); 
 
     Ok(())
 }
 
 
-async fn check_data_version_matches_ror_schema_data(data_version: String, pool: &Pool<Postgres>)-> Result<(), AppError> {
+async fn check_data_version_matches_ror_schema_data(data_version: &String, pool: &Pool<Postgres>)-> Result<(), AppError> {
+
+    // Part of a double check. Would only fail if an explict version parameter 
+    // had been provided with -p that did not match the current version in the src tables
     
     let sql = "select version from src.version_details";
     let stored_version: String  = sqlx::query_scalar(sql).fetch_one(pool).await

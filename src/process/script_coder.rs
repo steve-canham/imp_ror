@@ -3,9 +3,21 @@ use sqlx::{Pool, Postgres};
 use crate::AppError;
 use log::info;
 
-pub async fn prepare_names_for_script_codes(pool: &Pool<Postgres>) -> Result<(), AppError> {
+pub async fn apply_script_codes(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
-    // set up the 'names_pad' table as a copy of the value (name) column
+    prepare_names_for_script_codes(pool).await?;
+    add_script_codes(pool).await?;
+    clean_japanese_script_codes(pool).await?;
+    clean_double_script_codes(pool).await?;
+    apply_script_codes_to_names(pool).await?;
+
+    Ok(())
+}
+
+async fn prepare_names_for_script_codes(pool: &Pool<Postgres>) -> Result<(), AppError> {
+
+    // Set up the 'names_pad' table - a 'scratch pad' in whichg to calculate 
+    // script codes - as a copy of the value (name) column.
 
     let sql = r#"Insert into ppr.names_pad (id, original_name, name, lang_code, script_code)
             select id, value, value, lang_code, ''
@@ -15,19 +27,20 @@ pub async fn prepare_names_for_script_codes(pool: &Pool<Postgres>) -> Result<(),
             .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     info!("Names copied for processing prior to script coding");
 
-    // remove 'latin' characters that could be in non latin names
-    // commas, semi-colons and full stops
+    // Scripts are mainbly applied by examining the unicode of name characters
+    // and matching them against the different unicode pages for different scripts.
 
-    let mut punctuation = 0;
+    // First remove characters classed as 'latin' that could be in non latin names, 
+    // that would otherwise give a 'false-latin' result.
+    
+    let mut punctuation = 0;                        // commas, semi-colons and full stops
     punctuation += remove_char(".", pool).await?;
     punctuation += remove_char(",", pool).await?;
     punctuation += remove_char(";", pool).await?;
     punctuation += remove_char(":", pool).await?;
     info!("{} commas, full stops, colons and semi-colons removed from name copies", punctuation);
 
-    // parentheses and brackets
-
-    let mut brackets = 0;
+    let mut brackets = 0;                           // parentheses and brackets
     brackets += remove_char("(", pool).await?;
     brackets += remove_char(")", pool).await?;
     info!("{} parantheses characters removed from name copies", brackets);
@@ -37,32 +50,25 @@ pub async fn prepare_names_for_script_codes(pool: &Pool<Postgres>) -> Result<(),
     brackets += remove_char("]", pool).await?;
     info!("{} bracket characters removed from name copies", brackets);
 
-    // double quotes, apostrophes, guillemets
-
-    let res = remove_char("\"", pool).await?;
+    let res = remove_char("\"", pool).await?;        // double quotes, apostrophes, guillemets
     info!("{} double quotes removed from name copies", res);
     let res  = remove_char("''", pool).await?;
     info!("{} apostrophes removed from name copies", res);
-
     let mut guillemets = 0;
     guillemets += remove_unicode_char("00AB", pool).await?;
     guillemets += remove_unicode_char("00BB", pool).await?;
     info!("{} guillemets characters removed from name copies", guillemets);
-   
-    // Hyphens, ampersands, slashes
 
-    let mut punctuation = 0;
+    let mut punctuation = 0;                       // Hyphens, ampersands, slashes
     punctuation += remove_char("-", pool).await?;
     punctuation += remove_char("&", pool).await?;
     punctuation += remove_char("/", pool).await?;
     punctuation += remove_char("|", pool).await?;
     info!("{} sundry punctuation removed from name copies", punctuation);
    
-    // Bullets
-
-    let mut bullets = 0;
-    bullets += remove_char("·", pool).await?;     // middle dot, U+00b7
-    bullets += remove_char("・", pool).await?;     // katakana middle dot, U+30fb
+    let mut bullets = 0;                            // Bullets
+    bullets += remove_char("·", pool).await?;       // middle dot, U+00b7
+    bullets += remove_char("・", pool).await?;      // katakana middle dot, U+30fb
     info!("{} Bullets removed from name copies", bullets);
   
     // Finally remove all underscores and spaces
@@ -102,7 +108,7 @@ async fn remove_unicode_char(unicode: &str, pool: &Pool<Postgres>) -> Result<u64
 }
 
 
-pub async fn add_script_codes (pool: &Pool<Postgres>) -> Result<(), AppError> {
+async fn add_script_codes (pool: &Pool<Postgres>) -> Result<(), AppError> {
   
     // Examines the names and looks at the Unicode value of its first character. Uses that to 
     // determine the script (but checks for leading bracket - if present use the second character)
@@ -123,19 +129,18 @@ pub async fn add_script_codes (pool: &Pool<Postgres>) -> Result<(), AppError> {
     where ascii_end <> 0
     order by ascii_start;"#;
 
-    let rows: Vec<Script> = sqlx::query_as(sql).fetch_all(pool).await
+    let unicodes: Vec<Script> = sqlx::query_as(sql).fetch_all(pool).await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
     info!("Unicode script characteristics obtained");
-    
-    // Update names records by testing against each unicode entry.
 
     let mut n = 0;
-    for r in rows {
+    for r in unicodes {
 
-        //let hex_range = format!(r#"'[\u{}-\u{}]'"#, r.ascii_start, r.ascii_end);
+        // In most cases (hex boundaries <=4 in length), a regex can be used against 
+        // the range to add the script name to 'script_code' if any character matches.
+        
         if r.hex_start.len() < 5 {
-
             let sql  = format!(r#"update ppr.names_pad
                     set script_code = script_code||', '||'{}' 
                     where name ~ '[\u{:0>4}-\u{:0>4}]'"#, r.code, r.hex_start, r.hex_end);
@@ -144,14 +149,17 @@ pub async fn add_script_codes (pool: &Pool<Postgres>) -> Result<(), AppError> {
                 .map_err(|e| AppError::SqlxError(e, sql))?;
         }
         else {
-
+            
+            // In a few (very obscure) cases hex boundaries are > 4 in length and
+            // the regex cannot be used - instead the initial characters is tested.
+            
             let sql  = format!(r#"update ppr.names_pad
             set script_code = script_code||', '||'{}'  
             where ascii(substr(name, 1, 1)) >= {}
-            and  ascii(substr(name, 1, 1)) <= {}"#, r.code, r.ascii_start, r.ascii_end);
+            and ascii(substr(name, 1, 1)) <= {}"#, r.code, r.ascii_start, r.ascii_end);
     
             sqlx::query(&sql).execute(pool).await
-            .map_err(|e| AppError::SqlxError(e, sql))?;
+                .map_err(|e| AppError::SqlxError(e, sql))?;
         }
 
         n +=1;
@@ -159,15 +167,17 @@ pub async fn add_script_codes (pool: &Pool<Postgres>) -> Result<(), AppError> {
             info!("{} scripts processed...", n.to_string());
         }
     }
-   
-    let sql  = r#"update ppr.names_pad
+
+    // Remove the initial ', '.
+    
+    let sql  = r#"update ppr.names_pad          
     set script_code = substring(script_code, 3)
     where length(script_code) > 3 "#;
 
     sqlx::query(sql).execute(pool).await
-     .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
-    // Simplify where only extended latin has been used
+    // Simplify where only extended latin has been used.
 
     let sql  = r#"update ppr.names_pad
         set script_code = 'Latn'
@@ -181,7 +191,12 @@ pub async fn add_script_codes (pool: &Pool<Postgres>) -> Result<(), AppError> {
     Ok(())
 }
 
-pub async fn clean_japanese_script_codes (pool: &Pool<Postgres>) -> Result<(), AppError> {
+
+async fn clean_japanese_script_codes (pool: &Pool<Postgres>) -> Result<(), AppError> {
+
+    // Japanese is a writing system that uses three different scripts.
+    // Names may include 1,2 or all 3 of these scripts. Scripts 'Kana' and 'Hira' 
+    // are specific to Japan - 'Hani' is also used in Chinese and related lamguages
     
     let mut japanese_nonlatin_names = 0;
 
@@ -240,8 +255,14 @@ pub async fn clean_japanese_script_codes (pool: &Pool<Postgres>) -> Result<(), A
 }
 
 
-pub async fn clean_double_script_codes (pool: &Pool<Postgres>) -> Result<(), AppError> {
+async fn clean_double_script_codes (pool: &Pool<Postgres>) -> Result<(), AppError> {
 
+    // Many names that ostensibly have two scripts have only a very small portion 
+    // in the minority script - sometimes just a numeral or two. This routine
+    // identifies the different portions of the mixed-script names to allow their 
+    // characterisation. In many cases the scripts listed are simplified to a single
+    // script, but genuine mixed script names are retained as such.
+    
     let sql  = r#"update ppr.names_pad n
     set latin = combined_array
     from
@@ -287,7 +308,7 @@ pub async fn clean_double_script_codes (pool: &Pool<Postgres>) -> Result<(), App
     and latin ~ '^\d*$'"#;
     
     let res = sqlx::query(sql).execute(pool).await
-    .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
     rga_names += res.rows_affected();
 
@@ -297,7 +318,7 @@ pub async fn clean_double_script_codes (pool: &Pool<Postgres>) -> Result<(), App
     and latin ~ '^\d*$'"#;
 
     let res = sqlx::query(sql).execute(pool).await
-    .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
     rga_names += res.rows_affected();
 
@@ -307,7 +328,7 @@ pub async fn clean_double_script_codes (pool: &Pool<Postgres>) -> Result<(), App
     and latin ~ '^\d*$'"#;
 
     let res = sqlx::query(sql).execute(pool).await
-    .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
     rga_names += res.rows_affected();
 
@@ -330,9 +351,9 @@ pub async fn clean_double_script_codes (pool: &Pool<Postgres>) -> Result<(), App
     and lang_code in ('be', 'uk'); "#;
 
     sqlx::query(sql).execute(pool).await
-    .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
-    // Recode double scripts with only a very small (rel;atively) amount of 
+    // Recode double scripts with only a very small (relatively) amount of 
     // one script to be the major script exclusively
 
     let mut singletons = 0;
@@ -344,7 +365,7 @@ pub async fn clean_double_script_codes (pool: &Pool<Postgres>) -> Result<(), App
     and length(latin) > 5 "#;
 
     let res = sqlx::query(sql).execute(pool).await
-    .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
     singletons += res.rows_affected();
 
@@ -355,17 +376,11 @@ pub async fn clean_double_script_codes (pool: &Pool<Postgres>) -> Result<(), App
     and char_length(nonlatin) > 5"#;
 
     let res = sqlx::query(sql).execute(pool).await
-    .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
     singletons += res.rows_affected();
 
     info!("{} Double scripted names with relatively short second script characters recoded", singletons); 
-
-    Ok(())
-}
-
-
-pub async fn apply_script_codes_to_names (pool: &Pool<Postgres>) -> Result<(), AppError> {
 
     let sql  = r#"select count(*) 
     from ppr.names_pad
@@ -376,6 +391,12 @@ pub async fn apply_script_codes_to_names (pool: &Pool<Postgres>) -> Result<(), A
 
     info!("{} names found using two or more scripts", res); 
 
+    Ok(())
+}
+
+
+async fn apply_script_codes_to_names (pool: &Pool<Postgres>) -> Result<(), AppError> {
+
     let sql  = r#"update ppr.names n
     set script_code = p.script_code
     from ppr.names_pad p
@@ -383,16 +404,16 @@ pub async fn apply_script_codes_to_names (pool: &Pool<Postgres>) -> Result<(), A
     and n.value = p.original_name"#;
 
     sqlx::query(sql).execute(pool).await
-    .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
     info!("Language script codes applied to names table"); 
     info!(""); 
 
-    // Remove this as unnecessary, for now
-    // let sql  = r#"drop table ppr.names_pad"#;
-
-    // sqlx::query(sql).execute(pool).await
-    // .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    // Remove ppr.names_pad
+    
+    let sql  = r#"drop table ppr.names_pad"#;
+    sqlx::query(sql).execute(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
     Ok(())
 }

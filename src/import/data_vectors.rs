@@ -200,27 +200,28 @@ impl RequiredDataVecs{
 
     pub async fn store_data(&self, pool : &Pool<Postgres>) -> Result<PgQueryResult, AppError> {
         
-        // do the name data
+        // Do the name data.
+        
         let sql = r#"INSERT INTO src.names (id, value, name_type, is_ror_name, lang) 
         SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::bool[], $5::text[])"#;
 
         sqlx::query(sql)
-        .bind(&self.name_db_ids).bind(&self.names)
-        .bind(&self.name_types).bind(&self.is_rors).bind(&self.langs)
-        .execute(pool)
-        .await.map_err(|e| AppError::SqlxError(e, "Storing src names".to_string()))?;
+                .bind(&self.name_db_ids).bind(&self.names)
+                .bind(&self.name_types).bind(&self.is_rors).bind(&self.langs)
+                .execute(pool)
+                .await.map_err(|e| AppError::SqlxError(e, "Storing src names".to_string()))?;
 
-        // do the type data
+        // Do the type data.
 
         let sql = r#"INSERT INTO src.type (id, org_type) 
         SELECT * FROM UNNEST($1::text[], $2::text[])"#;
 
         sqlx::query(sql)
-        .bind(&self.type_db_ids).bind(&self.org_types)
-        .execute(pool)
-        .await.map_err(|e| AppError::SqlxError(e, "Storing src types".to_string()))?;
+                .bind(&self.type_db_ids).bind(&self.org_types)
+                .execute(pool)
+                .await.map_err(|e| AppError::SqlxError(e, "Storing src types".to_string()))?;
 
-        // do the location data
+        // Do the location data.
 
         let sql = r#"INSERT INTO src.locations (id, geonames_id, name, lat, lng, 
         continent_code, continent_name, country_code, country_name, country_subdivision_code, country_subdivision_name ) 
@@ -228,11 +229,11 @@ impl RequiredDataVecs{
         $6::text[], $7::text[], $8::text[], $9::text[], $10::text[], $11::text[])"#;
 
         sqlx::query(sql)
-        .bind(&self.loc_db_ids).bind(&self.gn_ids).bind(&self.gn_names).bind(&self.lats).bind(&self.lngs)
-        .bind(&self.cont_codes).bind(&self.cont_names).bind(&self.cy_codes).bind(&self.cy_names)
-        .bind(&self.cy_subdiv_codes).bind(&self.cy_subdiv_names)
-        .execute(pool)
-        .await.map_err(|e| AppError::SqlxError(e, "Storing src locations".to_string()))
+                .bind(&self.loc_db_ids).bind(&self.gn_ids).bind(&self.gn_names).bind(&self.lats).bind(&self.lngs)
+                .bind(&self.cont_codes).bind(&self.cont_names).bind(&self.cy_codes).bind(&self.cy_names)
+                .bind(&self.cy_subdiv_codes).bind(&self.cy_subdiv_names)
+                .execute(pool)
+                .await.map_err(|e| AppError::SqlxError(e, "Storing src locations".to_string()))
 
     }
 }
@@ -283,75 +284,60 @@ impl NonRequiredDataVecs{
 
     pub fn add_non_required_data(&mut self, r: &RorRecord, db_id: &String) 
     {
-        // relationships - may be none
-        if r.relationships.is_some() {
-            let rels = r.relationships.as_ref().unwrap();
-            if rels.len() > 0 {
-                for rel in rels.iter()
-                {
-                    self.rel_db_ids.push(db_id.clone());
-                    self.rel_types.push(rel.rel_type.clone());
-                    self.rel_ids.push(extract_id_from(&rel.id).to_string());
-                    self.rel_labels.push(rel.label.clone());
-                };
-            }
+        // Relationships.
+
+        if let Some(rels) = r.relationships.as_ref() {
+            for rel in rels.iter()
+            {
+                self.rel_db_ids.push(db_id.clone());
+                self.rel_types.push(rel.rel_type.clone());
+                self.rel_ids.push(extract_id_from(&rel.id).to_string());
+                self.rel_labels.push(rel.label.clone());
+            };
         }
     
-        // links - may be none
-        if r.links.is_some(){
-            let lnks = r.links.as_ref().unwrap();
-            if lnks.len() > 0 {
-                for lnk in lnks.iter()
-                {
-                    self.link_db_ids.push(db_id.clone());
-                    self.link_types.push(lnk.link_type.clone());
-                    self.links.push(lnk.value.clone());
-                }; 
+        // Links.
+
+        if let Some(lnks) = r.links.as_ref() {
+            for lnk in lnks.iter()
+            {
+                self.link_db_ids.push(db_id.clone());
+                self.link_types.push(lnk.link_type.clone());
+                self.links.push(lnk.value.clone());
             }
         }
         
-        // external ids - may be none
-        if r.external_ids.is_some() {
-            let eids = r.external_ids.as_ref().unwrap();
-            if eids.len() > 0 {
-                for eid in eids.iter()
-                {
-                    // these 2 constant for each Id record
-                    let id_type = &eid.id_type;
-                    let mut pref = "none";
-                    if eid.preferred.is_some() {
-                        pref = eid.preferred.as_ref().unwrap();
-                    }
-                        
-                    // 'all' may contain one or more strings representing Ids
-                    if eid.all.len() > 0 {
-                        if eid.all.len()  == 1 {
-    
-                            // if only 1 then it is always preferred
-    
+        // External ids.
+
+        if let Some(eids) = r.external_ids.as_ref() {
+            for eid in eids.iter()
+            {
+                let id_type = &eid.id_type;
+                let pref = match &eid.preferred {   // Obtain (ref to) value of preferred Id
+                    Some(p) => p,
+                    None => "none",
+                };
+                
+                if eid.all.len() > 0 {         // 'all' may contain one or more strings representing Ids
+                    if eid.all.len()  == 1 {   // if only 1 then it is always 'preferred'
+                        self.id_db_ids.push(db_id.clone());
+                        self.id_types.push(id_type.to_string());
+                        self.id_values.push(eid.all[0].to_string());
+                        self.is_prefs.push(Some(true));  
+                      }
+                      else {             // Iterate across the various ids listed in '.all'.
+                        for id in eid.all.iter() 
+                        {
                             self.id_db_ids.push(db_id.clone());
-                            self.id_types.push(id_type.clone());
-                            self.id_values.push(eid.all[0].clone());
-                            self.is_prefs.push(Some(true));  
-                          }
-                          else {
-    
-                            // Iterate across the various ids listed in all.
-                            // Indicate when the id = designated preferred.
-    
-                            for id in eid.all.iter() 
+                            self.id_types.push(id_type.to_string());
+                            self.id_values.push(id.to_string());
+                            if *id == *pref 
                             {
-                                self.id_db_ids.push(db_id.clone());
-                                self.id_types.push(id_type.clone());
-                                self.id_values.push(id.clone());
-                                if id == pref 
-                                {
-                                    self.is_prefs.push(Some(true));
-                                }
-                                else 
-                                {
-                                    self.is_prefs.push(None);
-                                }
+                                self.is_prefs.push(Some(true));
+                            }
+                            else 
+                            {
+                                self.is_prefs.push(None);
                             }
                         }
                     }
@@ -359,19 +345,16 @@ impl NonRequiredDataVecs{
             }
         }
             
-        // Domains - may be none.
-        
-        if r.domains.is_some() {
-            let doms = r.domains.as_ref().unwrap();
-            if doms.len() > 0 {
-                for dom in doms.iter()
-                {
-                    self.dom_db_ids.push(db_id.clone());
-                    self.doms.push(dom.clone());
-                }
+        // Domains.
+
+        if let Some(doms) = r.domains.as_ref() {
+            for dom in doms.iter()
+            {
+                self.dom_db_ids.push(db_id.clone());
+                self.doms.push(dom.to_string());
             }
         }
-    
+       
     }
 
     pub async fn store_data(&self, pool : &Pool<Postgres>) -> Result<PgQueryResult, AppError> {
