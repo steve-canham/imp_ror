@@ -1,9 +1,8 @@
 use crate::err::AppError;
-use std::io;
+use super::config_helpers::*;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
-use regex::Regex;
 use chrono::NaiveDate;
 use std::fs;
 use crate::setup::config_reader::{Config, populate_config_vars};
@@ -18,105 +17,143 @@ pub fn edit_config_file() -> Result<(), AppError>
                     .map_err(|e| AppError::IoReadErrorWithPath(e, config_file))?;
     let current_config: Config = populate_config_vars(&config_string)?; 
 
-    let p1 = "      WELCOME TO IMP_ROR               EDITING EXISTING CONFIGURATION FILE";
-    let star_line = "**********************************************************************************";
-    let p2 = "N.B. For each of the data points below, pressing return will transfer the existing";
-    let p3 = "configuration parameter (shown in brackets in the prompt) to the edited file";
-    let section = format!("\n\n{}\n{}\n{}\n{}\n{}\n", star_line, p1, star_line, p2, p3);
-    println!("{}", section);
+    let p = r#"
+    **********************************************************************************
+        WELCOME TO IMP_ROR               EDITING EXISTING CONFIGURATION FILE
+    **********************************************************************************
+    N.B. For each of the data points below, pressing return will transfer the existing
+    configuration parameter (shown in brackets in the prompt) to the edited file
+    "#;
+    print!("{p}");
 
+    let curr_host = current_config.db_pars.db_host;
+    let curr_user = current_config.db_pars.db_user;
+    let curr_pwrd = current_config.db_pars.db_password;
+    let curr_port = current_config.db_pars.db_port;
+    let curr_db = current_config.db_pars.db_name;
+     
+    let p = format!(r#"
+    Section 1: DATABASE PARAMETERS
 
-    let p1 = "Section 1: DATABASE PARAMETERS";
-    let p2 = "DATABASE HOST";
-    let curr_value = current_config.db_pars.db_host;
-    let p3 = "Please input the name of your database host (usually the server name or IP address).";
-    let p4 = format!("To accept the current value ('{}') simply press enter, otherwise type the name and press enter.", curr_value);
-    let section = format!("\n{}\n\n{}\n{}\n{}\n", p1, p2, p3, p4);
-    println!("{}", section);
+    DATABASE HOST
+    Please input the name of your database host (usually the server name or IP address).
+    To accept the current value ('{curr_host}') simply press enter, otherwise type the name 
+    and press enter.
+    "#);
+    println!("{p}");
  
-    let host = user_input(curr_value)?;
-    let db_host = format!("db_host=\"{}\"", host);
-    println!("{}", db_host);
+    let mut host = user_input()?;
+    if host == "" {
+        host = curr_host;
+    }
+    let db_host = format!(r#"db_host="{host}""#);
+    println!("    {db_host}");
     
-    let p1 = "USER NAME";
-    let curr_value = current_config.db_pars.db_user;
-    let p2 = "Please input the name of the user account being used to access the database.";
-    let p3 = format!("To accept the current value ('{}') simply press enter, otherwise type the name and press enter.", curr_value);
-    let section = format!("\n{}\n{}\n{}\n", p1, p2, p3);
-    println!("{}", section);
+    let p = format!(r#"
+    USER NAME
+    Please input the name of the user account being used to access the database.
+    To accept the current value ('{curr_user}') simply press enter, otherwise type the name 
+    and press enter.
+    "#);
+    println!("{p}");
+       
+    let mut user = user_input()?;
+    if user == "" {
+        user = curr_user;
+    }
+    let db_user = format!(r#"db_user="{user}""#);
+    println!("    {db_user}");
 
-    let user = user_input(curr_value)?;
-    let db_user = format!("db_user=\"{}\"", user);
-    println!("{}", db_user);
+    let p = format!(r#"
+    USER PASSWORD
+    Please input the name of the user password being used to access the database.
+    To accept the current value ('{curr_pwrd}') simply press enter, otherwise type the name
+    and press enter.
+    "#);
+    println!("{p}");
 
-    let p1 = "USER PASSWORD";
-    let curr_value = current_config.db_pars.db_password;
-    let p2 = "Please input the name of the user password being used to access the database.";
-    let p3 = format!("To accept the current value ('{}') simply press enter, otherwise type the name and press enter.", curr_value);
-    let section = format!("\n{}\n{}\n{}\n", p1, p2, p3);
-    println!("{}", section);
+    let mut password = user_input()?;
+    if password == "" {
+        password = curr_pwrd;
+    }
+    let db_password = format!(r#"db_password="{password}""#);
+    println!("    {db_password}");
 
-    let password = user_input(curr_value)?;
-    let db_password = format!("db_password=\"{}\"", password);
-    println!("{}", db_password);
+    let p = format!(r#"
+    PORT
+    Please input the port number being used to access the database.
+    To accept the current value ('{curr_port}') simply press enter, otherwise 
+    type the name and press enter.
+     "#);
+    println!("{p}");
 
-    let p1 = "PORT";
-    let curr_value = current_config.db_pars.db_port;
-    let p2 = "Please input the port number being used to access the database.";
-    let p3 = format!("To accept the current value ('{}') simply press enter, otherwise type the name and press enter.", curr_value.to_string());
-    let section = format!("\n{}\n{}\n{}\n", p1, p2, p3);
-    println!("{}", section);
-
-    let mut port = -1;
+    let mut port: i32 = -1;
     while port < 0 {
-        let try_port = user_input(curr_value.to_string())?;
-        port = match try_port.parse()
-        {
-            Ok(n) => n,
-            Err(_) => {
-                println!("{}", "The port must be input as an integer!");
-                -1
-            },
-        };
-    }
-    let db_port = format!("db_port=\"{}\"", port);
-    println!("{}", db_port);
-
-    let p1 = "DATABASE NAME";
-    let curr_value = current_config.db_pars.db_name;
-    let p2 = "Please input the name of the database.";
-    let p3 = format!("To accept the current value ('{}') simply press enter, otherwise type the name and press enter.", curr_value);
-    let section = format!("\n{}\n{}\n{}\n", p1, p2, p3);
-    println!("{}", section);
-
-    let dname = user_input(curr_value)?;
-    let db_name = format!("db_name=\"{}\"", dname);
-    println!("{}", db_name);
-
-
-    let p1 = "Section 2: FOLDERS";
-    let p2 = "DATA FOLDER";
-    let curr_value = current_config.folders.data_folder_path;
-    let p3 = "Please input the full path of the folder where the ROR JSON source file is to be found.";
-    let p4 = format!("To accept the current value ('{}') simply press enter, otherwise type the name and press enter.", curr_value.display().to_string());
-    let section = format!("\n{}\n\n{}\n{}\n{}\n", p1, p2, p3, p4);
-    println!("{}", section);
-
-    let mut df = "".to_string();
-    while df == "".to_string() {
-        let try_df = user_input(curr_value.display().to_string())?.replace("\\", "/");
-        if folder_exists(&PathBuf::from(&try_df))
-        {
-            df = try_df;
+        let users_port_selection = user_input()?;
+        if users_port_selection == "" {
+            port = curr_port as i32;
         }
-        else
-        {
-            println!("{}", "That folder does not appear to exist - please try again");
+        else {
+            port = match users_port_selection.parse()
+            {
+                Ok(n) => n,
+                Err(_) => {
+                    println!("{}", "The port must be input as an integer!");
+                    -1
+                },
+            };
         }
     }
-    let data_folder = &df;
-    let data_folder_path = format!("data_folder_path=\"{}\"", df);
-    println!("{}", data_folder_path);
+    let db_port = format!(r#"db_port="{port}""#);
+    println!("    {db_port}");
+
+    let p = format!(r#"
+    DATABASE NAME
+    Please input the name of the database.
+    To accept the current value ('{curr_db}') simply press enter, otherwise type the name 
+    and press enter.
+    "#);
+    println!("{p}");
+
+    let dname = user_input()?;
+    if dname == "" {
+        dname = curr_db;
+    }
+    let db_name = format!(r#"db_name="{dname}""#);
+    println!("    {db_name}");
+
+    let curr_df_value = current_config.folders.data_folder_path;
+    let curr_of_value = current_config.folders.output_folder_path;
+    let curr_lf_value = current_config.folders.log_folder_path;
+    
+    let p = format!(r#"
+    Section 2: FOLDERS
+    
+    DATA FOLDER
+    Please input the full (Linux / Posix) path of the folder where the ROR JSON source file is to be found.
+    let p4 = format!("To accept the current value ('{}') simply press enter, otherwise type the name and press enter.
+    "#, curr_df_value.display());
+    println!("{p}");
+
+    let mut data_folder = "not valid".to_string();
+    while data_folder == "not valid".to_string() {
+        let users_data_folder_selection = user_input()?;
+        if users_data_folder_selection == "" {
+            data_folder = curr_df_value.clone();
+        }
+        else {
+            if folder_exists(&PathBuf::from(&users_data_folder_selection))
+            {
+                data_folder = users_data_folder_selection;
+            }
+            else
+            {
+                println!("{}", "That folder does not appear to exist - please try again");
+            }
+        }
+    }
+    let data_folder_path = format!(r#"data_folder_path="{data_folder}""#);
+    println!("    {data_folder_path}");
 
     // check is a valid path - repeat request if not
     // change single to dounble slashes
@@ -245,7 +282,7 @@ pub fn edit_config_file() -> Result<(), AppError>
     Ok(())
 }
 
-
+/* 
 fn user_input(curr_value: String) -> Result<String, AppError> {
     print!(">>");
     io::stdout().flush().unwrap(); 
@@ -276,4 +313,6 @@ fn is_compliant_version(input: &String) -> Result<bool, AppError> {
         .map_err(|e| AppError::RegexError(e, version_pattern.to_string()))?;
     Ok(re.is_match(&input))
 }
+
+*/
 
