@@ -1,8 +1,5 @@
 use crate::err::AppError;
 use super::config_helpers::*;
-use std::fs::File;
-use std::io::Write;
-use std::path::PathBuf;
 use chrono::{NaiveDate, Local};
 use log::info;
 
@@ -112,18 +109,7 @@ pub fn create_config_file() -> Result<(), AppError>
     "#;
     println!("{p}");
 
-    let mut data_folder = "not valid".to_string();
-    while data_folder == "not valid".to_string() {
-        let users_data_folder_selection = user_input()?;
-        if folder_exists(&PathBuf::from(&users_data_folder_selection))
-        {
-            data_folder = users_data_folder_selection;
-        }
-        else
-        {
-            println!("{}", "That folder does not appear to exist - please try again");
-        }
-    }
+    let data_folder = get_folder()?;
     let data_folder_path = format!(r#"data_folder_path="{data_folder}""#);
     println!("    {data_folder_path}");
 
@@ -134,24 +120,8 @@ pub fn create_config_file() -> Result<(), AppError>
     "#;
     println!("{p}");
 
-    let mut outf = "not valid".to_string();
-    while outf == "not valid".to_string() {
-        let users_output_folder_selection = user_input()?;
-        if users_output_folder_selection == "" {
-            outf = data_folder.clone();
-        }
-        else {
-            if folder_exists(&PathBuf::from(&users_output_folder_selection))
-            {
-                outf = users_output_folder_selection;
-            }
-            else
-            {
-                println!("{}", "That folder does not appear to exist - please try again");
-            }
-        }
-    }
-    let output_folder_path = format!(r#"output_folder_path="{outf}""#);
+    let output_folder = get_folder()?;
+    let output_folder_path = format!(r#"output_folder_path="{output_folder}""#);
     println!("    {output_folder_path}");
 
     let p = r#"
@@ -161,24 +131,8 @@ pub fn create_config_file() -> Result<(), AppError>
     "#;
     println!("{p}");
 
-    let mut logf = "not valid".to_string();
-    while logf == "not valid".to_string() {
-        let users_log_folder_selection = user_input()?;
-        if users_log_folder_selection == "" {
-            logf = data_folder.clone();
-        }
-        else {
-            if folder_exists(&PathBuf::from(&users_log_folder_selection))
-            {
-                logf = users_log_folder_selection;
-            }
-            else
-            {
-                println!("{}", "That folder does not appear to exist - please try again");
-            }
-        }
-    }
-    let log_folder_path = format!(r#"log_folder_path="{logf}""#);
+    let log_folder = get_folder()?;
+    let log_folder_path = format!(r#"log_folder_path="{log_folder}""#);
     println!("    {log_folder_path}");
 
     let p = r#"
@@ -267,20 +221,13 @@ pub fn create_config_file() -> Result<(), AppError>
         }
         data_date = format!(r#"data_date="{d_date}""#);
         println!("    {data_date}{suffix}");
-        
     }
 
     let data_section = format!("[data]\n{}\n{}\n{}\n", src_file_name, data_version, data_date);
     let folders_section = format!("[folders]\n{}\n{}\n{}\n", data_folder_path, output_folder_path, log_folder_path);
     let database_section = format!("[database]\n{}\n{}\n{}\n{}\n{}\n", db_host, db_user, db_password, db_port, db_name);
     let config_string = format!("\n{}\n\n{}\n\n{}\n", data_section, folders_section, database_section);
-
-    let mut file = File::create("./app_config.toml")     // creates new or truncates existing
-        .map_err(|e| AppError::IoWriteErrorWithPath( e, PathBuf::from("./app_config.toml")))?;
-    
-    file.write_all(config_string.as_bytes())             // Write to the file
-        .map_err(|e| AppError::IoWriteErrorWithPath( e, PathBuf::from("./app_config.toml")))?;
-
+    write_out_file(&config_string)?;
     info!("Configuration file creation completed");
     Ok(())
 }

@@ -1,6 +1,7 @@
 use thiserror::Error;
 use log::error;
 use crate::setup::log_set_up;
+use std::ffi::OsString;
 
 
 // The error types used within the program.
@@ -32,6 +33,9 @@ pub enum AppError {
     #[error("couldn't write file {1:?}")]
     IoWriteErrorWithPath(#[source] std::io::Error, std::path::PathBuf,),
 
+    #[error("File path provided has Non-UTF8 characters")]
+    NonUTF8PathError(OsString),
+    
     #[error("Problem accessing folder or file")]
     FileSystemError(String, String),
 
@@ -97,6 +101,8 @@ pub fn report_error(e: AppError) -> () {
         
         AppError::IoWriteErrorWithPath(e, p) => print_error (e.to_string(), 
                   "Path was: ".to_string() + p.to_str().unwrap(), "FILE WRITING PROBLEM"),
+
+        AppError::NonUTF8PathError(e) => print_simple_error (e.as_os_str().to_string_lossy().to_string(), "NON UTF8 IN PATH ERROR"),
 
         AppError::FileSystemError(p, d) => print_error (p, d, "FILE SYSTEM PROBLEM"),
         

@@ -1,7 +1,5 @@
 use crate::err::AppError;
 use super::config_helpers::*;
-use std::fs::File;
-use std::io::Write;
 use std::path::PathBuf;
 use chrono::NaiveDate;
 use std::fs;
@@ -10,7 +8,7 @@ use log::info;
 
 pub fn edit_config_file() -> Result<(), AppError>
 {
-    // config file already exists so get the current file
+    // config file already exists so first get the current file
 
     let config_file = PathBuf::from("./app_config.toml");
     let config_string: String = fs::read_to_string(&config_file)
@@ -22,7 +20,7 @@ pub fn edit_config_file() -> Result<(), AppError>
         WELCOME TO IMP_ROR               EDITING EXISTING CONFIGURATION FILE
     **********************************************************************************
     N.B. For each of the data points below, pressing return will transfer the existing
-    configuration parameter (shown in brackets in the prompt) to the edited file
+    configuration parameter (shown in brackets in the prompt) to the edited file.
     "#;
     print!("{p}");
 
@@ -42,10 +40,7 @@ pub fn edit_config_file() -> Result<(), AppError>
     "#);
     println!("{p}");
  
-    let mut host = user_input()?;
-    if host == "" {
-        host = curr_host;
-    }
+    let host = user_input_or_use_current(&curr_host)?;
     let db_host = format!(r#"db_host="{host}""#);
     println!("    {db_host}");
     
@@ -57,10 +52,7 @@ pub fn edit_config_file() -> Result<(), AppError>
     "#);
     println!("{p}");
        
-    let mut user = user_input()?;
-    if user == "" {
-        user = curr_user;
-    }
+    let user = user_input_or_use_current(&curr_user)?;
     let db_user = format!(r#"db_user="{user}""#);
     println!("    {db_user}");
 
@@ -72,10 +64,7 @@ pub fn edit_config_file() -> Result<(), AppError>
     "#);
     println!("{p}");
 
-    let mut password = user_input()?;
-    if password == "" {
-        password = curr_pwrd;
-    }
+    let password = user_input_or_use_current(&curr_pwrd)?;
     let db_password = format!(r#"db_password="{password}""#);
     println!("    {db_password}");
 
@@ -115,10 +104,7 @@ pub fn edit_config_file() -> Result<(), AppError>
     "#);
     println!("{p}");
 
-    let dname = user_input()?;
-    if dname == "" {
-        dname = curr_db;
-    }
+    let dname = user_input_or_use_current(&curr_db)?;
     let db_name = format!(r#"db_name="{dname}""#);
     println!("    {db_name}");
 
@@ -135,103 +121,69 @@ pub fn edit_config_file() -> Result<(), AppError>
     "#, curr_df_value.display());
     println!("{p}");
 
-    let mut data_folder = "not valid".to_string();
-    while data_folder == "not valid".to_string() {
-        let users_data_folder_selection = user_input()?;
-        if users_data_folder_selection == "" {
-            data_folder = curr_df_value.clone();
-        }
-        else {
-            if folder_exists(&PathBuf::from(&users_data_folder_selection))
-            {
-                data_folder = users_data_folder_selection;
-            }
-            else
-            {
-                println!("{}", "That folder does not appear to exist - please try again");
-            }
-        }
-    }
+    let data_folder = get_folder_or_use_current(&curr_df_value)?;
     let data_folder_path = format!(r#"data_folder_path="{data_folder}""#);
     println!("    {data_folder_path}");
 
-    // check is a valid path - repeat request if not
-    // change single to dounble slashes
-   
-    let p1 = "OUTPUTS FOLDER";
-    let curr_value = current_config.folders.output_folder_path;
-    let p2 = "Please input the full path of the folder where the outputs from the program should be placed.";
-    let p3 = format!("To accept the current value ('{}') simply press enter, otherwise type the name and press enter.", curr_value.display().to_string());
-    let section = format!("\n{}\n{}\n{}\n", p1, p2, p3);
-    println!("{}", section);
+    let p = format!(r#"
+    OUTPUTS FOLDER
+    Please input the full path of the folder where the outputs from the program should be placed.
+    To accept the current value ('{}') simply press enter, otherwise type the name and press enter."#, curr_of_value.display());
+    println!("{p}");
 
-    let output_folder = user_input(curr_value.display().to_string())?;
-    let output_folder_path: String;
-    if output_folder == "" {
-        output_folder_path = format!("output_folder_path=\"{}\"", data_folder);
-    }
-    else {
-        let op_folder = output_folder.to_string().replace("\\", "/");
-        output_folder_path = format!("output_folder_path=\"{}\"", op_folder);
-    }
-    println!("{}", output_folder_path);
+    let output_folder = get_folder_or_use_current(&curr_of_value)?;
+    let output_folder_path = format!(r#"output_folder_path="{output_folder}""#);
+    println!("    {output_folder_path}");
+        
+    let p = format!(r#"
+    LOG FOLDER
+    Please input the full path of the folder where the logs from the program should be placed.
+    To accept the current value ('{}') simply press enter, otherwise type the name and press enter."#, curr_lf_value.display().to_string());
+    println!("{p}");
 
-    let p1 = "LOG FOLDER";
-    let curr_value = current_config.folders.log_folder_path;
-    let p2 = "Please input the full path of the folder where the logs from the program should be placed.";
-    let p3 = format!("To accept the current value ('{}') simply press enter, otherwise type the name and press enter.", curr_value.display().to_string());
-    let section = format!("\n{}\n{}\n{}\n", p1, p2, p3);
-    println!("{}", section);
-
-    let log_folder = user_input(curr_value.display().to_string())?;
-    let log_folder_path: String;
-    if log_folder == "" {
-        log_folder_path = format!("log_folder_path=\"{}\"", data_folder);
-    }
-    else {
-        let lg_folder = log_folder.to_string().replace("\\", "/");
-        log_folder_path = format!("log_folder_path=\"{}\"", lg_folder);
-    }
-    println!("{}", log_folder_path);
+    let log_folder = get_folder_or_use_current(&curr_lf_value)?;
+    let log_folder_path = format!(r#"log_folder_path="{log_folder}""#);
+    println!("    {log_folder_path}");
 
 
-    let p1 = "Section 3: DATA PARAMETERS";
-    let p2 = "SOURCE FILE NAME";
-    let curr_value = current_config.data_details.src_file_name;
-    let p3 = "The source file can be provided as a command line argument, or in the configuration file, or in both.";
-    let p4 = "NOTE that any source file name provided in the command line will over-write the value in the config file.";
-    let p5 = "NOTE also that without a source file named in the configuration file, i.e. if enter is pressed without ";
-    let p6 = "entering a value, a source file name will ALWAYS have to be provided in the command line.";
-    let p7 = format!("To accept the current value ('{}') simply press enter, otherwise type the name and press enter.", curr_value);
-    let section = format!("\n{}\n\n{}\n\n{}\n{}\n{}\n\n{}\n{}\n{}\n{}\n", p1, p2, star_line, p3, p4, p5, p6, p7, star_line);
-    println!("{}", section);
+    let curr_src_file = current_config.data_details.src_file_name;
 
-    let ppr_file = user_input(curr_value)?;
-    let ppr_file_name = format!("ppr_file_name=\"{}\"", ppr_file);
-    println!("{}", ppr_file_name);
+    let p = format!(r#"
+    Section 3: DATA PARAMETERS
+    
+    SOURCE FILE NAME
+    The source file can be provided as a command line argument, or in the configuration file, or in both.
+    NOTE that any source file name provided in the command line will over-write the value in the config file.
+    NOTE also that without a source file named in the configuration file, a source file name will ALWAYS have to be provided in the command line
+    To accept the current value ('{}') simply press enter, otherwise type the name and press enter."#, curr_src_file);
+    println!("{p}");
 
-    let mut data_version = format!("data_version=\"\"");
-    let mut data_date = format!("data_date=\"\"");
+    let src_file = user_input_or_use_current(&curr_src_file)?;
+    let src_file_name = format!(r#"ppr_file_name="{src_file}""#);
+    println!("    {}", src_file_name);
 
-    if ppr_file != "" {
+    let mut data_version = format!(r#"data_version="""#);  // defaults
+    let mut data_date = format!(r#"data_date="""#);
+    
+    if src_file != "" {
+        let p = r#"
+    As you have stored a source file name in the configuration you may need to also store
+    the associated data version and date. These can be left as the defaults (empty strings)
+    if the version and date can be derived from the source file name (see documentation for the required pattern)."#;
+        println!("{p}");
 
-        let p1 = "As you have stored a source file name in the configuration you may need to also store";
-        let p2 = "the associated data version and date. These can be left as the defaults (empty strings)";
-        let p3 = "if the version and date can be derived from the source file name (see documentation for the required pattern).";
-        let section = format!("\n{}\n{}\n{}\n", p1, p2, p3);
-        println!("{}", section);
+        let curr_data_version = current_config.data_details.data_version;
+        let curr_data_date = current_config.data_details.data_date;
+        
+        let p = format!(r#"
+    DATA VERSION
+    Please input the data version, as a 'v' followed by the version number, e.g. '1.56.1'.
+    To accept the current value ('{}') simply press enter, otherwise type the name and press enter."#, curr_data_version);
+        println!("{p}");
 
-
-        let p1 = "DATA VERSION";
-        let curr_value = current_config.data_details.data_version;
-        let p2 = "Please input the data version, as a 'v' followed by the version number, e.g. '1.56.1'.";
-        let p3 = format!("To accept the current value ('{}') simply press enter, otherwise type the name and press enter.", curr_value);
-        let section = format!("\n{}\n{}\n{}\n\n", p1, p2, p3);
-        println!("{}", section);
-
-        let mut d_version = "zzzz".to_string();
-        while d_version == "zzzz".to_string() {
-            let d_v = user_input(curr_value.clone())?;
+        let mut d_version = "no_valid_value".to_string();
+        while d_version == "no_valid_value".to_string() {
+            let d_v = user_input_or_use_current(&curr_data_version)?;
             if d_v == "".to_string() || is_compliant_version(&d_v)? {
                 d_version = d_v;
             }
@@ -240,20 +192,16 @@ pub fn edit_config_file() -> Result<(), AppError>
             }
         }
         data_version = format!("data_version=\"{}\"", d_version);
-        println!("{}", data_version);
 
-        // check starts with a v and has following digits / decimal points
-       
-        let p1 = "DATA DATE";
-        let curr_value = current_config.data_details.data_date;
-        let p2 = "Please input the data date as an ISO string, yyyy-MM-dd, e.g. '2025-07-22'.";
-        let p3 = format!("To accept the current value ('{}') simply press enter, otherwise type the name and press enter.", curr_value);
-        let section = format!("\n{}\n{}\n{}\n", p1, p2, p3);
-        println!("{}", section);
+        let p = format!(r#"
+    DATA DATE
+    Please input the data date as an ISO string, yyyy-MM-dd, e.g. '2025-07-22'.
+    To accept the current value ('{}') simply press enter, otherwise type the name and press enter."#, curr_data_date);
+        println!("{p}");
 
-        let mut d_date = "zzzz".to_string();
-        while d_date == "zzzz".to_string() {
-            let d_d = user_input(curr_value.clone())?;
+        let mut d_date = "no_valid_value".to_string();
+        while d_date == "no_valid_value".to_string() {
+            let d_d = user_input_or_use_current(&curr_data_date)?;
             if d_d == "".to_string() || NaiveDate::parse_from_str(&d_d, "%Y-%m-%d").is_ok() {
                 d_date = d_d;
             }
@@ -262,57 +210,15 @@ pub fn edit_config_file() -> Result<(), AppError>
             }
         }
         data_date = format!("data_date=\"{}\"", d_date);
-        println!("{}", data_date);
     }
+    println!("    {}", data_version);
+    println!("    {}", data_date);
 
-
-    let database_section = format!("[database]\n{}\n{}\n{}\n{}\n{}\n", db_host, db_user, db_password, db_port, db_name);
+    let data_section = format!("[data]\n{}\n{}\n{}\n", src_file_name, data_version, data_date);
     let folders_section = format!("[folders]\n{}\n{}\n{}\n", data_folder_path, output_folder_path, log_folder_path);
-    let data_section = format!("[data]\n{}\n{}\n{}\n", ppr_file_name, data_version, data_date);
+    let database_section = format!("[database]\n{}\n{}\n{}\n{}\n{}\n", db_host, db_user, db_password, db_port, db_name);
     let config_string = format!("\n{}\n\n{}\n\n{}\n", data_section, folders_section, database_section);
-
-    let mut file = File::create("./app_config.toml")     // creates new or truncates existing
-    .map_err(|e| AppError::IoWriteErrorWithPath( e, PathBuf::from("./app_config.toml")))?;
-
-    // Write to the file
-    file.write_all(config_string.as_bytes())
-        .map_err(|e| AppError::IoWriteErrorWithPath( e, PathBuf::from("./app_config.toml")))?;
+    write_out_file(&config_string)?;
     info!("Configuration file edits completed");
-    
     Ok(())
 }
-
-/* 
-fn user_input(curr_value: String) -> Result<String, AppError> {
-    print!(">>");
-    io::stdout().flush().unwrap(); 
-    let mut input = String::new();
-    io::stdin().read_line(&mut input)
-        .map_err(|e| AppError::UserInputError(e))?;
-    let mut res = input.trim().to_string();
-    if res == "" {
-        res = curr_value;
-    }
-    Ok(res)
-}
-
-
-fn folder_exists(folder_name: &PathBuf) -> bool {
-    let res = match folder_name.try_exists() {
-        Ok(true) => true,
-        Ok(false) => false, 
-        Err(_e) => false,           
-    };
-    res
-}
-
-
-fn is_compliant_version(input: &String) -> Result<bool, AppError> {
-    let version_pattern = r#"^v[0-9]+(\.[0-9]+){0,2}"#;
-    let re = Regex::new(version_pattern)
-        .map_err(|e| AppError::RegexError(e, version_pattern.to_string()))?;
-    Ok(re.is_match(&input))
-}
-
-*/
-
