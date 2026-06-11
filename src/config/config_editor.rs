@@ -23,54 +23,54 @@ pub fn edit_config_file() -> Result<(), AppError>
     "#;
     print!("{p}");
 
-    let curr_host = current_config.db_pars.db_host;
-    let curr_user = current_config.db_pars.db_user;
-    let curr_pwrd = current_config.db_pars.db_password;
-    let curr_port = current_config.db_pars.db_port;
-    let curr_db = current_config.db_pars.db_name;
+    let curr_host_entry = current_config.db_pars.db_host;
+    let curr_user_entry = current_config.db_pars.db_user;
+    let curr_pwrd_entry = current_config.db_pars.db_password;
+    let curr_port_entry = current_config.db_pars.db_port;
+    let curr_db_entry = current_config.db_pars.db_name;
      
     let p = format!(r#"
     Section 1: DATABASE PARAMETERS
 
     DATABASE HOST
     Please input the name of your database host (usually the server name or IP address).
-    To accept the current value ('{curr_host}') simply press enter, otherwise type the name 
+    To accept the current value ('{curr_host_entry}') simply press enter, otherwise type the name 
     and press enter.
     "#);
     println!("{p}");
  
-    let host = user_input_or_use_current(&curr_host)?;
-    let db_host = format!(r#"db_host="{host}""#);
-    println!("    {db_host}");
+    let host_entry = user_input_or_use_current(&curr_host_entry)?;
+    let db_host_entry = format!(r#"db_host="{host_entry}""#);
+    println!("    {db_host_entry}");
     
     let p = format!(r#"
     USER NAME
     Please input the name of the user account being used to access the database.
-    To accept the current value ('{curr_user}') simply press enter, otherwise type the name 
+    To accept the current value ('{curr_user_entry}') simply press enter, otherwise type the name 
     and press enter.
     "#);
     println!("{p}");
        
-    let user = user_input_or_use_current(&curr_user)?;
-    let db_user = format!(r#"db_user="{user}""#);
-    println!("    {db_user}");
+    let user = user_input_or_use_current(&curr_user_entry)?;
+    let db_user_entry = format!(r#"db_user="{user}""#);
+    println!("    {db_user_entry}");
 
     let p = format!(r#"
     USER PASSWORD
     Please input the name of the user password being used to access the database.
-    To accept the current value ('{curr_pwrd}') simply press enter, otherwise type the name
+    To accept the current value ('{curr_pwrd_entry}') simply press enter, otherwise type the name
     and press enter.
     "#);
     println!("{p}");
 
-    let password = user_input_or_use_current(&curr_pwrd)?;
-    let db_password = format!(r#"db_password="{password}""#);
-    println!("    {db_password}");
+    let password = user_input_or_use_current(&curr_pwrd_entry)?;
+    let db_password_entry= format!(r#"db_password="{password}""#);
+    println!("    {db_password_entry}");
 
     let p = format!(r#"
     PORT
     Please input the port number being used to access the database.
-    To accept the current value ('{curr_port}') simply press enter, otherwise 
+    To accept the current value ('{curr_port_entry}') simply press enter, otherwise 
     type the name and press enter.
      "#);
     println!("{p}");
@@ -79,30 +79,30 @@ pub fn edit_config_file() -> Result<(), AppError>
     while port < 0 {
         let users_port_selection = user_input()?;
         if users_port_selection == "" {
-            port = curr_port as i32;
+            port = curr_port_entry as i32;
         }
         else {
             port = get_port_as_integer(&users_port_selection);
         }
     }
-    let db_port = format!(r#"db_port="{port}""#);
-    println!("    {db_port}");
+    let db_port_entry = format!(r#"db_port="{port}""#);
+    println!("    {db_port_entry}");
 
     let p = format!(r#"
     DATABASE NAME
     Please input the name of the database.
-    To accept the current value ('{curr_db}') simply press enter, otherwise type the name 
+    To accept the current value ('{curr_db_entry}') simply press enter, otherwise type the name 
     and press enter.
     "#);
     println!("{p}");
 
-    let dname = user_input_or_use_current(&curr_db)?;
-    let db_name = format!(r#"db_name="{dname}""#);
-    println!("    {db_name}");
+    let dname = user_input_or_use_current(&curr_db_entry)?;
+    let db_name_entry = format!(r#"db_name="{dname}""#);
+    println!("    {db_name_entry}");
 
-    let curr_df_value = current_config.folders.data_folder_path;
-    let curr_of_value = current_config.folders.output_folder_path;
-    let curr_lf_value = current_config.folders.log_folder_path;
+    let curr_df_value = get_pathbuf_as_string(&current_config.folders.data_folder_path)?;
+    let curr_of_value = get_pathbuf_as_string(&current_config.folders.output_folder_path)?;
+    let curr_lf_value = get_pathbuf_as_string(&current_config.folders.log_folder_path)?;
     
     let p = format!(r#"
     Section 2: FOLDERS
@@ -110,32 +110,32 @@ pub fn edit_config_file() -> Result<(), AppError>
     DATA FOLDER
     Please input the full (Linux / Posix) path of the folder where the ROR JSON source file is to be found.
     let p4 = format!("To accept the current value ('{}') simply press enter, otherwise type the name and press enter.
-    "#, curr_df_value.display());
+    "#, curr_df_value);
     println!("{p}");
 
     let data_folder = get_folder_or_use_current(&curr_df_value)?;
-    let data_folder_path = format!(r#"data_folder_path="{data_folder}""#);
-    println!("    {data_folder_path}");
+    let data_folder_entry = format!(r#"data_folder_path="{data_folder}""#);
+    println!("    {data_folder_entry}");
 
     let p = format!(r#"
     OUTPUTS FOLDER
     Please input the full path of the folder where the outputs from the program should be placed.
-    To accept the current value ('{}') simply press enter, otherwise type the name and press enter."#, curr_of_value.display());
+    To accept the current value ('{}') simply press enter, otherwise type the name and press enter."#, curr_of_value);
     println!("{p}");
 
     let output_folder = get_folder_or_use_current(&curr_of_value)?;
-    let output_folder_path = format!(r#"output_folder_path="{output_folder}""#);
-    println!("    {output_folder_path}");
+    let output_folder_entry = format!(r#"output_folder_path="{output_folder}""#);
+    println!("    {output_folder_entry}");
         
     let p = format!(r#"
     LOG FOLDER
     Please input the full path of the folder where the logs from the program should be placed.
-    To accept the current value ('{}') simply press enter, otherwise type the name and press enter."#, curr_lf_value.display().to_string());
+    To accept the current value ('{}') simply press enter, otherwise type the name and press enter."#, curr_lf_value);
     println!("{p}");
 
     let log_folder = get_folder_or_use_current(&curr_lf_value)?;
-    let log_folder_path = format!(r#"log_folder_path="{log_folder}""#);
-    println!("    {log_folder_path}");
+    let log_folder_entry = format!(r#"log_folder_path="{log_folder}""#);
+    println!("    {log_folder_entry}");
 
 
     let curr_src_file = current_config.data_details.src_file_name;
@@ -151,11 +151,11 @@ pub fn edit_config_file() -> Result<(), AppError>
     println!("{p}");
 
     let src_file = user_input_or_use_current(&curr_src_file)?;
-    let src_file_name = format!(r#"ppr_file_name="{src_file}""#);
-    println!("    {}", src_file_name);
+    let src_file_entry = format!(r#"ppr_file_name="{src_file}""#);
+    println!("    {}", src_file_entry);
 
-    let mut data_version = format!(r#"data_version="""#);  // defaults
-    let mut data_date = format!(r#"data_date="""#);
+    let mut data_version_entry = format!(r#"data_version="""#);  // defaults
+    let mut data_date_entry = format!(r#"data_date="""#);
     
     if src_file != "" {
         let p = r#"
@@ -183,7 +183,7 @@ pub fn edit_config_file() -> Result<(), AppError>
                 println!("    The version entered does not conform to the pattern required - please try again");
             }
         }
-        data_version = format!(r#"data_version="{d_version}""#);
+        data_version_entry= format!(r#"data_version="{d_version}""#);
 
         let p = format!(r#"
     DATA DATE
@@ -201,14 +201,14 @@ pub fn edit_config_file() -> Result<(), AppError>
                 d_date = get_valid_date_string(&users_date_selection);
             }
         }
-        data_date = format!(r#"data_date="{d_date}""#);
+        data_date_entry = format!(r#"data_date="{d_date}""#);
     }
-    println!("    {}", data_version);
-    println!("    {}", data_date);
+    println!("    {}", data_version_entry);
+    println!("    {}", data_date_entry);
 
-    let data_section = format!("[data]\n{}\n{}\n{}\n", src_file_name, data_version, data_date);
-    let folders_section = format!("[folders]\n{}\n{}\n{}\n", data_folder_path, output_folder_path, log_folder_path);
-    let database_section = format!("[database]\n{}\n{}\n{}\n{}\n{}\n", db_host, db_user, db_password, db_port, db_name);
+    let data_section = format!("[data]\n{}\n{}\n{}\n", src_file_entry, data_version_entry, data_date_entry);
+    let folders_section = format!("[folders]\n{}\n{}\n{}\n", data_folder_entry, output_folder_entry, log_folder_entry);
+    let database_section = format!("[database]\n{}\n{}\n{}\n{}\n{}\n", db_host_entry, db_user_entry, db_password_entry, db_port_entry, db_name_entry);
     let config_string = format!("\n{}\n\n{}\n\n{}\n", data_section, folders_section, database_section);
     write_out_file(&config_string)?;
     info!("Configuration file edits completed");

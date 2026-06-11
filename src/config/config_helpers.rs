@@ -108,13 +108,13 @@ pub fn get_folder() -> Result<String, AppError> {
 }
 
 
-pub fn get_folder_or_use_current(curr_value: &PathBuf) -> Result<String, AppError> { 
+pub fn get_folder_or_use_current(curr_value: &String) -> Result<String, AppError> { 
     
     let mut putative_folder = "not valid".to_string();
     while putative_folder == "not valid".to_string() {
         let users_selection = user_input()?;
         if users_selection == "" {
-            putative_folder = get_as_string(curr_value)?;
+            putative_folder = curr_value.to_string();
         }
         else {
             if folder_exists(&PathBuf::from(&users_selection))
@@ -159,7 +159,7 @@ pub fn folder_exists(folder_name: &PathBuf) -> bool {
 }
 
 
-pub fn get_as_string(folder_path: &PathBuf) -> Result<String, AppError> {
+pub fn get_pathbuf_as_string(folder_path: &PathBuf) -> Result<String, AppError> {
     match folder_path.clone().into_os_string().into_string() {
         Ok(s) => Ok(s),
         Err(e) => Err(AppError::NonUTF8PathError(e)),    
