@@ -1,6 +1,5 @@
 use crate::err::AppError;
 use super::config_helpers::*;
-use chrono::{NaiveDate, Local};
 use log::info;
 
 pub fn create_config_file() -> Result<(), AppError>
@@ -24,12 +23,7 @@ pub fn create_config_file() -> Result<(), AppError>
     "#;
     println!("{p}");
  
-    let mut host = user_input()?;
-    let mut suffix = "";
-    if host == "" {
-        host = "localhost".to_string();
-        suffix = " (= default)";
-    }
+    let (host, suffix) = user_input_or_default("localhost")?;
     let db_host = format!(r#"db_host="{host}""#);
     println!("    {db_host}{suffix}");
     
@@ -40,7 +34,7 @@ pub fn create_config_file() -> Result<(), AppError>
     "#;
     println!("{p}");
 
-    let user = user_input()?;
+    let user = user_input_no_default()?;
     let db_user = format!(r#"db_user="{user}""#);
     println!("    {db_user}");
 
@@ -51,7 +45,7 @@ pub fn create_config_file() -> Result<(), AppError>
     "#;
     println!("{p}");
 
-    let password = user_input()?;
+    let password = user_input_no_default()?;
     let db_password = format!(r#"db_password="{password}""#);
     println!("    {db_password}");
 
@@ -71,14 +65,7 @@ pub fn create_config_file() -> Result<(), AppError>
             suffix = " (= default)";
         }
         else {
-            port = match users_port_selection.parse()
-            {
-                Ok(n) => n,
-                Err(_) => {
-                    println!("{}", "The port must be input as an integer!");
-                    -1
-                },
-            };
+            port = get_port_as_integer(&users_port_selection);
         }
     }
     let db_port = format!(r#"db_port="{port}""#);
@@ -91,12 +78,7 @@ pub fn create_config_file() -> Result<(), AppError>
     "#;
     println!("{p}");
 
-    let mut suffix = "";
-    let mut dname = user_input()?;
-    if dname == "" {
-        dname = "ror".to_string();
-        suffix = " (= default)";
-    }
+    let (dname, suffix) = user_input_or_default("ror")?;
     let db_name = format!(r#"db_name="{dname}""#);
     println!("    {db_name}{suffix}");
 
@@ -155,19 +137,19 @@ pub fn create_config_file() -> Result<(), AppError>
 
     if users_src_file_selection != "" {
 
-        let p1 = r#"
+        let p = r#"
     As you have stored a source file name in the configuration you may need to also store
     the associated data version and date. These can be left as the defaults (empty strings)
     if the version and date can be derived from the source file name (see documentation for the required pattern).
     "#;
-        println!("{p1}");
+        println!("{p}");
 
-        let p1 = r#"
+        let p = r#"
     DATA VERSION
-    Please input the data version, as a 'v' followed by the version number, e.g. '1.56.1'.
+    Please input the data version, as a 'v' followed by the version number in ROR's versioning format, e.g. '1.56.1'.
     To accept the default (an empty string) simply press enter, otherwise type the version and press enter.
     "#;
-        println!("{p1}");
+        println!("{p}");
 
         let mut suffix = "";
         let mut d_version = "no_valid_value".to_string();
@@ -181,18 +163,18 @@ pub fn create_config_file() -> Result<(), AppError>
                 d_version = users_version_selection;
             }
             else {
-                println!("{}", "The version entered does not conform to the pattern required - please try again");
+                println!("    The version entered does not conform to the pattern required - please try again");
             }
         }
         data_version = format!(r#"data_version="{d_version}""#);
         println!("    {data_version}{suffix}");
 
-        let p1 = r#"
+        let p = r#"
     DATA DATE
     Please input the data date as an ISO string, yyyy-MM-dd, e.g. '2025-07-22'.
     To accept the default (an empty string) simply press enter, otherwise type the date and press enter.
     "#;
-        println!("{p1}");
+        println!("{p}");
 
         let mut suffix = "";
         let mut d_date = "no_valid_value".to_string();
@@ -203,20 +185,7 @@ pub fn create_config_file() -> Result<(), AppError>
                 suffix = " (= default)";
             }
             else {
-                match NaiveDate::parse_from_str(&users_date_selection, "%Y-%m-%d") {
-                    Ok(nd) => {
-                        let today = Local::now().date_naive();
-                        if nd > today {
-                            println!("{}", "The date entered is after today (!) - please try again");
-                        }
-                        else {
-                            d_date = users_date_selection;
-                        }
-                    },
-                    Err(_) => {
-                        println!("{}", "The date entered does not conform to the ISO pattern (yyyy-MM-dd) required - please try again");
-                    },
-                }
+                d_date = get_valid_date_string(&users_date_selection);
             }
         }
         data_date = format!(r#"data_date="{d_date}""#);

@@ -4,6 +4,7 @@ use std::io::Write;
 use std::path::PathBuf;
 use regex::Regex;
 use std::fs::File;
+use chrono::{NaiveDate, Local};
 
 
 pub fn user_input() -> Result<String, AppError> {
@@ -12,6 +13,42 @@ pub fn user_input() -> Result<String, AppError> {
     let mut input = String::new();        // establish buffer
     match io::stdin().read_line(&mut input) {
         Ok(_) => Ok(input.trim().to_string()),      // Ok value is number of bytes read (as usize)
+        Err(e) => Err(AppError::UserInputError(e)),
+    }
+}
+
+
+pub fn user_input_no_default() -> Result<String, AppError> {
+    let mut putative_value = "not valid".to_string();
+    while putative_value == "not valid".to_string() {
+        let users_selection = user_input()?;
+        if users_selection.trim() != ""
+        {
+            putative_value = users_selection;
+        }
+        else
+        {
+            println!("    You must provide a value for this parameter! - please try again");
+        }
+    }
+    Ok(putative_value)
+}
+
+
+pub fn user_input_or_default(default_value: &str) -> Result<(String, String), AppError> {
+    print!("    >> ");
+    io::stdout().flush().unwrap();        // ensure >> prompt is shown
+    let mut input = String::new();        // establish buffer
+    match io::stdin().read_line(&mut input) {
+        Ok(_) => {
+            let mut suffix = "".to_string();
+            let mut res = input.trim().to_string();
+            if res == "" {
+                res = default_value.to_string();
+                suffix = " (= default)".to_string();
+            }
+            Ok((res, suffix))
+        },          
         Err(e) => Err(AppError::UserInputError(e)),
     }
 }
@@ -34,6 +71,25 @@ pub fn user_input_or_use_current(curr_value: &String) -> Result<String, AppError
 }
 
 
+pub fn get_port_as_integer (port_string: &String) -> i32 {
+    match port_string.parse()
+    {
+        Ok(n) => {
+            if n < 0 {
+                println!("    The port must be input as a positive integer!");
+                -1
+            }
+            else {
+                n
+            }
+        },
+        Err(_) => {
+            println!("    The port must be input as a positive integer!");
+            -1
+        },
+    }
+}
+
 pub fn get_folder() -> Result<String, AppError> { 
     
     let mut putative_folder = "not valid".to_string();
@@ -45,7 +101,7 @@ pub fn get_folder() -> Result<String, AppError> {
         }
         else
         {
-            println!("{}", "That folder does not appear to exist - please try again");
+            println!("    That folder does not appear to exist - please try again");
         }
     }
     Ok(putative_folder)
@@ -67,11 +123,31 @@ pub fn get_folder_or_use_current(curr_value: &PathBuf) -> Result<String, AppErro
             }
             else
             {
-                println!("{}", "That folder does not appear to exist - please try again");
+                println!("    That folder does not appear to exist - please try again");
             }
         }
     }
     Ok(putative_folder)
+}
+
+
+pub fn get_valid_date_string(date_string: &String) -> String {
+    match NaiveDate::parse_from_str(date_string, "%Y-%m-%d") {
+        Ok(nd) => {
+            let today = Local::now().date_naive();
+            if nd > today {
+                println!("    The date entered is after today (!) - please try again");
+                "no_valid_value".to_string()
+            }
+            else {
+                date_string.to_string()
+            }
+        },
+        Err(_) => {
+            println!("    The date entered does not conform to the ISO pattern (yyyy-MM-dd) required - please try again");
+            "no_valid_value".to_string()
+        },
+    }
 }
 
 

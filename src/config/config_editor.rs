@@ -1,7 +1,6 @@
 use crate::err::AppError;
 use super::config_helpers::*;
 use std::path::PathBuf;
-use chrono::NaiveDate;
 use std::fs;
 use crate::setup::config_reader::{Config, populate_config_vars};
 use log::info;
@@ -83,14 +82,7 @@ pub fn edit_config_file() -> Result<(), AppError>
             port = curr_port as i32;
         }
         else {
-            port = match users_port_selection.parse()
-            {
-                Ok(n) => n,
-                Err(_) => {
-                    println!("{}", "The port must be input as an integer!");
-                    -1
-                },
-            };
+            port = get_port_as_integer(&users_port_selection);
         }
     }
     let db_port = format!(r#"db_port="{port}""#);
@@ -177,21 +169,21 @@ pub fn edit_config_file() -> Result<(), AppError>
         
         let p = format!(r#"
     DATA VERSION
-    Please input the data version, as a 'v' followed by the version number, e.g. '1.56.1'.
+    Please input the data version, as a 'v' followed by the version number in ROR's versioning format, e.g. '1.56.1'.
     To accept the current value ('{}') simply press enter, otherwise type the name and press enter."#, curr_data_version);
         println!("{p}");
 
         let mut d_version = "no_valid_value".to_string();
         while d_version == "no_valid_value".to_string() {
-            let d_v = user_input_or_use_current(&curr_data_version)?;
-            if d_v == "".to_string() || is_compliant_version(&d_v)? {
-                d_version = d_v;
+            let users_version_selection = user_input_or_use_current(&curr_data_version)?;
+            if users_version_selection == "".to_string() || is_compliant_version(&users_version_selection)? {
+                d_version = users_version_selection;
             }
             else {
-                println!("{}", "The version entered does not conform to the pattern required - please try again");
+                println!("    The version entered does not conform to the pattern required - please try again");
             }
         }
-        data_version = format!("data_version=\"{}\"", d_version);
+        data_version = format!(r#"data_version="{d_version}""#);
 
         let p = format!(r#"
     DATA DATE
@@ -201,15 +193,15 @@ pub fn edit_config_file() -> Result<(), AppError>
 
         let mut d_date = "no_valid_value".to_string();
         while d_date == "no_valid_value".to_string() {
-            let d_d = user_input_or_use_current(&curr_data_date)?;
-            if d_d == "".to_string() || NaiveDate::parse_from_str(&d_d, "%Y-%m-%d").is_ok() {
-                d_date = d_d;
+            let users_date_selection = user_input_or_use_current(&curr_data_date)?;
+            if users_date_selection == "".to_string() {
+                d_date = "".to_string();
             }
             else {
-                println!("{}", "The date entered does not conform to the ISO pattern (yyyy-MM-dd) required - please try again");
+                d_date = get_valid_date_string(&users_date_selection);
             }
         }
-        data_date = format!("data_date=\"{}\"", d_date);
+        data_date = format!(r#"data_date="{d_date}""#);
     }
     println!("    {}", data_version);
     println!("    {}", data_date);

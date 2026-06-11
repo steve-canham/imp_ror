@@ -2,6 +2,8 @@ A program to process and summarise ROR organisation data, as made available by R
 on Zenodo (see https://ror.readme.io/docs/data-dump). A new version of the data is posted 
 on a roughly monthly basis. 
 
+<b>*** N.B. The program is written and tested on Linux (Kubuntu 24.04). It assumes file paths to be in the posix style, i.e. with forward slashes. It should therefore also work, but has not been tested, on Macs. The current version will NOT work on Windows machines, because of the different file path format, even though the program began development on Windows 11. It is hoped to provide a cross platform version, that recognises both file path formats, at a later date. ***</b>
+
 The program processes and retains a single version at a time, 
 but retains summaries of the key features of all versions imported. Data is stored using a 
 Postgres database. As outputs, the system can summarise any specific version as a text file, 
@@ -12,7 +14,7 @@ The system uses the version 2 schema files as input, and so covers data
 made available from April 2024 onwards. It can handle versions 2.0 and 2.1, the latter in 
 use from December 2024.
 
-The system is written in Rust and uses a command line interface (CLI) for control. 
+The system is written in Rust and uses a command line interface (CLI) for control.
 <i>N.B. At the moment, the program is not yet available as a stand alone .exe or .lib file, 
 though it is hoped to create these in the future. The current system therefore needs the 
 source code to be downloaded and then run within a Rust development environment.</i>
@@ -138,4 +140,13 @@ The folowing command line arguments are available:
 <li>Export csv code process changed to use Rust code directly (using the 'csv' crate) rather than delegating to the Postgres 'Copy' command. <br/>
 This was because on Linux permissions to write files are more restricted, (compared to Windows) and setting the required permissions for the Postgres account is difficult.<br/>
 Using the user's own permissions, running the Rust executable through cargo run, is easier and more transparent to manage.</li>
+</ul>
+
+<h4>Version 1.4</h4>
+11/06/2026  -  Changes:
+<ul>
+<li>All code reviewd, with substantial refactoring and simplification in many source files.</li>
+<li>Code changed to be more idiomatic Rust where possible, e.g. greater use of guarded match arms</li>
+<li>SQL code for creation of tables removed from Rust files and provided as sql scripts instead (referenced directly by the Rust code)</li>
+<li>Creating and editing configuration file separated from setup and code substantially improved.</li>
 </ul>
