@@ -4,16 +4,26 @@ use log::info;
 
 pub fn create_config_file() -> Result<(), AppError>
 {
+    // *****************************************************
+    // Introduction.
+    // *****************************************************
+    
     let p = r#"
     **********************************************************************************
         WELCOME TO IMP_ROR               INITIAL CONFIGURATION SET UP
     **********************************************************************************
-    The initial task is to set up an app_config file, to hold the details needed
-    to connect to the database, and some required folder paths. The program will ask a 
-    series of questions to obtain the parameters. Defaults are available in some cases.
+
+    The initial task is to set up an app_config file, containing the parameters needed
+    to connect to the database, some required folder paths, and some optional 
+    details about the data source file. The program will prompt for a value for each 
+    of the parameters. Defaults are available in some cases.
     "#;
     print!("{p}");
 
+    // *****************************************************
+    // Database parameters.
+    // *****************************************************
+    
     let p = r#"
     Section 1: DATABASE PARAMETERS
 
@@ -82,6 +92,10 @@ pub fn create_config_file() -> Result<(), AppError>
     let db_name_entry = format!(r#"db_name="{dname}""#);
     println!("    {db_name_entry}{suffix}");
 
+    // *****************************************************
+    // Folder parameters.
+    // *****************************************************
+    
     let p = r#"
     Section 2: FOLDERS
     
@@ -117,6 +131,10 @@ pub fn create_config_file() -> Result<(), AppError>
     let log_folder_entry = format!(r#"log_folder_path="{log_folder}""#);
     println!("    {log_folder_entry}");
 
+    // *****************************************************
+    // Data parameters.
+    // *****************************************************
+    
     let p = r#"
     Section 3: DATA PARAMETERS
     
@@ -192,6 +210,10 @@ pub fn create_config_file() -> Result<(), AppError>
         println!("    {data_date_entry}{suffix}");
     }
 
+    // *****************************************************
+    // Create file.
+    // *****************************************************
+    
     let data_section = format!("[data]\n{}\n{}\n{}\n", src_file_entry, data_version_entry, data_date_entry);
     let folders_section = format!("[folders]\n{}\n{}\n{}\n", data_folder_entry, output_folder_entry, log_folder_entry);
     let database_section = format!("[database]\n{}\n{}\n{}\n{}\n{}\n", db_host_entry, db_user_entry, db_password_entry, db_port_entry, db_name_entry);

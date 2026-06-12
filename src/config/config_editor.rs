@@ -7,28 +7,40 @@ use log::info;
 
 pub fn edit_config_file() -> Result<(), AppError>
 {
-    // config file already exists so first get the current file
+    // *****************************************************
+    // Obtain the existing configuratrion.
+    // *****************************************************
 
     let config_file = PathBuf::from("./app_config.toml");
     let config_string: String = fs::read_to_string(&config_file)
                     .map_err(|e| AppError::IoReadErrorWithPath(e, config_file))?;
     let current_config: Config = populate_config_vars(&config_string)?; 
 
+    // *****************************************************
+    // Introduction.
+    // *****************************************************
+    
     let p = r#"
     **********************************************************************************
-        WELCOME TO IMP_ROR               EDITING EXISTING CONFIGURATION FILE
+                          EDITING EXISTING CONFIGURATION FILE
     **********************************************************************************
-    N.B. For each of the data points below, pressing return will transfer the existing
+
+    The program will prompt for a value for each of the required parameters. 
+    N.B. In each case, pressing return will transfer the existing
     configuration parameter (shown in brackets in the prompt) to the edited file.
     "#;
     print!("{p}");
+
+    // *****************************************************
+    // Database parameters.
+    // *****************************************************
 
     let curr_host_entry = current_config.db_pars.db_host;
     let curr_user_entry = current_config.db_pars.db_user;
     let curr_pwrd_entry = current_config.db_pars.db_password;
     let curr_port_entry = current_config.db_pars.db_port;
     let curr_db_entry = current_config.db_pars.db_name;
-     
+    
     let p = format!(r#"
     Section 1: DATABASE PARAMETERS
 
@@ -39,7 +51,7 @@ pub fn edit_config_file() -> Result<(), AppError>
     "#);
     println!("{p}");
  
-    let host_entry = user_input_or_use_current(&curr_host_entry)?;
+    let host_entry = user_input_or_current(&curr_host_entry)?;
     let db_host_entry = format!(r#"db_host="{host_entry}""#);
     println!("    {db_host_entry}");
     
@@ -51,7 +63,7 @@ pub fn edit_config_file() -> Result<(), AppError>
     "#);
     println!("{p}");
        
-    let user = user_input_or_use_current(&curr_user_entry)?;
+    let user = user_input_or_current(&curr_user_entry)?;
     let db_user_entry = format!(r#"db_user="{user}""#);
     println!("    {db_user_entry}");
 
@@ -63,7 +75,7 @@ pub fn edit_config_file() -> Result<(), AppError>
     "#);
     println!("{p}");
 
-    let password = user_input_or_use_current(&curr_pwrd_entry)?;
+    let password = user_input_or_current(&curr_pwrd_entry)?;
     let db_password_entry= format!(r#"db_password="{password}""#);
     println!("    {db_password_entry}");
 
@@ -96,9 +108,13 @@ pub fn edit_config_file() -> Result<(), AppError>
     "#);
     println!("{p}");
 
-    let dname = user_input_or_use_current(&curr_db_entry)?;
+    let dname = user_input_or_current(&curr_db_entry)?;
     let db_name_entry = format!(r#"db_name="{dname}""#);
     println!("    {db_name_entry}");
+
+    // *****************************************************
+    // Folder parameters.
+    // *****************************************************
 
     let curr_df_value = get_pathbuf_as_string(&current_config.folders.data_folder_path)?;
     let curr_of_value = get_pathbuf_as_string(&current_config.folders.output_folder_path)?;
@@ -109,7 +125,8 @@ pub fn edit_config_file() -> Result<(), AppError>
     
     DATA FOLDER
     Please input the full (Linux / Posix) path of the folder where the ROR JSON source file is to be found.
-    let p4 = format!("To accept the current value ('{}') simply press enter, otherwise type the name and press enter.
+    To accept the current value ({}) 
+    simply press enter, otherwise type the name and press enter.
     "#, curr_df_value);
     println!("{p}");
 
@@ -120,7 +137,8 @@ pub fn edit_config_file() -> Result<(), AppError>
     let p = format!(r#"
     OUTPUTS FOLDER
     Please input the full path of the folder where the outputs from the program should be placed.
-    To accept the current value ('{}') simply press enter, otherwise type the name and press enter."#, curr_of_value);
+    To accept the current value ({}) 
+    simply press enter, otherwise type the name and press enter."#, curr_of_value);
     println!("{p}");
 
     let output_folder = get_folder_or_use_current(&curr_of_value)?;
@@ -130,14 +148,18 @@ pub fn edit_config_file() -> Result<(), AppError>
     let p = format!(r#"
     LOG FOLDER
     Please input the full path of the folder where the logs from the program should be placed.
-    To accept the current value ('{}') simply press enter, otherwise type the name and press enter."#, curr_lf_value);
+    To accept the current value ({}) 
+    simply press enter, otherwise type the name and press enter."#, curr_lf_value);
     println!("{p}");
 
     let log_folder = get_folder_or_use_current(&curr_lf_value)?;
     let log_folder_entry = format!(r#"log_folder_path="{log_folder}""#);
     println!("    {log_folder_entry}");
 
-
+    // *****************************************************
+    // Data parameters.
+    // *****************************************************
+    
     let curr_src_file = current_config.data_details.src_file_name;
 
     let p = format!(r#"
@@ -146,13 +168,20 @@ pub fn edit_config_file() -> Result<(), AppError>
     SOURCE FILE NAME
     The source file can be provided as a command line argument, or in the configuration file, or in both.
     NOTE that any source file name provided in the command line will over-write the value in the config file.
-    NOTE also that without a source file named in the configuration file, a source file name will ALWAYS have to be provided in the command line
-    To accept the current value ('{}') simply press enter, otherwise type the name and press enter."#, curr_src_file);
+    NOTE also that without a source file named in the configuration file, a source file name will ALWAYS have to be provided in the command line.
+    To accept the current value ('{}') simply press enter, otherwise type the name and press enter.
+    If there is currently a source file name and you wish to remove it type an empty string (""). 
+    In this case the version and date will also be blanked.
+    "#, curr_src_file);
     println!("{p}");
 
-    let src_file = user_input_or_use_current(&curr_src_file)?;
-    let src_file_entry = format!(r#"ppr_file_name="{src_file}""#);
-    println!("    {}", src_file_entry);
+    let mut src_file = user_input_or_current(&curr_src_file)?;
+    let mut src_file_entry = format!(r#"src_file_name="{src_file}""#);
+    if src_file == r#""""# {  // i.e. has been put back to empty string
+        src_file = "".to_string();
+        src_file_entry = format!(r#"src_file_name="""#);
+    }
+    println!("    {src_file_entry}");
 
     let mut data_version_entry = format!(r#"data_version="""#);  // defaults
     let mut data_date_entry = format!(r#"data_date="""#);
@@ -170,12 +199,13 @@ pub fn edit_config_file() -> Result<(), AppError>
         let p = format!(r#"
     DATA VERSION
     Please input the data version, as a 'v' followed by the version number in ROR's versioning format, e.g. '1.56.1'.
-    To accept the current value ('{}') simply press enter, otherwise type the name and press enter."#, curr_data_version);
+    To accept the current value ('{}') simply press enter, otherwise type the name and press enter.
+    "#, curr_data_version);
         println!("{p}");
 
         let mut d_version = "no_valid_value".to_string();
         while d_version == "no_valid_value".to_string() {
-            let users_version_selection = user_input_or_use_current(&curr_data_version)?;
+            let users_version_selection = user_input_or_current(&curr_data_version)?;
             if users_version_selection == "".to_string() || is_compliant_version(&users_version_selection)? {
                 d_version = users_version_selection;
             }
@@ -188,12 +218,13 @@ pub fn edit_config_file() -> Result<(), AppError>
         let p = format!(r#"
     DATA DATE
     Please input the data date as an ISO string, yyyy-MM-dd, e.g. '2025-07-22'.
-    To accept the current value ('{}') simply press enter, otherwise type the name and press enter."#, curr_data_date);
+    To accept the current value ('{}') simply press enter, otherwise type the name and press enter.
+    "#, curr_data_date);
         println!("{p}");
 
         let mut d_date = "no_valid_value".to_string();
         while d_date == "no_valid_value".to_string() {
-            let users_date_selection = user_input_or_use_current(&curr_data_date)?;
+            let users_date_selection = user_input_or_current(&curr_data_date)?;
             if users_date_selection == "".to_string() {
                 d_date = "".to_string();
             }
@@ -206,6 +237,10 @@ pub fn edit_config_file() -> Result<(), AppError>
     println!("    {}", data_version_entry);
     println!("    {}", data_date_entry);
 
+    // *****************************************************
+    // Recreate file.
+    // *****************************************************
+    
     let data_section = format!("[data]\n{}\n{}\n{}\n", src_file_entry, data_version_entry, data_date_entry);
     let folders_section = format!("[folders]\n{}\n{}\n{}\n", data_folder_entry, output_folder_entry, log_folder_entry);
     let database_section = format!("[database]\n{}\n{}\n{}\n{}\n{}\n", db_host_entry, db_user_entry, db_password_entry, db_port_entry, db_name_entry);

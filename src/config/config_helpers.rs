@@ -54,7 +54,7 @@ pub fn user_input_or_default(default_value: &str) -> Result<(String, String), Ap
 }
 
 
-pub fn user_input_or_use_current(curr_value: &String) -> Result<String, AppError> {
+pub fn user_input_or_current(curr_value: &String) -> Result<String, AppError> {
     print!("    >> ");
     io::stdout().flush().unwrap(); 
     let mut input = String::new();
@@ -168,7 +168,7 @@ pub fn get_pathbuf_as_string(folder_path: &PathBuf) -> Result<String, AppError> 
 
 
 pub fn is_compliant_version(input: &String) -> Result<bool, AppError> {
-    let version_pattern = r#"^v[0-9]+(\.[0-9]+){0,2}"#;
+    let version_pattern = r#"^v[0-9]+(\.[0-9]+){0,2}$"#;
     let re = Regex::new(version_pattern)
         .map_err(|e| AppError::RegexError(e, version_pattern.to_string()))?;
     Ok(re.is_match(&input))
