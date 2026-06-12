@@ -3,6 +3,7 @@ mod data_processor;
 mod rmv_dup_names;
 mod script_coder;
 
+use crate::sql::create_ppr_tables;
 use sqlx::{Pool, Postgres};
 use crate::AppError;
 
@@ -12,7 +13,7 @@ pub async fn process_data(data_version: &String, pool : &Pool<Postgres>) -> Resu
     // First recreate the ppr schema tables - sqlscript in file (path is relative
     // and Linux specific - Windows would need a similar string but with backslashes)
 
-    let sql = include_str!("../../sql/create_ppr_tables.sql");
+    let sql = create_ppr_tables::get_sql();
     sqlx::raw_sql(sql).execute(pool)
         .await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;

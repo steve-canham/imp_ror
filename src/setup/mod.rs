@@ -14,6 +14,11 @@ pub mod config_reader;
 pub mod db_pars;
 pub mod log_helper;
 
+use crate::sql::create_lup_tables;
+use crate::sql::create_countries_table;
+use crate::sql::create_lang_codes_table;
+use crate::sql::create_scripts_table;
+
 use std::sync::OnceLock;
 use crate::err::AppError;
 use chrono::NaiveDate;
@@ -201,69 +206,24 @@ pub fn log_set_up() -> bool {
     }
 }
 
-/* 
-pub fn create_config() -> Result<(), AppError>
-{
-    match config_writer::create_config_file()
-    {
-        Ok(()) => info!("Configuration file creation completed"),
-        Err(e) => {
-        error!("An error occured while editing the configuration file: {}", e);
-        return Err(e)
-        },
-    }
-    Ok(())
-}
-
-
-pub fn edit_config() -> Result<(), AppError>
-{
-    match config_editor::edit_config_file()
-    {
-        Ok(()) => info!("Configuration file edits completed"),
-        Err(e) => {
-        error!("An error occured while editing the configuration file: {}", e);
-        return Err(e)
-        },
-    }
-    Ok(())
-}
-*/
 
 pub async fn create_lup_tables(pool : &Pool<Postgres>) -> Result<(), AppError>
 {
-    let sql = include_str!("../../sql/create_lup_tables.sql");
+    let sql = create_lup_tables::get_sql();
     sqlx::raw_sql(sql).execute(pool).await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
-    let sql = include_str!("../../sql/create_countries_table.sql");
+    let sql = create_countries_table::get_sql();
     sqlx::raw_sql(sql).execute(pool).await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
-    let sql = include_str!("../../sql/create_lang_codes_table.sql");
+    let sql = create_lang_codes_table::get_sql();
     sqlx::raw_sql(sql).execute(pool).await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
-    let sql = include_str!("../../sql/create_scripts_table.sql");
+    let sql = create_scripts_table::get_sql();
     sqlx::raw_sql(sql).execute(pool).await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-
-    /*
-    match lup_create_tables::create_tables(pool).await {
-        Ok(()) => info!("Tables created for lup schema"),
-        Err(e) => {
-            error!("An error occured while creating the lup schema tables: {}", e);
-            return Err(e)
-            },
-    };
-    match lup_fill_tables::fill_tables(pool).await {
-        Ok(()) => info!("Data added to lup tables"),
-        Err(e) => {
-            error!("An error occured while inserting data into the lup schema tables: {}", e);
-            return Err(e)
-            },
-    };
-    */
 
     Ok(())
 }

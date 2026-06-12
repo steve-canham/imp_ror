@@ -5,6 +5,7 @@ mod import;
 mod process;
 mod summarise;
 mod export;
+mod sql;
 
 
 use setup::cli_reader;

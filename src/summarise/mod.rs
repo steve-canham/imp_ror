@@ -1,6 +1,7 @@
 mod smm_structs;
 pub mod smm_helper;
 
+use crate::sql::create_smm_tables;
 use smm_structs::FileParams;
 use sqlx::{Pool, Postgres};
 use chrono::NaiveDate;
@@ -9,7 +10,7 @@ use log::info;
 
 pub async fn create_smm_tables(pool : &Pool<Postgres>) -> Result<(), AppError>
 {
-    let sql = include_str!("../../sql/create_smm_tables.sql");
+    let sql = create_smm_tables::get_sql();
     sqlx::raw_sql(sql).execute(pool)
         .await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;

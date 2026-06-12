@@ -2,6 +2,7 @@
 mod json_models;
 mod data_vectors;
 
+use crate::sql::create_src_tables;
 use log::info;
 use std::path::PathBuf;
 use std::fs;
@@ -20,7 +21,7 @@ pub async fn import_data(data_folder : &PathBuf, source_file_name: &String,
     // First recreate the src schema tables - sqlscript in file (path is relative
     // and Linux specific - Windows would need a similar string but with backslashes)
 
-    let sql = include_str!("../../sql/create_src_tables.sql");
+    let sql = create_src_tables::get_sql();
     sqlx::raw_sql(sql).execute(pool)
         .await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;

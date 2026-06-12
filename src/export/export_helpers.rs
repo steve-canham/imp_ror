@@ -11,7 +11,6 @@ pub async fn set_up_country_grid(pool: &Pool<Postgres>) -> Result<(), AppError> 
 
     // Create a temp table with the countries listed as being in the top 25
     
-
     let sql = r#"drop table if exists smm.temp_clist;
                 create table smm.temp_clist (
                     id int primary key generated always as identity,
