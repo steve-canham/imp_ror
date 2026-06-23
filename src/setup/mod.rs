@@ -19,6 +19,11 @@ use crate::sql::create_countries_table;
 use crate::sql::create_lang_codes_table;
 use crate::sql::create_scripts_table;
 
+use crate::config::config_writer::create_config_file;
+use crate::config::config_editor::edit_config_file;
+
+use directories::ProjectDirs;
+use std::ffi::OsString;
 use std::sync::OnceLock;
 use crate::err::AppError;
 use chrono::NaiveDate;
@@ -41,7 +46,52 @@ pub struct InitParams {
 
 pub static LOG_RUNNING: OnceLock<bool> = OnceLock::new();
 
-pub fn get_params(cli_pars: CliPars, config_string: &String) -> Result<InitParams, AppError> {
+pub fn obtain_parameters(args: Vec<OsString>) -> Result<(CliPars, String), AppError>{
+
+    let cli_pars: cli_reader::CliPars;
+    let config_string: String;
+    
+    match ProjectDirs::from("eu", "canhamis", "imp_ror") {
+        Some(config) => {
+            println!("foox");
+            
+            let config_folder = config.config_dir().to_path_buf();
+            let file_name = "config.toml";
+            let config_path = config_folder.join(file_name);
+    
+            // Linux:   /home/<user name>/.config/imp_ror/config.toml
+            // Windows: C:\Users\<user name>\AppData\Roaming\canhamis\imp_ror\config.toml
+            // macOS:   /Users/<user name>/Library/Application Support/eu.canhamis.imp_ror/config.toml
+            
+            println!("{:?}", config_path);
+            
+            match config_path.try_exists() {
+                Ok(true) => {
+                    cli_pars = cli_reader::fetch_valid_arguments(args)?;
+                    if cli_pars.flags.create_config {    // may nave been set explicitly by the user
+                        edit_config_file(&config_path)?;
+                    }
+                },
+                _ => {
+                    cli_pars = cli_reader::get_initalising_cli_pars();
+                    create_config_file(&config_folder, file_name)?;
+                },
+            }
+            config_string = fs::read_to_string(&config_path)
+                .map_err(|e| AppError::IoReadErrorWithPath(e, config_path.to_owned()))?;
+        },
+        None => {
+            println!("Odd! - Unable to identify an OS-specific location for the configuration file");
+            return Err(AppError::ConfigurationError(
+                "No folder for config file found".to_string(), 
+                "Fatal error - unable to proceed".to_string()));
+        },
+    }
+    
+    Ok((cli_pars, config_string))
+}
+
+pub fn combine_params(cli_pars: CliPars, config_string: &String) -> Result<InitParams, AppError> {
 
     // The call from lib includes the CLI flags and parameters, previously processed,
     // and the toml config data as a string derived from the toml file.
@@ -374,7 +424,7 @@ db_name="ror"
         let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
         let cli_pars = cli_reader::fetch_valid_arguments(test_args).unwrap();
 
-        let res = get_params(cli_pars, &config_string).unwrap();
+        let res = combine_params(cli_pars, &config_string).unwrap();
 
         assert_eq!(res.flags.import_ror, true);
         assert_eq!(res.flags.process_data, false);
@@ -419,7 +469,7 @@ db_name="ror"
                                     "-d", "2026-12-25", "-s", "schema2 data.json", "-v", "v1.60"];
         let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
         let cli_pars = cli_reader::fetch_valid_arguments(test_args).unwrap();
-        let res = get_params(cli_pars, &config_string).unwrap();
+        let res = combine_params(cli_pars, &config_string).unwrap();
 
         assert_eq!(res.flags.import_ror, true);
         assert_eq!(res.flags.process_data, true);
@@ -464,7 +514,7 @@ db_name="ror"
                                     "-d", "2026-12-25", "-s", "schema2 data.json", "-v", "v1.60"];
         let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
         let cli_pars = cli_reader::fetch_valid_arguments(test_args).unwrap();
-        let res = get_params(cli_pars, &config_string).unwrap();
+        let res = combine_params(cli_pars, &config_string).unwrap();
 
         assert_eq!(res.flags.import_ror, false);
         assert_eq!(res.flags.process_data, false);
@@ -509,7 +559,7 @@ db_name="ror"
         let args : Vec<&str> = vec!["dummy target", "-x", "-y", "-s", "schema2 data.json"];
         let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
         let cli_pars = cli_reader::fetch_valid_arguments(test_args).unwrap();
-        let res = get_params(cli_pars, &config_string).unwrap();
+        let res = combine_params(cli_pars, &config_string).unwrap();
 
         assert_eq!(res.flags.import_ror, false);
         assert_eq!(res.flags.process_data, false);
@@ -555,7 +605,7 @@ db_name="ror"
         let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
         let cli_pars = cli_reader::fetch_valid_arguments(test_args).unwrap();
 
-        let res = get_params(cli_pars, &config_string).unwrap();
+        let res = combine_params(cli_pars, &config_string).unwrap();
 
         assert_eq!(res.flags.import_ror, true);
         assert_eq!(res.flags.process_data, true);
@@ -600,7 +650,7 @@ db_name="ror"
         let args : Vec<&str> = vec!["dummy target", "-a", "-v", "v1.60"];
         let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
         let cli_pars = cli_reader::fetch_valid_arguments(test_args).unwrap();
-        let _res = get_params(cli_pars, &config_string).unwrap();
+        let _res = combine_params(cli_pars, &config_string).unwrap();
     }
 
 
@@ -632,7 +682,7 @@ db_name="ror"
         let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
         let cli_pars = cli_reader::fetch_valid_arguments(test_args).unwrap();
 
-        let res = get_params(cli_pars, &config_string).unwrap();
+        let res = combine_params(cli_pars, &config_string).unwrap();
 
         assert_eq!(res.flags.import_ror, false);
         assert_eq!(res.flags.process_data, true);

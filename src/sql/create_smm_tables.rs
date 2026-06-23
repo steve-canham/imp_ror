@@ -13,6 +13,7 @@ pub fn get_sql<'a>() -> &'a str {
       , num_orgs          int         null	
       , num_names         int         null	
       , num_types         int         null
+      , num_links         int         null
       , num_ext_ids       int         null
       , num_rels          int         null
       , num_locations     int         null

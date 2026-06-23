@@ -1,19 +1,19 @@
 use crate::err::AppError;
 use super::config_helpers::*;
-use std::path::PathBuf;
+use std::path::Path;
 use std::fs;
+use std::io::Write;
 use crate::setup::config_reader::{Config, populate_config_vars};
 use log::info;
 
-pub fn edit_config_file() -> Result<(), AppError>
+pub fn edit_config_file(config_file_path: &Path) -> Result<(), AppError>
 {
     // *****************************************************
     // Obtain the existing configuratrion.
     // *****************************************************
 
-    let config_file = PathBuf::from("./app_config.toml");
-    let config_string: String = fs::read_to_string(&config_file)
-                    .map_err(|e| AppError::IoReadErrorWithPath(e, config_file))?;
+    let config_string: String = fs::read_to_string(config_file_path)
+                    .map_err(|e| AppError::IoReadErrorWithPath(e, config_file_path.to_path_buf()))?;
     let current_config: Config = populate_config_vars(&config_string)?; 
 
     // *****************************************************
@@ -245,7 +245,13 @@ pub fn edit_config_file() -> Result<(), AppError>
     let folders_section = format!("[folders]\n{}\n{}\n{}\n", data_folder_entry, output_folder_entry, log_folder_entry);
     let database_section = format!("[database]\n{}\n{}\n{}\n{}\n{}\n", db_host_entry, db_user_entry, db_password_entry, db_port_entry, db_name_entry);
     let config_string = format!("\n{}\n\n{}\n\n{}\n", data_section, folders_section, database_section);
-    write_out_file(&config_string)?;
+
+    let mut file = fs::File::create(config_file_path)     // creates new or truncates existing
+        .map_err(|e| AppError::IoWriteErrorWithPath(e, config_file_path.to_path_buf()))?;
+
+    file.write_all(config_string.as_bytes())
+        .map_err(|e| AppError::IoWriteErrorWithPath( e, config_file_path.to_path_buf()))?;
+
     info!("Configuration file edits completed");
     Ok(())
 }

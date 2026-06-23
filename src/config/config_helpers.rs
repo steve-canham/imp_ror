@@ -3,7 +3,6 @@ use std::io;
 use std::io::Write;
 use std::path::PathBuf;
 use regex::Regex;
-use std::fs::File;
 use chrono::{NaiveDate, Local};
 
 
@@ -172,13 +171,4 @@ pub fn is_compliant_version(input: &String) -> Result<bool, AppError> {
     let re = Regex::new(version_pattern)
         .map_err(|e| AppError::RegexError(e, version_pattern.to_string()))?;
     Ok(re.is_match(&input))
-}
-
-
-pub fn write_out_file(config_string: &String) -> Result<(), AppError> {
-    let mut file = File::create("./app_config.toml")     // creates new or truncates existing
-        .map_err(|e| AppError::IoWriteErrorWithPath(e, PathBuf::from("./app_config.toml")))?;
-
-    file.write_all(config_string.as_bytes())
-        .map_err(|e| AppError::IoWriteErrorWithPath( e, PathBuf::from("./app_config.toml")))
 }

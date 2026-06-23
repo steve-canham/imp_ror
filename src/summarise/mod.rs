@@ -38,12 +38,12 @@ pub async fn store_summary_data (pool: &Pool<Postgres>) -> Result<(), AppError> 
 
     let num_orgs = smm_helper::get_count("select count(*) from ppr.core_data", pool).await?;
     let num_names = smm_helper::get_count("select count(*) from ppr.names", pool).await?;
-    let num_types= smm_helper::get_count("select count(*) from ppr.type", pool).await?;
-    let num_links= smm_helper::get_count("select count(*) from ppr.links", pool).await?;
-    let num_ext_ids= smm_helper::get_count("select count(*) from ppr.external_ids", pool).await?;
-    let num_rels= smm_helper::get_count("select count(*) from ppr.relationships", pool).await?;
-    let num_locations= smm_helper::get_count("select count(*) from ppr.locations", pool).await?;
-    let num_domains= smm_helper::get_count("select count(*) from ppr.domains", pool).await?;
+    let num_types = smm_helper::get_count("select count(*) from ppr.type", pool).await?;
+    let num_links = smm_helper::get_count("select count(*) from ppr.links", pool).await?;
+    let num_ext_ids = smm_helper::get_count("select count(*) from ppr.external_ids", pool).await?;
+    let num_rels = smm_helper::get_count("select count(*) from ppr.relationships", pool).await?;
+    let num_locations = smm_helper::get_count("select count(*) from ppr.locations", pool).await?;
+    let num_domains = smm_helper::get_count("select count(*) from ppr.domains", pool).await?;
     
     let sql = r#"INSERT into smm.version_summaries (vcode, vdate, vdays, num_orgs, num_names,
                       num_types, num_links, num_ext_ids, num_rels, num_locations, num_domains)

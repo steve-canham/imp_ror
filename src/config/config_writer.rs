@@ -1,8 +1,11 @@
 use crate::err::AppError;
+use std::path::Path;
 use super::config_helpers::*;
 use log::info;
+use std::fs;
+use std::io::Write;
 
-pub fn create_config_file() -> Result<(), AppError>
+pub fn create_config_file(config_folder_path: &Path, file_name: &str) -> Result<(), AppError>
 {
     // *****************************************************
     // Introduction.
@@ -218,7 +221,18 @@ pub fn create_config_file() -> Result<(), AppError>
     let folders_section = format!("[folders]\n{}\n{}\n{}\n", data_folder_entry, output_folder_entry, log_folder_entry);
     let database_section = format!("[database]\n{}\n{}\n{}\n{}\n{}\n", db_host_entry, db_user_entry, db_password_entry, db_port_entry, db_name_entry);
     let config_string = format!("\n{}\n\n{}\n\n{}\n", data_section, folders_section, database_section);
-    write_out_file(&config_string)?;
+
+    fs::create_dir_all(config_folder_path) 
+        .map_err(|e| AppError::IoWriteErrorWithPath(e, config_folder_path.to_path_buf()))?;
+
+    let config_file_path = config_folder_path.join(file_name);
+
+    let mut file = fs::File::create(config_file_path.clone())     // creates new or truncates existing
+        .map_err(|e| AppError::IoWriteErrorWithPath(e, config_file_path.to_path_buf()))?;
+
+    file.write_all(config_string.as_bytes())
+        .map_err(|e| AppError::IoWriteErrorWithPath( e, config_file_path.to_path_buf()))?;
+
     info!("Configuration file creation completed");
     Ok(())
 }

@@ -28,11 +28,19 @@ pub struct Flags {
     pub test_run: bool,
 }
 
-pub fn fetch_valid_arguments(args: Vec<OsString>) -> Result<CliPars, AppError>
-{ 
+pub fn config_file_exists(config_file_path: &str)-> bool {
+    let config_path = PathBuf::from(config_file_path);
+    match config_path.try_exists() {
+        Ok(true) => true,
+        _ => false, 
+    }
+}
+
+pub fn fetch_valid_arguments(args: Vec<OsString>) -> Result<CliPars, AppError> {
+
     let parse_result = parse_args(args.to_vec())?;
 
-    // These parameters guaranteed to unwrap OK as all have a default value of "".
+    // The string parameters below guaranteed to unwrap OK as all have a default value of "".
 
     let source_file = parse_result.get_one::<String>("ppr_file").unwrap();
 
@@ -109,16 +117,6 @@ pub fn fetch_valid_arguments(args: Vec<OsString>) -> Result<CliPars, AppError>
         flags: flags,
     })
 }
-
-
-pub fn config_file_exists()-> bool {
-    let config_path = PathBuf::from("./app_config.toml");
-    match config_path.try_exists() {
-        Ok(true) => true,
-        _ => false, 
-    }
-}
-
 
 pub fn get_initalising_cli_pars() -> CliPars {
     
