@@ -48,48 +48,45 @@ pub static LOG_RUNNING: OnceLock<bool> = OnceLock::new();
 
 pub fn obtain_parameters(args: Vec<OsString>) -> Result<(CliPars, String), AppError>{
 
-    let cli_pars: cli_reader::CliPars;
+    let cli_pars = cli_reader::fetch_valid_arguments(args)?;
     let config_string: String;
-    
-    match ProjectDirs::from("eu", "canhamis", "imp_ror") {
-        Some(config) => {
-            println!("foox");
-            
-            let config_folder = config.config_dir().to_path_buf();
-            let file_name = "config.toml";
-            let config_path = config_folder.join(file_name);
-    
-            // Linux:   /home/<user name>/.config/imp_ror/config.toml
-            // Windows: C:\Users\<user name>\AppData\Roaming\canhamis\imp_ror\config.toml
-            // macOS:   /Users/<user name>/Library/Application Support/eu.canhamis.imp_ror/config.toml
-            
-            println!("{:?}", config_path);
-            
-            match config_path.try_exists() {
-                Ok(true) => {
-                    cli_pars = cli_reader::fetch_valid_arguments(args)?;
-                    if cli_pars.flags.create_config {    // may nave been set explicitly by the user
-                        edit_config_file(&config_path)?;
-                    }
-                },
-                _ => {
-                    cli_pars = cli_reader::get_initalising_cli_pars();
-                    create_config_file(&config_folder, file_name)?;
-                },
-            }
-            config_string = fs::read_to_string(&config_path)
-                .map_err(|e| AppError::IoReadErrorWithPath(e, config_path.to_owned()))?;
-        },
-        None => {
-            println!("Odd! - Unable to identify an OS-specific location for the configuration file");
-            return Err(AppError::ConfigurationError(
-                "No folder for config file found".to_string(), 
-                "Fatal error - unable to proceed".to_string()));
-        },
+    let config_path = obtain_config_file_path()?;
+
+    if cli_pars.flags.create_config {  
+        config_string = match config_path.try_exists() {
+            Ok(true) => edit_config_file(&config_path)?,        
+            _ => create_config_file(&config_path)?,        // No matching or not accessible file
+        };
+    }
+    else {
+        config_string = fs::read_to_string(&config_path)
+            .map_err(|e| AppError::IoReadErrorWithPath(e, config_path.to_owned()))?;
     }
     
     Ok((cli_pars, config_string))
 }
+
+
+fn obtain_config_file_path() -> Result<PathBuf, AppError> {
+
+     if let Some(config) = ProjectDirs::from("eu", "canhamis", "imp_ror") {
+         let config_folder = config.config_dir().to_path_buf();
+         let file_name = "config.toml";
+         Ok(config_folder.join(file_name))
+ 
+         // Linux:   /home/<user name>/.config/imp_ror/config.toml
+         // Windows: C:\Users\<user name>\AppData\Roaming\canhamis\imp_ror\config.toml
+         // macOS:   /Users/<user name>/Library/Application Support/eu.canhamis.imp_ror/config.toml
+
+     }   
+     else {
+         println!("Odd! - Unable to identify an OS-specific location for the configuration file");
+         Err(AppError::ConfigurationError(
+             "No folder for config file found".to_string(), 
+             "Fatal error - unable to proceed".to_string()))
+     }
+}
+
 
 pub fn combine_params(cli_pars: CliPars, config_string: &String) -> Result<InitParams, AppError> {
 
@@ -110,10 +107,10 @@ pub fn combine_params(cli_pars: CliPars, config_string: &String) -> Result<InitP
     let mut data_folder_good = true;
 
     if cli_pars.flags.test_run {
-        data_folder  =  cli_pars.test_folder;
+        data_folder = cli_pars.test_folder;
     }
     else {
-        data_folder  =  folder_pars.data_folder_path;
+        data_folder = folder_pars.data_folder_path;
         if !folder_exists (&data_folder)
         {
             data_folder_good = false;
@@ -174,7 +171,6 @@ pub fn combine_params(cli_pars: CliPars, config_string: &String) -> Result<InitP
         data_date = "2030-01-01".to_string()
     }
     else {
-
         if is_compliant_file_name(&source_file_name) {
             data_version = get_data_version(&source_file_name);
             data_date = get_data_date(&source_file_name);

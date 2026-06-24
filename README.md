@@ -2,7 +2,7 @@ A program to process and summarise ROR organisation data, as made available by R
 on Zenodo (see https://ror.readme.io/docs/data-dump). A new version of the data is posted 
 on a roughly monthly basis. 
 
-<b>*** N.B. The program is written and tested on Linux (Kubuntu 24.04). It assumes file paths to be in the posix style, i.e. with forward slashes. It should therefore also work, but has not been tested, on Macs. The current version will NOT work on Windows machines, because of the different file path format, even though the program began development on Windows 11. It is hoped to provide a cross platform version, that recognises both file path formats, at a later date. ***</b>
+<b>*** N.B. The program is written and tested on Linux (Kubuntu 24.04) thopugh was originally developed on Windows 11. It should also work, but has not yet been tested, on Macs. The current version MAY also work on Windows machines, though this is to be tested. ***</b>
 
 The program processes and retains a single version at a time, 
 but retains summaries of the key features of all versions imported. Data is stored using a 
@@ -41,32 +41,31 @@ assume less familiarity with Rust and its development environment. They cover:
 
 <h4>Pre-requisites</h4>
 <ul>
-<li> Download the code on this GitHub page and access it within a Rust development environment. VS Code is recommended.</li>
+<li> Download the code on this GitHub page and access it within a Rust development environment. VS Code or Zed is recommended.</li>
 <li> Install Postgres if not already available and establish an empty database (by default called 'ror', though any name can be used). The empty database must be
 created prior to the initial run of the system, but all other database operations are handled by the system.</li>
 <li> Download the ror files required, from Zenodo, and place the V2 json files in the folder to be used as the source data folder.</li>
 </ul>
 
 <h4>Initialising the system</h4>
-The system uses a configuration file to provide details of the database connection, and the folders holding data, output files amd logs. 
-This configuration file must be established during the intial running of the system.<br/>
+The system uses a configuration file to provide details of the database connection, and the folders holding data, output files amd logs. This configuration file must be established during the intial running of the system.<br/>
 <i>On initial run:</i>
 <ul>
-<li>In the development environment (e.g. in the terminal in VS Code) input 'cargo run'. Because the program will not be able to find a configuration file it will automatically switch to 'initialisation mode'. </li>
-<li>In this mode the system will ask for various parameters: the postgress database host, user name, user password, port and database name, the folder where data source files will be found, 
+<li>In the development environment (e.g. in the terminal in VS Code or Zed) input <br/><b><i>'cargo run -- -i'</i></b><br/> The 'i' (initialisation) flag causes the system to create the configuration file.</li>
+<li>To create the file the system will ask for various parameters: the postgress database host, user name, user password, port and database name, the folder where data source files will be found, 
 and the folders to be used for outputs and logs. It will also ask for an optional source file name, though in most scenarios this can be left as an empty string (see Docs for details).</li>
 <li>The values should be supplied in response to each of the prompts, after which a configuration file is constructed.</li>
-<li>Initial use of the configuration file is in creating lookup and summary tables.</li>
+<li>The system then creates lookup tables and (empty) summary tables as the second part of the initial setup.</li>
 <li>The system is then ready for routine use</li>
 </ul>
 
 <h4>Routine use</h4>
 <ul>
 <li>In most scenarios, data can be input, processed and output by the system using a single command.</li>
-<li>This involves running the system with the -a (all) flag and the -s source file flag, as in <b><i>cargo run -- -a -s "&lt;source-file-name&gt;"</i></b>, e.g. <i>cargo run -- -a -s "v1.59-2025-01-23-ror-data_schema_v2.json"</i>.</li>
+<li>This involves running the system with the -a (all) flag and the -s source file flag, as in <br/><b><i>cargo run -- -a -s "&lt;source-file-name&gt;"</i></b><br/>, e.g. <i>cargo run -- -a -s "v1.59-2025-01-23-ror-data_schema_v2.json"</i>.</li>
 <li>The -a command will take the data in the json file through a four stage pipeline:</li> 
 <ul>
-    <li>importing it into a set of 'ror' schema tables, with very little change;</li>
+    <li>importing it into a set of 'src' schema tables, with very little change;</li>
     <li>transforming it, albeit lightly, into a series of 'ppr' schema tables, and </li>
     <li>summarising statistics of the data set and storing those in 'smm' schema tables.</li>
     <li>generating a text file presenting the summary data from the imported version, in a series of tables.</li>
@@ -77,37 +76,9 @@ and the folders to be used for outputs and logs. It will also ask for an optiona
 <li><i>cargo run -- -y</i> will generate a set of 7 csv files with the summary data from all the versions imported to that point.</li>
 </ul>
 
-<h4>Summary of Command line arguments</h4>
+<h4>Command line arguments</h4>
 
-The folowing command line arguments are available:
-
-<i><b>-s</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -source]. Followed by a string representing the source file name. This must be double quoted if it includes a space. (If it does not include the '.json' extension that will be added by the system before processing). 
-
-<i><b>-v</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -data_version]. Followed by a double quoted string representing a version number, e.g. "v1.52". In many circumstances can be derived from the source file name (see below).
-
-<i><b>-d</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -date]. Followed by a double quoted string in ISO YYYY-mm-DD format, representing the date of the data. In many circumstances can be derived from the source file name (see below).
-
-<i><b>N.B. If the file name starts with a 'v' followed by a semantic versioning string, followed by a space or a hyphen and then the date in ISO format, either with hyphens or without, then (whatever any following text in the name) the system is able to extract the data version and date from the file name. It is then no longer necessary to provide the data version and date separately. File names such as v1.58-2024-12-11-ror-data_schema_v2.json, v1.51-20240821.json, v1.48 20240620.json, and v1.47 2024-05-30.json all follow the required pattern. The first is the form of the name supplied by ROR, so renaming the file is not necessary.</b></i>
-
-<i><b>-a</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -all]. Run all three main processes for a particular ROR data version (equivalent to -r, -p, and -t together). The source file, data version and data date must be specified, but the latter two can usually be derived from the first.
-
-<i><b>-r</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -import]. A flag that causes import of the specified source data to src schema tables, but not to the ppr schema. The source file, data version and data date must be specified.  
-
-<i><b>-p</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -process]. A flag that causes processing and summarising of the data in the src schema tables to the ppr and smm schema tables. By default the system uses the version that is currently resident in the ror tables.
-
-<i><b>-t</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -text]. A flag that causes production of a text file summarising the main features of a version currently held within the system's summary tables.
-
-<i><b>-x</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -export]. A flag that causes production of a collection of 7 csv files, representing the data in the summary tables for the specified version. 
-
-<i><b>-y</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -exportall]. A flag that causes production of a collection of 7 csv files, representing <i>all</i> the data in the summary tables, for all imported versions.
-
-<b><i>Note that if any of the three 'set up' flags described below, -c, -k or -m, are used, all other flags and parameters will be ignored. The system will simply rebuild the configuration file and / or lookup and / or summary tables.</b></i>
-
-<i><b>-c</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -config]. A flag that causes the configuration file to be edited (prompts for each data point are re-presented to the user).
-
-<i><b>-k</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -lookup]. A flag that causes the lookup tables to be regenerated. Generally only used if the code or data for these tables has been revised. 
-
-<i><b>-m</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -summsetup]. A flag that causes the re-establishment of the summary tables in the smm schema. NOTE - ANY EXISTING DATA IN THOSE TABLES WILL BE DESTROYED. 
+For the full list of command line arguments please see the doc '3_Operation and Commands.md':
 
 <h2>Version Information</h2>
 
@@ -143,10 +114,12 @@ Using the user's own permissions, running the Rust executable through cargo run,
 </ul>
 
 <h4>Version 1.4</h4>
-11/06/2026  -  Changes:
+24/06/2026  -  Changes:
 <ul>
-<li>All code reviewd, with substantial refactoring and simplification in many source files.</li>
+<li>All code reviewed, with substantial refactoring and simplification in many source files.</li>
 <li>Code changed to be more idiomatic Rust where possible, e.g. greater use of guarded match arms</li>
-<li>SQL code for creation of tables removed from Rust files and provided as sql scripts instead (referenced directly by the Rust code)</li>
 <li>Creating and editing configuration file separated from setup and code substantially improved.</li>
+<li>Location of the configuration file made OS dependent, using conventional choices for application configuration data.</li>
+<li>SQL code largely separated from other code but retained within a Rust framework (to make supporting multiple platforms easier).</li>
+<li>Setup code simplified and setup flags simplified.</li>
 </ul>

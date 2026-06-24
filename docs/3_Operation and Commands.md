@@ -27,7 +27,7 @@ In most cases the commands above are sufficient, but to maximise flexibility a r
 
 <h3>Command line arguments</h3>
 
-The folowing command line arguments are available:
+The full list of command line arguments are listed below:
 
 <i><b>-s</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -source]. Followed by a string representing the source file name. This must be double quoted if it includes a space. (If it does not include the '.json' extension that will be added by the system before processing). 
 
@@ -49,10 +49,14 @@ The folowing command line arguments are available:
 
 <i><b>-y</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -exportall]. A flag that causes production of a collection of 7 csv files, representing <i>all</i> the data in the summary tables, for all imported versions. (v1.57 data is not exported, as it appears to be exactly the same as v1.58, just without the added geographical details of the v2.1 schema). The name of the files are constructed from the version and the date-time of the run. The files are now generated in Rust (using the 'csv' crate) rather than directly from Postgres - this allows greater flexibility in where the files can be stored.
 
-<b><i>Note that if any of the three 'set up' flags described below, -c, -k or -m, are used, all other flags and parameters will be ignored. The system will simply rebuild the configuration file and / or lookup and / or summary tables.</b></i>
+<b><i>Note that if any of the four 'set up' flags described below, -i, -c, -k or -m, are used, all other flags and parameters will be ignored. The system will simply rebuild the configuration file and / or lookup and / or summary tables, and then stop.</b></i>
+
+<i><b>-i</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or --init]. Run all three components of system initialisatuion (equivalent to -c, -k, and -m together). The system will provide prompts to obtain the data for the configuration file, and then create the lookup tables (with data) and summary tables (without data).
 
 <i><b>-c</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -config]. A flag that causes the configuration file to be edited (prompts for each data point are re-presented to the user).
 
 <i><b>-k</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -lookup]. A flag that causes the lookup tables to be regenerated. Generally only used if the code or data for these tables has been revised. 
 
 <i><b>-m</b></i>&nbsp;&nbsp;&nbsp;&nbsp;[or -summsetup]. A flag that causes the re-establishment of the summary tables in the smm schema. NOTE - ANY EXISTING DATA IN THOSE TABLES WILL BE DESTROYED. 
+
+

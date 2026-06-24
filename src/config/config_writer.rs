@@ -5,7 +5,7 @@ use log::info;
 use std::fs;
 use std::io::Write;
 
-pub fn create_config_file(config_folder_path: &Path, file_name: &str) -> Result<(), AppError>
+pub fn create_config_file(config_file_path: &Path) -> Result<String, AppError>
 {
     // *****************************************************
     // Introduction.
@@ -101,9 +101,10 @@ pub fn create_config_file(config_folder_path: &Path, file_name: &str) -> Result<
     
     let p = r#"
     Section 2: FOLDERS
+    Three folder paths are required. Please type or paste the paths in the normal format but DO NOT INCLUDE a trailing '/' or (for Windows) '\'. There is no need to escape the '\'s in a Windows path, but the assumption is that any Windows  path contains only unicode characters and is less than 260 characters long."
     
     DATA FOLDER
-    Please input the full (Linux / Posix) path of the folder where the ROR JSON source file is to be found.
+    Please input the full path of the folder where the ROR JSON source files are to be found.
     No default is available, please type the path and press enter.
     "#;
     println!("{p}");
@@ -114,7 +115,7 @@ pub fn create_config_file(config_folder_path: &Path, file_name: &str) -> Result<
 
     let p = r#"
     OUTPUTS FOLDER
-    Please input the full path of the (Linux / Posix) folder where the outputs from the program should be placed.
+    Please input the full path of the folder where the outputs from the program should be placed.
     To accept the default (same as 'DATA FOLDER') simply press enter, otherwise type the path and press enter.
     "#;
     println!("{p}");
@@ -125,7 +126,7 @@ pub fn create_config_file(config_folder_path: &Path, file_name: &str) -> Result<
 
     let p = r#"
     LOG FOLDER
-    Please input the full path of the (Linux / Posix) folder where the logs from the program should be placed.
+    Please input the full path of the folder where the logs from the program should be placed.
     To accept the default (same as 'DATA FOLDER') simply press enter, otherwise type the path and press enter.
     "#;
     println!("{p}");
@@ -222,17 +223,17 @@ pub fn create_config_file(config_folder_path: &Path, file_name: &str) -> Result<
     let database_section = format!("[database]\n{}\n{}\n{}\n{}\n{}\n", db_host_entry, db_user_entry, db_password_entry, db_port_entry, db_name_entry);
     let config_string = format!("\n{}\n\n{}\n\n{}\n", data_section, folders_section, database_section);
 
+    let config_folder_path = config_file_path.parent().unwrap();
+    
     fs::create_dir_all(config_folder_path) 
         .map_err(|e| AppError::IoWriteErrorWithPath(e, config_folder_path.to_path_buf()))?;
-
-    let config_file_path = config_folder_path.join(file_name);
-
-    let mut file = fs::File::create(config_file_path.clone())     // creates new or truncates existing
+   
+    let mut file = fs::File::create(config_file_path)     // creates new or truncates existing
         .map_err(|e| AppError::IoWriteErrorWithPath(e, config_file_path.to_path_buf()))?;
 
     file.write_all(config_string.as_bytes())
-        .map_err(|e| AppError::IoWriteErrorWithPath( e, config_file_path.to_path_buf()))?;
+        .map_err(|e| AppError::IoWriteErrorWithPath(e, config_file_path.to_path_buf()))?;
 
     info!("Configuration file creation completed");
-    Ok(())
+    Ok(config_string)
 }

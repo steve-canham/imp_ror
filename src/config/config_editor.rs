@@ -6,7 +6,7 @@ use std::io::Write;
 use crate::setup::config_reader::{Config, populate_config_vars};
 use log::info;
 
-pub fn edit_config_file(config_file_path: &Path) -> Result<(), AppError>
+pub fn edit_config_file(config_file_path: &Path) -> Result<String, AppError>
 {
     // *****************************************************
     // Obtain the existing configuratrion.
@@ -122,9 +122,10 @@ pub fn edit_config_file(config_file_path: &Path) -> Result<(), AppError>
     
     let p = format!(r#"
     Section 2: FOLDERS
-    
+    Three folder paths are required. Please type or paste the paths in the normal format but DO NOT INCLUDE a trailing '/' or (for Windows) '\'. There is no need to escape the '\'s in a Windows path, but the assumption is that any Windows  path contains only unicode characters and is less than 260 characters long."
+     
     DATA FOLDER
-    Please input the full (Linux / Posix) path of the folder where the ROR JSON source file is to be found.
+    Please input the full path of the folder where the ROR JSON source files are to be found.
     To accept the current value ({}) 
     simply press enter, otherwise type the name and press enter.
     "#, curr_df_value);
@@ -253,5 +254,5 @@ pub fn edit_config_file(config_file_path: &Path) -> Result<(), AppError>
         .map_err(|e| AppError::IoWriteErrorWithPath( e, config_file_path.to_path_buf()))?;
 
     info!("Configuration file edits completed");
-    Ok(())
+    Ok(config_string)
 }

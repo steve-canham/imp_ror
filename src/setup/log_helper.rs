@@ -31,16 +31,15 @@ fn get_log_file_path(data_folder: &PathBuf, source_file_name : &String) -> PathB
     // Derives the log file name, returns the full path
 
     let datetime_string = Local::now().format("%m-%d %H%M%S").to_string();
-    let mut log_file_name = format!("ror {} ", datetime_string);
+    let mut log_file_name = format!("ror {datetime_string} ");
     if source_file_name != "" {
         let source_file = &source_file_name[..(source_file_name.len() - 5)];
-        log_file_name = format!("{} from {}.log", log_file_name, source_file);
+        log_file_name = format!("{log_file_name} from {}.log", source_file);
     }
     else {
-        log_file_name = format!("{} initialisation.log", log_file_name);
+        log_file_name = format!("{log_file_name} initialisation.log");
     }
-    [data_folder, &PathBuf::from(&log_file_name)].iter().collect()
-    
+    data_folder.join(&PathBuf::from(&log_file_name))
 }
 
 fn config_log (log_file_path: &PathBuf) -> Result<log4rs::Handle, AppError> {

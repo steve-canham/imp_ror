@@ -53,20 +53,27 @@ pub fn fetch_valid_arguments(args: Vec<OsString>) -> Result<CliPars, AppError> {
     // Flag values are false if not present, true if present.
 
     let a_flag = parse_result.get_flag("a_flag");
-
+    let i_flag = parse_result.get_flag("i_flag");
+    
     let mut r_flag = parse_result.get_flag("r_flag");
     let mut p_flag = parse_result.get_flag("p_flag");
     let mut t_flag = parse_result.get_flag("t_flag");
     let mut x_flag = parse_result.get_flag("x_flag");
     let mut y_flag = parse_result.get_flag("y_flag");
-    let c_flag = parse_result.get_flag("c_flag");
-    let k_flag = parse_result.get_flag("k_flag");
-    let m_flag = parse_result.get_flag("m_flag");
+    let mut c_flag = parse_result.get_flag("c_flag");
+    let mut k_flag = parse_result.get_flag("k_flag");
+    let mut m_flag = parse_result.get_flag("m_flag");
     let mut z_flag = parse_result.get_flag("z_flag");
+        
+    if i_flag {
+        c_flag = true;
+        k_flag = true;
+        m_flag = true;
+    }
 
-    // If c, m, j or all three flags set (may be by using 'i' (initialise) flag)
-    // Only do the j and / or c and / or m actions
-  
+    // If c, m, k or all three flags set (may be by using 'i' (initialise) flag)
+    // Only do the k and / or c and / or m actions allowed
+      
     if k_flag || m_flag || c_flag {
         
         r_flag = false;
@@ -87,12 +94,12 @@ pub fn fetch_valid_arguments(args: Vec<OsString>) -> Result<CliPars, AppError> {
         }
         else 
         {
-            // if none of r, p, q, t, x or y flags set
+            // if none of r, p, t, x or y flags set
             // set r to be true, as the default with no flags
 
             if r_flag == false && p_flag == false && t_flag == false
                 && x_flag == false && y_flag == false {
-                r_flag = true;  
+                r_flag = true;   // wouyld normally need the source file designated in config file
             }
         }
     }
@@ -218,6 +225,14 @@ fn parse_args(args: Vec<OsString>) -> Result<ArgMatches, clap::Error> {
            .help("A flag signifying output a summary of the data for all versions into csv files")
            .action(clap::ArgAction::SetTrue)
        )
+       .arg(
+            Arg::new("i_flag")
+            .short('i')
+            .long("initialise")
+            .required(false)
+            .help("A flag signifying that the system should be initialised (= -c, -k, -m)")
+            .action(clap::ArgAction::SetTrue)
+        )
        .arg(
             Arg::new("c_flag")
             .short('c')
