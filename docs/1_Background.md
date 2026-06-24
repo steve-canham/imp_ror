@@ -48,7 +48,7 @@ The system is still 'basic' Rust, however, and does not use more advanced featur
  
 The system was originally developed on a Windows 11 machine, using Rust 1.80.1, Postgres 17, VS Code and 
 DBeaver. 
-It is now being developed / maintained on a Linux machine (Kubuntu 24.04), using Rust 1.91, Postgres 18 and pgAdmin.
+It is now being developed / maintained on a Linux machine (Kubuntu 24.04), using Rust 1.91, Postgres 18, Zed and pgAdmin.
 Efforts will be made to make the system cross-platform, though this has not yet been tested.
 <br/><br/>
 N.B. If running tests against the code, using cargo test, use the command<br/>

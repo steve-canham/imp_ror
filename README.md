@@ -2,7 +2,7 @@ A program to process and summarise ROR organisation data, as made available by R
 on Zenodo (see https://ror.readme.io/docs/data-dump). A new version of the data is posted 
 on a roughly monthly basis. 
 
-<b>*** N.B. The program is written and tested on Linux (Kubuntu 24.04) thopugh was originally developed on Windows 11. It should also work, but has not yet been tested, on Macs. The current version MAY also work on Windows machines, though this is to be tested. ***</b>
+<b>*** N.B. The program is written and tested on Linux (Kubuntu 24.04) though was originally developed on Windows 11. It should also work, but has not yet been tested, on Macs. The current version MAY also work on Windows machines, though this is to be tested. ***</b>
 
 The program processes and retains a single version at a time, 
 but retains summaries of the key features of all versions imported. Data is stored using a 
@@ -15,8 +15,8 @@ made available from April 2024 onwards. It can handle versions 2.0 and 2.1, the 
 use from December 2024.
 
 The system is written in Rust and uses a command line interface (CLI) for control.
-<i>N.B. At the moment, the program is not yet available as a stand alone .exe or .lib file, 
-though it is hoped to create these in the future. The current system therefore needs the 
+<i>N.B. At the moment, the program is not yet available as a stand alone .exe file, 
+though it may be possible to create one in the future. The current system therefore needs the 
 source code to be downloaded and then run within a Rust development environment.</i>
 
 <h2>Please use the Docs!</h2>
