@@ -41,10 +41,9 @@ assume less familiarity with Rust and its development environment. They cover:
 ## Summary of Installation and Routine use
 
 ### Pre-requisites
-- Download the code on this GitHub page and access it within a Rust development environment. VS Code or Zed is recommended.</li>
-- Install Postgres if not already available and establish an empty database (by default called 'ror', though any name can be used). The empty database must be
-created prior to the initial run of the system, but all other database operations are handled by the system.</li>
-- Download the V2 ror json files required, from Zenodo, and place them in the folder to be used as the source data folder.</li>
+- Download the code on this GitHub page and access it within a Rust development environment. VS Code or Zed is recommended.
+- Install Postgres if not already available and establish an empty database (by default called 'ror', though any name can be used). The empty database must be created prior to the initial run of the system, but all other database operations are handled by the system.
+- Download the V2 ror json files required, from Zenodo, and place them in the folder to be used as the source data folder.
 
 ### Initialising the system
 The system uses a configuration file to provide details of the database connection, and the folders holding data, output files amd logs. This configuration file must be established during the intial running of the system.
@@ -70,7 +69,7 @@ cargo run -- -a -s "v2.2-2026-01-29-ror-data". (The final '.json' on the file na
     - transforming it, albeit lightly, into a series of 'ppr' schema tables, and 
     - summarising statistics of the data set and storing those in 'smm' schema tables.
     - generating a text file presenting the summary data from the imported version, in a series of tables.
-    - more information on the ror, ppr and smm tables is provided inthe Docs.
+- For more information on the ror, ppr and smm tables please see the doc '4_Database Schemas.md'.
 - Successive use of the -a command will overwrite the data in the src and ppr schema tables, with data from whatever is the most recently imported version. The summary smm schema data for each version is, however, stored permanently.
 - *cargo run -- -x* will generate a set of 7 csv files with the summary data linked to the current (most recently imported) version. Specifying a different version is also possible as long as it has been previously imported and summarised.
 - *cargo run -- -y* will generate a set of 7 csv files with the summary data from all the versions imported to that point.

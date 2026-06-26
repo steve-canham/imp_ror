@@ -1,6 +1,6 @@
-<h2>Database Schemas</h2>
+## Database Schemas
 
-<h3>The base 'src' data schema</h3>
+### The base 'src' data schema
 
 The initial import is to tables that almost exactly mirror the original structure of the json file. 
 These tables are all grouped within a schema called 'src'. The import process recreates the tables each time.
@@ -16,23 +16,22 @@ or have an obvious correspondence to the field names as listed in the ROR docume
 caused by the fact that 'type', whilst used in several places in the ROR definitions, is a reserved word in Rust 
 (and many other languages), while 'TYPE' can cause issues in Postgres in some contexts. For safety and future 
 compatibility the following changes are made:
-<ul>
-<li>'type' in names becomes 'name_type'.</li>
-<li>'type' in types becomes 'org_type'.</li>
-<li>'type' in external ids becomes 'id_type'.</li>
-<li>'type' in links becomes 'link_type'.</li>
-<li>'type' in relationships becomes'rel_type'.</li>
-</ul>
+
+- 'type' in names becomes 'name_type'.
+- 'type' in types becomes 'org_type'.
+- 'type' in external ids becomes 'id_type'.
+- 'type' in links becomes 'link_type'.
+- 'type' in relationships becomes'rel_type'.
 
 The src schema data also includes a tiny single-row table ('version details') that holds the version and 
-date of the data within the system. This means that these parameters need only be input once. 
+date of the data within the system. 
 
-<h3>The 'ppr' data schema</h3>
+### The 'ppr' data schema
 
 The 'src' schema data can be processed to form a new set of tables within the 'ppr' schema. 
 The processing is relatively limited but includes:
 
-a) Replacement of the strings of categorised values by integers. The integers are as given by
+a) Replacement of the strings of categorised values by integers. The integers are as provided by 
 lookup tables (set up within the 'lup' or lookup schema) which effectively provide enumerations 
 of these categorised values, e.g. the organisation, name, link, external id and relationship types. 
 This is intended to make any future data processing quicker and future display more flexible.
@@ -42,18 +41,13 @@ this is not the case. They are therefore classified as labels, which allows them
 be processed in the same way as all other ROR names.
 
 c) The removal of duplicates from the names table. There are a small number of organisations that 
-have two names with the same value - in one case caused by the correction 
-described in b). In most of these cases these are identical names with two types listed in the source file, 
-usually both 'label' and 'alias'. In further cases the names are the same type but have two 
+have two names with the same value. In most of these cases these are identical names with two types listed in the source file, usually both 'label' and 'alias'. In further cases the names are the same type but have two 
 different language codes applied. These duplications are removed according to the following rules:
-<ul>
-<li>If one of the duplicate pairs is a ror name and the other is not, the one that is not is removed.</li> 
-<li>If one is a label and the other an alias or acronym, the alias or acronym is removed.</li> 
-<li>If one is an alias and the other an acronym, the alias is removed, as the names in this group all appear to be acronyms.</li> 
-<li>For the remaining (very few) duplicated names, the language code least associated with the organisation's location, or if that 
-is not clear that is referring to the more obscure language, is removed. This is an arbitrary decision but the choices are not 
-difficult in practice.</li>
-</ul>
+
+- If one of the duplicate pairs is a ror name and the other is not, the one that is not is removed.
+- If one is a label and the other an alias or acronym, the alias or acronym is removed.
+- If one is an alias and the other an acronym, the alias is removed, as the names in this group all appear to be acronyms.
+- For the remaining (very few) duplicated names, the language code least associated with the organisation's location, or if that is not clear that is referring to the more obscure language, is removed. This is an arbitrary decision but the choices are not difficult in practice.  
 
 d) The addition of script codes to the name data. Though most of the the names listed (apart 
 from acronyms and company names) have language codes linked to them there is no explicit indication of 
@@ -87,7 +81,7 @@ the basis of the summary statistics described below, and are designed to provide
 data when integrating ror data into other systems. Only one set of ppr data exists at any one time - the 
 tables are recreated each time a version's data is transformed into them.
 
-<h3>Summary data and the 'smm' schema</h3>
+### Summary data and the 'smm' schema
 
 The Summary (smm) schema includes a set of persistent tables that summarise various aspects of the ROR dataset. 
 It includes records for all versions of the ROR data that have been imported (within each table the initial field 
@@ -95,18 +89,17 @@ is the data version, allowing easy selection of the summary data for any particu
 and export easier, many of the summary tables are aggregate, i.e. they hold data about different entities in the 
 same table, because that data has the same structure. The tables are:
 
-<ul>
-<li>version_summary - Gives the number of organisations, and the numbers of linked entities (names, organisation types, locations, external ids, links, relationships, domains), for a specified version, equivalent to the record numbers in each of the tables in the ppr schemas when the version is processed. It also includes the version date, and the number of days that date represents since 29/04/2024, the earliest of the datasets in the system. This was the date of the 1.45.2 patch - in general the latest patch of any version is preferred.</li>
+- version_summary - Gives the number of organisations, and the numbers of linked entities (names, organisation types, locations, external ids, links, relationships, domains), for a specified version, equivalent to the record numbers in each of the tables in the ppr schemas when the version is processed. It also includes the version date, and the number of days that date represents since 29/04/2024, the earliest of the datasets in the system. This was the date of the 1.45.2 patch - in general the latest patch of any version is preferred.
 
-<li>attributes_summary - Entities in the system often have categorised attributes, e.g. the various types of name, organisation, relationship, external id and link. For each attribute category this table provides the numbers found, and the percentage this represents of the total attributes of this type, the number of organisations with this attribute type, and the percentage this represents of all organisations. For names, additional rows are given for 'nacro' or non-acronym names, i.e. labels and aliases together, and also for names (of each type) that are without a language code ('wolc').</li>
+- attributes_summary - Entities in the system often have categorised attributes, e.g. the various types of name, organisation, relationship, external id and link. For each attribute category this table provides the numbers found, and the percentage this represents of the total attributes of this type, the number of organisations with this attribute type, and the percentage this represents of all organisations. For names, additional rows are given for 'nacro' or non-acronym names, i.e. labels and aliases together, and also for names (of each type) that are without a language code ('wolc').
 
-<li>count_distributions - Indicates the numbers and percentage of organisations that are linked to different counts of properties. This includes the numbers and percentages of organisations with 'n' names, labels, aliases, acronyms, organisational types, locations, external ids, links, and domains where n varies over whatever count values are found in the dataset. For instance, for organisational types n currently varies (January 2025) from 1 to 3, for names, from 1 to 28.</li>
+- count_distributions - Indicates the numbers and percentage of organisations that are linked to different counts of properties. This includes the numbers and percentages of organisations with 'n' names, labels, aliases, acronyms, organisational types, locations, external ids, links, and domains where n varies over whatever count values are found in the dataset. For instance, for organisational types n currently varies (January 2025) from 1 to 3, for names, from 1 to 28.
 
-<li>ranked_distributions - Three ranked distributions are provided: giving the usage of non English languages, the usage of non-Latin scripts, and the countries listed in locations. In each case the numbers for the 25 most common (language / script / country) values are listed, with numbers for remaining languages, scripts and countries rolled up into a 26th 'remaining' entry. The percentages each entry represents of the property of interest (non English languages, non Latin scripts and countries other than the US) and the percentage of the 'base set' (names, names and locations respectively) are also provided. </li>
+- ranked_distributions - Three ranked distributions are provided: giving the usage of non English languages, the usage of non-Latin scripts, and the countries listed in locations. In each case the numbers for the 25 most common (language / script / country) values are listed, with numbers for remaining languages, scripts and countries rolled up into a 26th 'remaining' entry. The percentages each entry represents of the property of interest (non English languages, non Latin scripts and countries other than the US) and the percentage of the 'base set' (names, names and locations respectively) are also provided. 
 
-<li>org_type_and_lang_code - For each combination of organisational type and name type, gives the numbers and percentages of names with and without language codes.</li>
+- org_type_and_lang_code - For each combination of organisational type and name type, gives the numbers and percentages of names with and without language codes.
 
-<li>org_type_and_relationships - For each combination of organisational type and relationship type, gives the numbers and percentages (of that organisational type) which include that relationship.</li>
+- org_type_and_relationships - For each combination of organisational type and relationship type, gives the numbers and percentages (of that organisational type) which include that relationship.
 
-<li>singletons - There are a variety of measures which do not easily fit into any of the tables listed above. They are provided as a table which includes an id and a description for each data point, the number found and where relevant a percentage (both defined in the description). The singleton data points include, for instance, the numbers of labels that are designated as the ROR name, the numbers and percentages of English and non English ROR names, and the ROR names without language codes, including and excluding company names. They also include the numbers and percentage of organisations that have both parents <i>and</i> child links, i.e. are part of a hierarchy of at least 3 levels, plus the numbers of any non-reciprocated relationship records.</li>
-</ul>
+- singletons - There are a variety of measures which do not easily fit into any of the tables listed above. They are provided as a table which includes an id and a description for each data point, the number found and where relevant a percentage (both defined in the description). The singleton data points include, for instance, the numbers of labels that are designated as the ROR name, the numbers and percentages of English and non English ROR names, and the ROR names without language codes, including and excluding company names. They also include the numbers and percentage of organisations that have both parents <i>and</i> child links, i.e. are part of a hierarchy of at least 3 levels, plus the numbers of any non-reciprocated relationship records.
+

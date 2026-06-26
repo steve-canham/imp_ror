@@ -220,7 +220,7 @@ fn parse_args(args: Vec<OsString>) -> Result<ArgMatches, clap::Error> {
         .arg(
             Arg::new("y_flag")
            .short('y')
-           .long("exportall")
+           .long("export_all")
            .required(false)
            .help("A flag signifying output a summary of the data for all versions into csv files")
            .action(clap::ArgAction::SetTrue)
@@ -228,7 +228,7 @@ fn parse_args(args: Vec<OsString>) -> Result<ArgMatches, clap::Error> {
        .arg(
             Arg::new("i_flag")
             .short('i')
-            .long("initialise")
+            .long("init")
             .required(false)
             .help("A flag signifying that the system should be initialised (= -c, -k, -m)")
             .action(clap::ArgAction::SetTrue)
@@ -252,7 +252,7 @@ fn parse_args(args: Vec<OsString>) -> Result<ArgMatches, clap::Error> {
        .arg(
             Arg::new("m_flag")
             .short('m')
-            .long("summsetup")
+            .long("summ_setup")
             .required(false)
             .help("A flag signifying that summary tables should be recreated")
             .action(clap::ArgAction::SetTrue)
