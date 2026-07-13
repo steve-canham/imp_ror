@@ -2,6 +2,7 @@
 mod rmv_dup_names;
 mod script_coder;
 
+use crate::setup::InitParams;
 use crate::sql::create_ppr_tables;
 use crate::sql::transfer_to_ppr::*;
 use crate::sql::process_num_data::*;
@@ -9,25 +10,23 @@ use sqlx::{postgres::PgQueryResult, Pool, Postgres};
 use log::info;
 use crate::err::AppError;
 
-
-pub async fn process_data(data_version: &String, pool : &Pool<Postgres>) -> Result<(), AppError>
+pub async fn process_data(params: &InitParams, pool : &Pool<Postgres>) -> Result<(), AppError>
 {
+    // Import the data from src schema to ppr schema. 
     // First recreate the ppr schema tables
-
+    // Then get data version from the src tables, but also include the 'include withdrawn' boolean parameter.
+    // Then remove duplicate names in the system before transferring the src data across to the ppr tables.
+    // If withdrawn organisations are removed (the default) this is domne at the end.
+     
     let sql = create_ppr_tables::get_sql();
     sqlx::raw_sql(sql).execute(pool)
         .await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     
-    // Import the data from ror schema to ppr schema. First get data version - 
-    // if data version = "" (i.e. is implicit) it will be obtained from the ror tables.
-    // If data version explicitly given check it is the correct one!
-
-    if data_version != "" {
-        check_data_version_matches_ror_schema_data(data_version, pool).await?;
-    }
-    execute_sql(get_version_details_sql(), pool).await?;
-    
+    let sql = format!(r#"insert into ppr.version_details (version, data_date, data_days, inc_wd)
+        select version, data_date, data_days, {} from src.version_details;"#, params.flags.inc_withdrawn);
+    execute_sql(&sql, pool).await?;
+       
     rmv_dup_names::remove_dups(pool).await?;  // done here to prevent PK errors in core_data
     
     execute_sql(get_core_data_sql(), pool).await?;
@@ -48,7 +47,7 @@ pub async fn process_data(data_version: &String, pool : &Pool<Postgres>) -> Resu
     info!("Location, relationship and domain data transferred to ppr table");
     info!("Data imported from ror to ppr tables"); 
     info!(""); 
-    
+
     // Calculate number of attributes for each org, and populate the admin data table with results.
     
     execute_sql(get_name_nums_sql(), pool).await?;
@@ -106,36 +105,63 @@ pub async fn process_data(data_version: &String, pool : &Pool<Postgres>) -> Resu
     info!("Location data added to core data table");
     info!("All org attributes counted and results added to admin table"); 
     info!(""); 
-        
-    // Generate script codes
 
+    if !params.flags.inc_withdrawn {
+        
+        // Normally, remove the withdawn records from the tables and store them separately
+        // Then remove the corresponding records from all other tables
+        
+        execute_sql(get_withdrawn_sql(), pool).await?;
+        let sql = "select count(*) from ppr.withdrawn";
+        let wd: i64 = sqlx::query_scalar(sql)
+            .fetch_one(pool).await
+            .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+        info!("{wd} Withdrawn records table created, within ppr.withdrawn table");
+        
+        delete_withdrawn("admin_data", pool).await?;
+        delete_withdrawn("names", pool).await?;
+        delete_withdrawn("locations", pool).await?;
+        delete_withdrawn("type", pool).await?;
+        delete_withdrawn("links", pool).await?;
+        delete_withdrawn("external_ids", pool).await?;
+        delete_withdrawn("relationships", pool).await?;
+        delete_withdrawn("domains", pool).await?;
+        delete_withdrawn("admin_data", pool).await?;
+        delete_withdrawn("core_data", pool).await?;
+        info!("Withdrawn record details removed from attribute tables");
+        info!("");
+        
+    }
+    else {    
+        
+        // Withdrawn orgs are included. Delete any ppr.withdrawn table
+
+        let sql = "drop table if exists ppr.withdrawn;";
+        sqlx::raw_sql(sql).execute(pool)
+            .await
+            .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+        info!("Withdrawn records retained within main dataset");
+        info!("");
+    }
+    
+    // Generate script codes for names
+   
     script_coder::apply_script_codes(pool).await?;
 
     Ok(())
 }
 
+async fn delete_withdrawn(table_name: &str, pool: &Pool<Postgres>) -> Result<PgQueryResult, AppError> {
 
-async fn check_data_version_matches_ror_schema_data(data_version: &String, pool: &Pool<Postgres>)-> Result<(), AppError> {
-
-    // Part of a double check. Would only fail if an explict version parameter 
-    // had been provided with -p that did not match the current version in the src tables
-    
-    let sql = "select version from src.version_details";
-    let stored_version: String  = sqlx::query_scalar(sql).fetch_one(pool).await
-        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-
-    if stored_version != data_version.to_string()
-    {
-        Err(AppError::IncompatibleVersions(data_version.to_string(), stored_version))
-    }
-    else {
-        Ok(())
-    }
+    let sql = format!(r#"delete from ppr.{table_name} a
+        using ppr.withdrawn w
+        where a.id = w.id"#);
+    execute_sql(&sql, pool).await
 }
 
+
 async fn execute_sql(sql: &str, pool: &Pool<Postgres>) -> Result<PgQueryResult, AppError> {
-    
-    sqlx::query(&sql).execute(pool)
+    sqlx::query(sql).execute(pool)
         .await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))
 }

@@ -21,8 +21,8 @@ pub enum AppError {
     #[error("The parameters provided are inconsistent or incompatible")]
     InconsistentProgramParameter(String),
 
-    #[error("The version specified does not match the version currently strored")]
-    IncompatibleVersions(String, String),
+   // #[error("The version specified does not match the version currently strored")]
+   // IncompatibleVersions(String, String),
 
     #[error("The version specified does not yet exist in the summary tables")]
     MissingVersion(String),
@@ -84,14 +84,14 @@ pub fn report_error(e: AppError) -> () {
                  "The parameters provided are inconsistent or incompatible".to_string(), 
                  s, "INCONSISTENT PARAMETERS"),
 
-        AppError::IncompatibleVersions(v_requested, v_stored)  =>  print_error (
-                    format!("The version specified ('{}'), does not match the data stored in the src schema ('{}').", v_requested, v_stored),
-                    " Run -r or -a with the specified version, to re-import the data and allow its processing and summarising.".to_string(), 
-                    " INCOMPATIBLE VERSIONS"),
+      //  AppError::IncompatibleVersions(v_requested, v_stored)  =>  print_error (
+       //             format!("The version specified ('{}'), does not match the data stored in the src schema ('{}').", v_requested, v_stored),
+       //              " Run -a with the specified version, to re-import the data and allow its processing and summarising.".to_string(), 
+     //               " INCOMPATIBLE VERSIONS"),
 
         AppError::MissingVersion(v_requested)  =>  print_error (
                         format!("Data for the version specified ('{}') does not yet exist in the summary tables.", v_requested),
-                        " Run -r or -a with the specified version, to import the data and allow its processing and summarising.".to_string(), 
+                        " Run -a with the specified version, to import the data and allow its processing and summarising.".to_string(), 
                         " MISSING VERSION"),
 
         AppError::LogSetupError(p, d) => print_error (p, d, "LOG SETUP ERROR"),

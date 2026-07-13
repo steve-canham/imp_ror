@@ -21,25 +21,28 @@ use log4rs::{
 };
 
 
-pub fn setup_log (data_folder: &PathBuf, source_file_name : &String) -> Result<log4rs::Handle, AppError> {
-    let log_file_path = get_log_file_path(data_folder, source_file_name);
+pub fn setup_log (params: &InitParams) -> Result<log4rs::Handle, AppError> {
+    let log_file_path = get_log_file_path(&params.log_folder, &params.source_file_name, params.flags.inc_withdrawn);
     config_log (&log_file_path)
 }
 
-fn get_log_file_path(data_folder: &PathBuf, source_file_name : &String) -> PathBuf {
+fn get_log_file_path(log_folder: &PathBuf, source_file_name : &String, inc_withdrawn: bool) -> PathBuf {
     
     // Derives the log file name, returns the full path
 
     let datetime_string = Local::now().format("%m-%d %H%M%S").to_string();
     let mut log_file_name = format!("ror {datetime_string} ");
     if source_file_name != "" {
-        let source_file = &source_file_name[..(source_file_name.len() - 5)];
+        let mut source_file = source_file_name[..(source_file_name.len() - 5)].to_string();
+        if inc_withdrawn {
+            source_file = format!("{source_file} WD inc.");
+        }
         log_file_name = format!("{log_file_name} from {}.log", source_file);
     }
     else {
         log_file_name = format!("{log_file_name} initialisation.log");
     }
-    data_folder.join(&PathBuf::from(&log_file_name))
+    log_folder.join(&PathBuf::from(&log_file_name))
 }
 
 fn config_log (log_file_path: &PathBuf) -> Result<log4rs::Handle, AppError> {
@@ -75,7 +78,6 @@ fn config_log (log_file_path: &PathBuf) -> Result<log4rs::Handle, AppError> {
 
     log4rs::init_config(config)
         .map_err(|e| AppError::LogSetupError("Error when creating log4rs handle".to_string(), e.to_string()))
-
 }
 
 
@@ -97,10 +99,9 @@ pub fn log_startup_params (ip : &InitParams) {
     info!("create look up tables: {}", ip.flags.create_lookups);
     info!("create summary tables: {}", ip.flags.create_summary);
     info!("import_ror: {}", ip.flags.import_ror);
-    info!("process_data: {}", ip.flags.process_data);
-    info!("export_text: {}", ip.flags.export_text);
     info!("export_csv: {}", ip.flags.export_csv);
-    info!("export_all_csv: {}", ip.flags.export_full_csv);
+    info!("export_all_csv: {}", ip.flags.export_all_csv);
+    info!("retain withdrawn: {}", ip.flags.inc_withdrawn);
     info!("");
     info!("************************************");
     info!("");

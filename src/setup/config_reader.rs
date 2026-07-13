@@ -162,6 +162,14 @@ fn check_defaulted_string (src_name: Option<String>, value_name: &str, default: 
     }
 }
 
+pub fn config_file_exists(config_file_path: &str)-> bool {
+    let config_path = PathBuf::from(config_file_path);
+    match config_path.try_exists() {
+        Ok(true) => true,
+        _ => false, 
+    }
+}
+
 
 #[cfg(test)]
 mod tests {

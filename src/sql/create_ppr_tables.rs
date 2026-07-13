@@ -10,6 +10,7 @@ pub fn get_sql<'a>() -> &'a str {
         version           varchar       not null
       , data_date         varchar       not null
       , data_days         int           not null
+      , inc_wd            bool          not null
       , process_datetime  timestamptz   not null  default current_timestamp
     );
     
@@ -157,6 +158,25 @@ pub fn get_sql<'a>() -> &'a str {
       , cr_schema         varchar     not null
       , last_modified     date        not null
       , lm_schema         varchar     not null  
+    );
+
+    drop table if exists ppr.withdrawn;
+    create table ppr.withdrawn
+    (
+        id                int         Generated always as identity RESTART WITH 10001 Primary Key
+      , ror_id            varchar     not null
+      , ror_name          varchar     not null	
+      , established       int         null
+      , location          varchar     null
+      , csubdiv_code      varchar     null
+      , country_code      varchar     null
+      , successor_id      varchar     null
+      , succ_name         varchar     null	
+      , succ_status       int         null
+      , succ_established  int         null
+      , succ_location     varchar     null
+      , succ_csubdiv_code varchar     null
+      , succ_country_code varchar     null
     );
         
     SET client_min_messages TO NOTICE"#

@@ -20,7 +20,7 @@ pub async fn delete_any_existing_data(vcode: &String, pool: &Pool<Postgres>) -> 
 }
 
 
-pub async fn create_name_attributes(sdv: &str, vcode: &String, num_orgs_str: &String, num_names: &String,
+pub async fn create_name_attributes(sdv: &str, vcode: &String, num_denom: i64, num_names: i64,
     pool: &Pool<Postgres>) ->  Result<PgQueryResult, AppError> {
 
     // Name attributes summary
@@ -69,22 +69,22 @@ pub async fn create_name_attributes(sdv: &str, vcode: &String, num_orgs_str: &St
 
     let sql  = format!(r#"Update smm.attributes_summary set
             pc_of_atts = ROUND(number_atts*10000::float / {num_names})/100.0,
-            pc_of_orgs = ROUND(number_orgs*10000::float / {num_orgs_str})/100.0
+            pc_of_orgs = ROUND(number_orgs*10000::float / {num_denom})/100.0
             where vcode = '{vcode}' and att_type in (1, 11) "#);
     sqlx::raw_sql(&sql).execute(pool).await
             .map_err(|e| AppError::SqlxError(e, sql))
 }
 
 
-pub async fn create_other_attributes(sdv: &str, num_orgs_str: &String, num_types: &String,
-num_ext_ids: &String, num_links: &String, num_rels: &String, pool: &Pool<Postgres>) ->  Result<(), AppError> {
+pub async fn create_other_attributes(sdv: &str, num_denom: i64, num_types: i64,
+num_ext_ids:i64, num_links: i64, num_rels: i64, pool: &Pool<Postgres>) ->  Result<(), AppError> {
 
     // Org type attributes summary
 
     let sql  = format!(r#"{sdv} gt.id, gt.name, count(t.id) as number_atts,
             round(count(t.id)*10000::float/{num_types})/100.0 as pc_of_atts,
             count(distinct t.id) as number_orgs,
-            round(count(distinct t.id)*10000::float/{num_orgs_str})/100.0 as pc_of_orgs
+            round(count(distinct t.id)*10000::float/{num_denom})/100.0 as pc_of_orgs
             from lup.ror_org_types gt
             inner join ppr.type t
             on gt.id = t.org_type
@@ -100,7 +100,7 @@ num_ext_ids: &String, num_links: &String, num_rels: &String, pool: &Pool<Postgre
    let sql  = format!(r#"{sdv} it.id, it.name, count(t.id) as number_atts,
             round(count(t.id)*10000::float / {num_ext_ids})/100.0 as pc_of_atts,
             count(distinct t.id) as number_orgs,
-            round(count(distinct t.id)*10000::float / {num_orgs_str})/100.0 as pc_of_orgs
+            round(count(distinct t.id)*10000::float / {num_denom})/100.0 as pc_of_orgs
             from lup.ror_id_types it
             inner join ppr.external_ids t
             on it.id = t.id_type
@@ -115,7 +115,7 @@ num_ext_ids: &String, num_links: &String, num_rels: &String, pool: &Pool<Postgre
     let sql  = format!(r#"{sdv} lt.id, lt.name, count(t.id) as number_atts,
             round(count(t.id)*10000::float / {num_links})/100.0 as pc_of_atts,
             count(distinct t.id) as number_orgs,
-            round(count(distinct t.id)*10000::float / {num_orgs_str})/100.0 as pc_of_orgs
+            round(count(distinct t.id)*10000::float / {num_denom})/100.0 as pc_of_orgs
             from lup.ror_link_types lt
             inner join ppr.links t
             on lt.id = t.link_type
@@ -130,7 +130,7 @@ num_ext_ids: &String, num_links: &String, num_rels: &String, pool: &Pool<Postgre
     let sql = format!(r#"{sdv} rr.id, rr.name, count(t.id) as number_atts,
             round(count(t.id)*10000::float / {num_rels})/100.0 as pc_of_atts,
             count(distinct t.id) as number_orgs,
-            round(count(distinct t.id)*10000::float / {num_orgs_str})/100.0 as pc_of_orgs
+            round(count(distinct t.id)*10000::float / {num_denom})/100.0 as pc_of_orgs
             from lup.ror_rel_types rr
             inner join ppr.relationships t
             on rr.id = t.rel_type
@@ -144,12 +144,12 @@ num_ext_ids: &String, num_links: &String, num_rels: &String, pool: &Pool<Postgre
 }
 
 
-pub async fn create_count_distributions(sdv: &str, num_orgs_str: &String, pool: &Pool<Postgres>) ->  Result<(), AppError> {
+pub async fn create_count_distributions(sdv: &str, num_denom: i64, pool: &Pool<Postgres>) ->  Result<(), AppError> {
 
     // All names count distribution
 
     let core_sql = format!(r#" as count, count(id) as num_of_orgs,
-            ROUND(count(id)*10000::float / {num_orgs_str})/100.0 as pc_of_orgs
+            ROUND(count(id)*10000::float / {num_denom})/100.0 as pc_of_orgs
             from ppr.admin_data
             group by "#);
 
@@ -384,7 +384,7 @@ pub async fn store_types_and_relationships(sdv: &str, org_rows: &Vec<OrgRow>, po
 }
 
 
-pub async fn store_singletons(vcode: &String, num_orgs: i64, num_names: i64, pool: &Pool<Postgres>) -> Result<(), AppError> {
+pub async fn store_singletons(vcode: &String, num_denom: i64, num_names: i64, pool: &Pool<Postgres>) -> Result<(), AppError> {
 
     let mut sings = Singletons::new(40);
 
@@ -397,9 +397,6 @@ pub async fn store_singletons(vcode: &String, num_orgs: i64, num_names: i64, poo
     let pc_added = get_pc (num_added_labels, num_names);
     sings.add(vcode, "added_labels", "Labels added to designated ROR names without a name type", num_added_labels, Some(pc_added));
     
-    //store_singleton(vcode, "added_labels", "Labels added to designated ROR names without a name type",
-    //        num_added_labels, Some(pc_added), pool).await?;
-
     // Duplicated names that have been removed
 
     let num_duplicated_names = get_count("select count(id) from src.dup_names", pool).await? / 2;
@@ -461,7 +458,7 @@ pub async fn store_singletons(vcode: &String, num_orgs: i64, num_names: i64, poo
     // Relationship data points
 
     let parch_orgs =  get_count("select count(*) from ppr.admin_data where n_chrels > 0 and n_parrels > 0", pool).await?;
-    let parch_orgs_pc =  get_pc(parch_orgs, num_orgs);
+    let parch_orgs_pc =  get_pc(parch_orgs, num_denom);
     sings.add(vcode, "parch", "Orgs both parent and child, number & pc of total orgs", parch_orgs, Some(parch_orgs_pc));
 
     let par_no_child = get_rel_imbalance(1, 2, pool).await.unwrap();
@@ -504,9 +501,9 @@ pub async fn store_singletons(vcode: &String, num_orgs: i64, num_names: i64, poo
     let num_wolc_ror = get_count(r#"select count(*) from ppr.names
             where is_ror_name = true and lang_code is null"#, pool).await?;
 
-    let pc_en_ror = get_pc(num_en_ror, num_orgs);
-    let pc_nen_ror = get_pc(num_nen_ror, num_orgs);
-    let pc_wolc_ror = get_pc(num_wolc_ror, num_orgs);
+    let pc_en_ror = get_pc(num_en_ror, num_denom);
+    let pc_nen_ror = get_pc(num_nen_ror, num_denom);
+    let pc_wolc_ror = get_pc(num_wolc_ror, num_denom);
 
     sings.add(vcode, "ror_en", "ROR names in English, number & pc of total orgs", num_en_ror, Some(pc_en_ror));
     sings.add(vcode, "ror_nen", "ROR names not in English, number & pc of total orgs", num_nen_ror, Some(pc_nen_ror));
@@ -529,11 +526,11 @@ pub async fn store_singletons(vcode: &String, num_orgs: i64, num_names: i64, poo
     // Location data
 
     let num_poly_locs = get_count(r#"select count(id) from ppr.admin_data where n_locs > 1"#, pool).await?;
-    let pc_poly_locs = get_pc(num_poly_locs, num_orgs);
+    let pc_poly_locs = get_pc(num_poly_locs, num_denom);
     let num_poly_subdivs = get_count(r#"select count(id) from ppr.admin_data where n_subdivs > 1"#, pool).await?;
-    let pc_poly_subdivs = get_pc(num_poly_subdivs, num_orgs);
+    let pc_poly_subdivs = get_pc(num_poly_subdivs, num_denom);
     let num_poly_countries = get_count(r#"select count(id) from ppr.admin_data where n_countries > 1"#, pool).await?;
-    let pc_poly_countries = get_pc(num_poly_countries, num_orgs);
+    let pc_poly_countries = get_pc(num_poly_countries, num_denom);
 
     sings.add(vcode, "poly_locs", "Orgs with more than one location, number & pc of orgs", num_poly_locs, Some(pc_poly_locs));
     sings.add(vcode, "poly_subdivs", "Orgs in more than one ‘state’, number & pc of orgs", num_poly_subdivs, Some(pc_poly_subdivs));
@@ -547,8 +544,8 @@ pub async fn store_singletons(vcode: &String, num_orgs: i64, num_names: i64, poo
 
 pub async fn get_count (sql_string: &str, pool: &Pool<Postgres>) -> Result<i64, AppError> {
      sqlx::query_scalar(sql_string)
-    .fetch_one(pool).await
-    .map_err(|e| AppError::SqlxError(e, sql_string.to_string()))
+        .fetch_one(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql_string.to_string()))
 }
 
 
@@ -561,17 +558,6 @@ fn get_pc (top:i64, bottom:i64) -> f64 {
         },
     }
 }
-
-/* 
-async fn store_singleton(vcode: &String, id: &str, description: &str, number: i64, pc: Option<f64>, pool: &Pool<Postgres>)-> Result<PgQueryResult, AppError> {
-
-    let sql = format!(r#"INSERT INTO smm.singletons (vcode, id, description, number, pc) values($1, $2, $3, $4, $5)"#);
-    sqlx::query(&sql)
-    .bind(vcode).bind(id).bind(description).bind(number).bind(pc)
-    .execute(pool).await
-    .map_err(|e| AppError::SqlxError(e, sql.to_string()))
-}
-*/
 
 async fn store_summary(rows: Vec<TypeRow>, pool: &Pool<Postgres>, att_type: i32, att_name: &str) -> Result<(), AppError> {
 

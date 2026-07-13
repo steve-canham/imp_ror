@@ -7,7 +7,8 @@ use super::export_structs::{CSVSummaryRow, CSVAttributeRow, CSVDistribRow, CSVRa
 use serde::Serialize;
 use super::export_helpers;
 
-pub async fn generate_csv(output_folder : &PathBuf, data_version: &String, pool : &Pool<Postgres> ) -> Result<(), AppError>
+pub async fn generate_csv(output_folder : &PathBuf, data_version: &String, 
+                 pool : &Pool<Postgres> ) -> Result<(), AppError>
 {
     let datetime_string = Local::now().format("%Y-%m-%d %H%M%S").to_string();
     
@@ -16,15 +17,16 @@ pub async fn generate_csv(output_folder : &PathBuf, data_version: &String, pool 
     let output_file_name = format!("{} {} {}.csv", data_version, "summary", datetime_string);
     let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
            
-    let sql = format!("SELECT vcode, vdate::text, vdays, num_orgs, num_names, 
+    let sql = format!("SELECT vcode, vdate::text, vdays, num_orgs, 
+                               num_active, num_inactive, nium_withdrawn, num_names, 
                                num_types, num_links, num_ext_ids, num_rels, num_locations, num_domains 
                                from smm.version_summaries WHERE vcode = '{}';", data_version);
     let summ: CSVSummaryRow = sqlx::query_as(&sql).fetch_one(pool).await
            .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     let summ_as_vec = vec![summ];
     generate_file(&file_path, summ_as_vec)?;
-   
 
+    
     // 2) Attribute Summaries
     
     let output_file_name = format!("{} {} {}.csv", data_version, "attributes", datetime_string);
@@ -146,7 +148,8 @@ pub async fn generate_all_versions_csv(output_folder : &PathBuf, pool : &Pool<Po
     let output_file_name = format!("{} {} {}.csv", "All versions", "summary", datetime_string);
     let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
 
-    let sql = format!("SELECT vcode, vdate::text, vdays, num_orgs, num_names, 
+    let sql = format!("SELECT vcode, vdate::text, vdays, num_orgs, 
+                               num_active, num_inactive, nium_withdrawn, num_names, 
                                num_types, num_links, num_ext_ids, num_rels, num_locations, num_domains 
                                from smm.version_summaries WHERE vcode <> 'v1.57' 
                                order by vcode;");

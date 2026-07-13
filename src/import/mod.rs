@@ -2,7 +2,7 @@
 mod json_models;
 mod data_vectors;
 
-use crate::sql::create_src_tables;
+use crate::{setup::InitParams, sql::create_src_tables};
 use log::info;
 use std::path::PathBuf;
 use std::fs;
@@ -14,13 +14,8 @@ use json_models::RorRecord;
 use data_vectors::{CoreDataVecs, RequiredDataVecs, NonRequiredDataVecs, extract_id_from};
 
 
-pub async fn import_data(data_folder : &PathBuf, source_file_name: &String,
-                        data_version: &String, data_date: &String,
-                        pool : &Pool<Postgres>) -> Result<(), AppError>
+pub async fn import_data(params: &InitParams, pool : &Pool<Postgres>) -> Result<(), AppError>
 {
-    // First recreate the src schema tables - sqlscript in file (path is relative
-    // and Linux specific - Windows would need a similar string but with backslashes)
-
     let sql = create_src_tables::get_sql();
     sqlx::raw_sql(sql).execute(pool)
         .await
@@ -29,7 +24,7 @@ pub async fn import_data(data_folder : &PathBuf, source_file_name: &String,
     // Import data into matching tables. First obtain the raw data as text
     // This also checks the file exists.
 
-    let source_file_path: PathBuf = data_folder.join(&PathBuf::from(source_file_name));
+    let source_file_path: PathBuf = params.data_folder.join(&PathBuf::from(params.source_file_name.clone()));
     let data: String = match fs::read_to_string(&source_file_path)
     {
         Ok(d) => { 
@@ -53,7 +48,7 @@ pub async fn import_data(data_folder : &PathBuf, source_file_name: &String,
 
     // First record data version, date and elapsed days in single record table.
     
-    record_version_and_dates(data_version, data_date, pool).await?;
+    record_version_and_dates(&params.data_version, &params.data_date, pool).await?;
   
     // Set up vector variables.
     // Vectors are grouped into structs for ease of reference.

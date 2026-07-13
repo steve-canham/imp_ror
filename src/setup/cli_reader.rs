@@ -18,22 +18,13 @@ pub struct CliPars {
 #[derive(Debug, Clone, Copy)]
 pub struct Flags {
     pub import_ror: bool,
-    pub process_data: bool,
-    pub export_text: bool,
     pub export_csv: bool,
-    pub export_full_csv: bool,
+    pub export_all_csv: bool,
+    pub inc_withdrawn: bool,
     pub create_config: bool,
     pub create_lookups: bool,
     pub create_summary: bool,
     pub test_run: bool,
-}
-
-pub fn config_file_exists(config_file_path: &str)-> bool {
-    let config_path = PathBuf::from(config_file_path);
-    match config_path.try_exists() {
-        Ok(true) => true,
-        _ => false, 
-    }
 }
 
 pub fn fetch_valid_arguments(args: Vec<OsString>) -> Result<CliPars, AppError> {
@@ -42,28 +33,23 @@ pub fn fetch_valid_arguments(args: Vec<OsString>) -> Result<CliPars, AppError> {
 
     // The string parameters below guaranteed to unwrap OK as all have a default value of "".
 
-    let source_file = parse_result.get_one::<String>("ppr_file").unwrap();
-
-    let test_folder_as_string = parse_result.get_one::<String>("test_folder").unwrap();
-    let test_folder = PathBuf::from(test_folder_as_string);
-
+    let source_file = parse_result.get_one::<String>("src_file").unwrap();
     let data_version = parse_result.get_one::<String>("data_version").unwrap();
     let data_date = parse_result.get_one::<String>("data_date").unwrap();
-
-    // Flag values are false if not present, true if present.
-
-    let a_flag = parse_result.get_flag("a_flag");
-    let i_flag = parse_result.get_flag("i_flag");
+    let test_folder_as_string = parse_result.get_one::<String>("test_folder").unwrap();
+    let test_folder = PathBuf::from(test_folder_as_string);
     
-    let mut r_flag = parse_result.get_flag("r_flag");
-    let mut p_flag = parse_result.get_flag("p_flag");
-    let mut t_flag = parse_result.get_flag("t_flag");
+    // Flag values are false if not present, true if present.
+    
+    let mut a_flag = parse_result.get_flag("a_flag");
     let mut x_flag = parse_result.get_flag("x_flag");
     let mut y_flag = parse_result.get_flag("y_flag");
+    let w_flag = parse_result.get_flag("w_flag");
+    let i_flag = parse_result.get_flag("i_flag");
     let mut c_flag = parse_result.get_flag("c_flag");
     let mut k_flag = parse_result.get_flag("k_flag");
     let mut m_flag = parse_result.get_flag("m_flag");
-    let mut z_flag = parse_result.get_flag("z_flag");
+    let mut t_flag = parse_result.get_flag("t_flag");
         
     if i_flag {
         c_flag = true;
@@ -71,49 +57,56 @@ pub fn fetch_valid_arguments(args: Vec<OsString>) -> Result<CliPars, AppError> {
         m_flag = true;
     }
 
-    // If c, m, k or all three flags set (may be by using 'i' (initialise) flag)
-    // Only do the k and / or c and / or m actions allowed
+    // If c, m, k or all three flags set (may be by using 'i' initialise flag)
+    // Only the k and / or c and / or m actions allowed
       
     if k_flag || m_flag || c_flag {
-        
-        r_flag = false;
-        p_flag = false;
-        t_flag = false;
+        a_flag = false;
         x_flag = false;
         y_flag = false;
-        z_flag = false;        
+        t_flag = false;        
     }
+
+    // If a test run check a meaningful folder for test data
+    // and set other flags to import data
     
-    else {
-
-        if a_flag  // 'a' (do all) flag set
-        {
-            r_flag = true;  
-            p_flag = true;
-            t_flag = true;
+    else if t_flag {   
+        match test_folder.try_exists() {
+            Ok(true) => (),
+            _ => return           // includes Ok(false) as well as Err
+               Result::Err(AppError::MissingProgramParameter("valid test folder".to_string())),   
         }
-        else 
-        {
-            // if none of r, p, t, x or y flags set
-            // set r to be true, as the default with no flags
+        a_flag = true;   
+        x_flag = false;
+        y_flag = false;
+    }
 
-            if r_flag == false && p_flag == false && t_flag == false
-                && x_flag == false && y_flag == false {
-                r_flag = true;   // wouyld normally need the source file designated in config file
-            }
+    // More usual situation is -a, -x, or -y, possibly with -w.
+    // -a flag can be accompanied by -x or -y (will be done first)
+    // If -x and -y flags both given, only -y is allowed.
+    // If none of a, x, y or t flags set a to true, as the default - this
+    // will also need the source file designated, perhaps in config file.
+    
+    else 
+    {
+        if x_flag && y_flag {
+            x_flag = false;
+        }
+       
+        if !a_flag && !x_flag && !y_flag {
+            a_flag = true;   
         }
     }
 
     let flags = Flags {
-        import_ror: r_flag,
-        process_data: p_flag,
-        export_text: t_flag,
+        import_ror: a_flag,
         export_csv: x_flag,
-        export_full_csv: y_flag,
+        export_all_csv: y_flag,
         create_config: c_flag,
         create_lookups: k_flag,
         create_summary: m_flag,
-        test_run: z_flag,
+        inc_withdrawn: w_flag,
+        test_run: t_flag,
     };
 
     Ok(CliPars {
@@ -125,40 +118,16 @@ pub fn fetch_valid_arguments(args: Vec<OsString>) -> Result<CliPars, AppError> {
     })
 }
 
-pub fn get_initalising_cli_pars() -> CliPars {
-    
-    let flags = Flags {
-        import_ror: false,
-        process_data: false,
-        export_text: false,
-        export_csv: false,
-        export_full_csv: false,
-        create_config: true,
-        create_lookups: true,
-        create_summary: true,
-        test_run: false,
-    };
-
-    CliPars {
-        source_file: "".to_string(),
-        data_version: "".to_string(),
-        data_date: "".to_string(),
-        test_folder: PathBuf::new(),
-        flags: flags,
-    }
-}
-
-
 fn parse_args(args: Vec<OsString>) -> Result<ArgMatches, clap::Error> {
 
     command!()
         .about("Imports data from ROR json file (v2) and imports it into a database")
         .arg(
-             Arg::new("ppr_file")
-            .short('s')
+             Arg::new("src_file")
+            .short('f')
             .long("source")
             .visible_aliases(["source file"])
-            .help("A string with the source file name (over-rides environment setting")
+            .help("A string with the source file name (over-rides any config file value)")
             .default_value("")
         )
         .arg(
@@ -182,34 +151,10 @@ fn parse_args(args: Vec<OsString>) -> Result<ArgMatches, clap::Error> {
            .short('a')
            .long("all")
            .required(false)
-           .help("A flag signifying run the entire program, equivalent to R, P and T")
+           .help("A flag signifying import, process, and generate report for designated version, excluding withdrawn organisations")
            .action(clap::ArgAction::SetTrue)
          )
-        .arg(
-            Arg::new("r_flag")
-           .short('r')
-           .long("import")
-           .required(false)
-           .help("A flag signifying import from ror file to src schema tables only")
-           .action(clap::ArgAction::SetTrue)
-        )
-        .arg(
-             Arg::new("p_flag")
-            .short('p')
-            .long("process")
-            .required(false)
-            .help("A flag signifying process src data to ppr data and analyse and store results")
-            .action(clap::ArgAction::SetTrue)
-        )
-        .arg(
-            Arg::new("t_flag")
-           .short('t')
-           .long("text")
-           .required(false)
-           .help("A flag signifying output a summary of the current or specified version into a text file")
-           .action(clap::ArgAction::SetTrue)
-       )
-       .arg(
+         .arg(
              Arg::new("x_flag")
             .short('x')
             .long("export")
@@ -226,6 +171,14 @@ fn parse_args(args: Vec<OsString>) -> Result<ArgMatches, clap::Error> {
            .action(clap::ArgAction::SetTrue)
        )
        .arg(
+           Arg::new("w_flag")
+          .short('w')
+          .long("inc_wd")
+          .required(false)
+          .help("A flag signifying retain withdrawn organisations if import, or use wd included versions if export")
+          .action(clap::ArgAction::SetTrue)
+       )
+       .arg(
             Arg::new("i_flag")
             .short('i')
             .long("init")
@@ -233,7 +186,7 @@ fn parse_args(args: Vec<OsString>) -> Result<ArgMatches, clap::Error> {
             .help("A flag signifying that the system should be initialised (= -c, -k, -m)")
             .action(clap::ArgAction::SetTrue)
         )
-       .arg(
+        .arg(
             Arg::new("c_flag")
             .short('c')
             .long("config")
@@ -241,7 +194,7 @@ fn parse_args(args: Vec<OsString>) -> Result<ArgMatches, clap::Error> {
             .help("A flag signifying that a configuration file needs to be built or edited")
             .action(clap::ArgAction::SetTrue)
         )
-       .arg(
+        .arg(
             Arg::new("k_flag")
             .short('k')
             .long("lookup")
@@ -258,8 +211,8 @@ fn parse_args(args: Vec<OsString>) -> Result<ArgMatches, clap::Error> {
             .action(clap::ArgAction::SetTrue)
        )
        .arg(
-            Arg::new("z_flag")
-            .short('z')
+            Arg::new("t_flag")
+            .short('t')
             .long("test")
             .required(false)
             .help("A flag signifying that this is part of an integration test run - suppresses logs")
@@ -267,8 +220,8 @@ fn parse_args(args: Vec<OsString>) -> Result<ArgMatches, clap::Error> {
        )
        .arg(
             Arg::new("test_folder")
-            .short('f')
-            .long("folder")
+            .short('u')
+            .long("test_folder")
             .help("A CLI derived source folder for testing purposes")
             .default_value("")
         )
@@ -292,10 +245,8 @@ mod tests {
         let res = fetch_valid_arguments(test_args).unwrap();
         assert_eq!(res.source_file, "");
         assert_eq!(res.flags.import_ror, true);
-        assert_eq!(res.flags.process_data, false);
-        assert_eq!(res.flags.export_text, false);
         assert_eq!(res.flags.export_csv, false);
-        assert_eq!(res.flags.export_full_csv, false);
+        assert_eq!(res.flags.export_all_csv, false);
         assert_eq!(res.flags.create_config, false);
         assert_eq!(res.flags.create_lookups, false);
         assert_eq!(res.flags.create_summary, false);
@@ -313,10 +264,8 @@ mod tests {
         let res = fetch_valid_arguments(test_args).unwrap();
         assert_eq!(res.source_file, "");
         assert_eq!(res.flags.import_ror, true);
-        assert_eq!(res.flags.process_data, true);
-        assert_eq!(res.flags.export_text, true);
         assert_eq!(res.flags.export_csv, false);
-        assert_eq!(res.flags.export_full_csv, false);
+        assert_eq!(res.flags.export_all_csv, false);
         assert_eq!(res.flags.create_config, false);
         assert_eq!(res.flags.create_lookups, false);
         assert_eq!(res.flags.create_summary, false);
@@ -335,10 +284,8 @@ mod tests {
         let res = fetch_valid_arguments(test_args).unwrap();
         assert_eq!(res.source_file, "");
         assert_eq!(res.flags.import_ror, false);
-        assert_eq!(res.flags.process_data, false);
-        assert_eq!(res.flags.export_text, false);
         assert_eq!(res.flags.export_csv, false);
-        assert_eq!(res.flags.export_full_csv, false);
+        assert_eq!(res.flags.export_all_csv, false);
         assert_eq!(res.flags.create_config, true);
         assert_eq!(res.flags.create_lookups, true);
         assert_eq!(res.flags.create_summary, true);
@@ -356,10 +303,8 @@ mod tests {
         let res = fetch_valid_arguments(test_args).unwrap();
         assert_eq!(res.source_file, "");
         assert_eq!(res.flags.import_ror, false);
-        assert_eq!(res.flags.process_data, false);
-        assert_eq!(res.flags.export_text, false);
         assert_eq!(res.flags.export_csv, false);
-        assert_eq!(res.flags.export_full_csv, false);
+        assert_eq!(res.flags.export_all_csv, false);
         assert_eq!(res.flags.create_config, false);
         assert_eq!(res.flags.create_lookups, true);
         assert_eq!(res.flags.create_summary, false);
@@ -377,10 +322,8 @@ mod tests {
         let res = fetch_valid_arguments(test_args).unwrap();
         assert_eq!(res.source_file, "");
         assert_eq!(res.flags.import_ror, false);
-        assert_eq!(res.flags.process_data, false);
-        assert_eq!(res.flags.export_text, false);
         assert_eq!(res.flags.export_csv, false);
-        assert_eq!(res.flags.export_full_csv, false);
+        assert_eq!(res.flags.export_all_csv, false);
         assert_eq!(res.flags.create_config, true);
         assert_eq!(res.flags.create_lookups, false);
         assert_eq!(res.flags.create_summary, false);
@@ -399,10 +342,8 @@ mod tests {
         let res = fetch_valid_arguments(test_args).unwrap();
         assert_eq!(res.source_file, "");
         assert_eq!(res.flags.import_ror, false);
-        assert_eq!(res.flags.process_data, false);
-        assert_eq!(res.flags.export_text, false);
         assert_eq!(res.flags.export_csv, false);
-        assert_eq!(res.flags.export_full_csv, false);
+        assert_eq!(res.flags.export_all_csv, false);
         assert_eq!(res.flags.create_config, false);
         assert_eq!(res.flags.create_lookups, false);
         assert_eq!(res.flags.create_summary, true);
@@ -421,10 +362,8 @@ mod tests {
         let res = fetch_valid_arguments(test_args).unwrap();
         assert_eq!(res.source_file, "");
         assert_eq!(res.flags.import_ror, false);
-        assert_eq!(res.flags.process_data, false);
-        assert_eq!(res.flags.export_text, false);
         assert_eq!(res.flags.export_csv, true);
-        assert_eq!(res.flags.export_full_csv, true);
+        assert_eq!(res.flags.export_all_csv, true);
         assert_eq!(res.flags.create_config, false);
         assert_eq!(res.flags.create_lookups, false);
         assert_eq!(res.flags.create_summary, false);
@@ -443,10 +382,8 @@ mod tests {
         let res = fetch_valid_arguments(test_args).unwrap();
         assert_eq!(res.source_file, "");
         assert_eq!(res.flags.import_ror, true);
-        assert_eq!(res.flags.process_data, true);
-        assert_eq!(res.flags.export_text, true);
         assert_eq!(res.flags.export_csv, true);
-        assert_eq!(res.flags.export_full_csv, false);
+        assert_eq!(res.flags.export_all_csv, false);
         assert_eq!(res.flags.create_config, false);
         assert_eq!(res.flags.create_lookups, false);
         assert_eq!(res.flags.create_summary, false);
@@ -465,10 +402,8 @@ mod tests {
         let res = fetch_valid_arguments(test_args).unwrap();
         assert_eq!(res.source_file, "");
         assert_eq!(res.flags.import_ror, true);
-        assert_eq!(res.flags.process_data, false);
-        assert_eq!(res.flags.export_text, false);
         assert_eq!(res.flags.export_csv, false);
-        assert_eq!(res.flags.export_full_csv, false);
+        assert_eq!(res.flags.export_all_csv, false);
         assert_eq!(res.flags.create_config, false);
         assert_eq!(res.flags.create_lookups, false);
         assert_eq!(res.flags.create_summary, false);
@@ -487,10 +422,8 @@ mod tests {
         let res = fetch_valid_arguments(test_args).unwrap();
         assert_eq!(res.source_file, "schema2.1 data.json");
         assert_eq!(res.flags.import_ror, true);
-        assert_eq!(res.flags.process_data, false);
-        assert_eq!(res.flags.export_text, false);
         assert_eq!(res.flags.export_csv, false);
-        assert_eq!(res.flags.export_full_csv, false);
+        assert_eq!(res.flags.export_all_csv, false);
         assert_eq!(res.flags.create_config, false);
         assert_eq!(res.flags.create_lookups, false);
         assert_eq!(res.flags.create_summary, false);
@@ -510,10 +443,8 @@ mod tests {
         let res = fetch_valid_arguments(test_args).unwrap();
         assert_eq!(res.source_file, "schema2.1 data.json");
         assert_eq!(res.flags.import_ror, true);
-        assert_eq!(res.flags.process_data, true);
-        assert_eq!(res.flags.export_text, true);
         assert_eq!(res.flags.export_csv, true);
-        assert_eq!(res.flags.export_full_csv, true);
+        assert_eq!(res.flags.export_all_csv, true);
         assert_eq!(res.flags.create_config, false);
         assert_eq!(res.flags.create_lookups, false);
         assert_eq!(res.flags.create_summary, false);

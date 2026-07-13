@@ -10,7 +10,7 @@ use log::info;
 
 
 pub async fn generate_text(output_folder : &PathBuf, vcode: &String, 
-                            pool : &Pool<Postgres>) -> Result<(), AppError>
+                           inc_withdrawn: bool, pool : &Pool<Postgres>) -> Result<(), AppError>
 {
     // Get path and set up file for writing.
 
@@ -19,7 +19,7 @@ pub async fn generate_text(output_folder : &PathBuf, vcode: &String,
     let output_file_path: PathBuf = [output_folder, &PathBuf::from(output_file_name)].iter().collect();
             
     let singvals:HashMap<String, Singleton> = collect_singleton_values(vcode, pool).await?;
-    write_header_and_summary(&output_file_path, vcode, pool).await?;
+    write_header_and_summary(&output_file_path, vcode, inc_withdrawn, pool).await?;
     write_explanation(&output_file_path).await?;
     write_name_info(&output_file_path, vcode, pool, &singvals).await?;
     write_name_wolc_info(&output_file_path, vcode, pool, &singvals).await?;
@@ -53,7 +53,8 @@ async fn collect_singleton_values(vcode: &String, pool: &Pool<Postgres>) -> Resu
 
 }
 
-async fn write_header_and_summary(output_file_path: &PathBuf, vcode: &String, pool: &Pool<Postgres>) -> Result<(), AppError> {
+async fn write_header_and_summary(output_file_path: &PathBuf, vcode: &String, 
+                                inc_withdrawn: bool, pool: &Pool<Postgres>) -> Result<(), AppError> {
     
     // Get import date from the ror table, other summary details from the smm.version_summaries table
 
@@ -73,9 +74,32 @@ async fn write_header_and_summary(output_file_path: &PathBuf, vcode: &String, po
                    + "\n\tReport generated: " + &Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
     append_to_file(output_file_path, &header_txt)?;
 
-    let summary_txt = "\n\n\tENTITY NUMBERS\n\t".to_string() 
+    let org_text = "\n\n\tORGANISATION NUMBERS\n\t".to_string() 
+                  + "----------------------------------------------------------------------------------" 
+                  + &get_data_line("Total", summ.num_recs) 
+                  + &get_data_line("Active", summ.num_active) 
+                  + &get_data_line("Inactive", summ.num_inactive) 
+                  + &get_data_line("Withdrawn", summ.num_withdrawn) 
+                  + "\n";
+    append_to_file(output_file_path, &org_text)?;
+
+    let withdrawn_text: String;
+    if inc_withdrawn {
+        withdrawn_text = "\n\tN.B. Withdrawn organisations have been retained in the dataset ".to_string()
+                 + "\n\tand the figures below reflect this. Thay apply to all ROR organisations, "
+                 + &format!("\n\ti.e. the denominator for % organisations is {}", summ.num_denom);
+    } else {
+        withdrawn_text = "\n\tN.B. Withdrawn organisations have been removed from the dataset ".to_string()
+                 + "\n\tThe figures below therefore reflect active and inactive ROR organisations, but not"
+                 + "\n\twithdrawn organisations, " + &format!("i.e. the denominator for % organisations is {}", summ.num_denom)
+                 + "\n\tData on withdrawn organisations, including successor " 
+                 + "\n\torganisations where relevant, can be found in the ppr.withdrawn table."
+                 + "\n";
+    }
+    append_to_file(output_file_path, &withdrawn_text)?;
+
+    let entity_txt = "\n\n\tENTITY NUMBERS\n\t".to_string() 
                     + "----------------------------------------------------------------------------------" 
-                + &get_data_line("Organisations", summ.num_orgs) 
                 + &get_data_line("Names", summ.num_names) 
                 + &get_data_line("Types", summ.num_types) 
                 + &get_data_line("Links", summ.num_links) 
@@ -84,7 +108,7 @@ async fn write_header_and_summary(output_file_path: &PathBuf, vcode: &String, po
                 + &get_data_line("Locations", summ.num_locations) 
                 + &get_data_line("Domains", summ.num_domains) 
                 + "\n";
-    append_to_file(output_file_path, &summary_txt)?;
+    append_to_file(output_file_path, &entity_txt)?;
     Ok(())
 }
 

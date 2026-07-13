@@ -1,13 +1,3 @@
-/**********************************************************************************
-
-Where a parameter may be given in either the config file or command line, the
-command line version always over-writes anything from the file.
-The module also checks the parameters for completeness (those required will vary,
-depending on the activity specified). If possible, defaults are used to stand in for
-mising parameters. If not possible the program stops with a message explaining the
-problem.
-The module also provides a database connection pool on demand.
-***********************************************************************************/
 
 pub mod cli_reader;
 pub mod config_reader;
@@ -32,7 +22,7 @@ use std::path::PathBuf;
 use std::fs;
 use regex::Regex;
 use config_reader::Config;
-use cli_reader::{CliPars, Flags};
+use cli_reader::Flags;
 
 pub struct InitParams {
     pub data_folder: PathBuf,
@@ -46,24 +36,149 @@ pub struct InitParams {
 
 pub static LOG_RUNNING: OnceLock<bool> = OnceLock::new();
 
-pub fn obtain_parameters(args: Vec<OsString>) -> Result<(CliPars, String), AppError>{
+pub fn combine_params(args: Vec<OsString>) -> Result<InitParams, AppError>{
+       
+    // CLI parameters must be collected first as they may contain the '-c' flag,
+    // which forces an initial creation or edit of the config file.
+    // The config data is then processed to create a Config object, which includes 
+    // database connection parameters, and parent folders for logs, source data, and output data.
+    // These are created if not already in existence. 
+    // CLI and config data are then combined into a single InitParams struct - the CLI's 
+    // source file parameter will overrule any in the config file.
+    
+    let cli_pars = cli_reader::fetch_valid_arguments(args)?;    // Derived from the command line arguments. 
+    let config_path = obtain_config_file_path()?;               // The OS dependent location of the config file.
 
-    let cli_pars = cli_reader::fetch_valid_arguments(args)?;
-    let config_string: String;
-    let config_path = obtain_config_file_path()?;
-
-    if cli_pars.flags.create_config {  
-        config_string = match config_path.try_exists() {
+    let config_string = if cli_pars.flags.create_config {    // -c flag set, so create, or edit an existing, config file.
+        match config_path.try_exists() {
             Ok(true) => edit_config_file(&config_path)?,        
-            _ => create_config_file(&config_path)?,        // No matching or not accessible file
-        };
+            _ => create_config_file(&config_path)?,          // No matching or not accessible file
+        }
+    }
+    else {     // In great majority of cases simply read the config file.
+        fs::read_to_string(&config_path)
+            .map_err(|e| AppError::IoReadErrorWithPath(e, config_path.to_owned()))?
+    };
+   
+    let flags = cli_pars.flags;
+    let configuration: Config = config_reader::populate_config_vars(&config_string)?;
+    let folder_pars = configuration.folders;  // guaranteed to exist
+    let data_pars = configuration.data_details;
+
+    let data_folder = if cli_pars.flags.test_run {
+        cli_pars.test_folder
     }
     else {
-        config_string = fs::read_to_string(&config_path)
-            .map_err(|e| AppError::IoReadErrorWithPath(e, config_path.to_owned()))?;
+        let dfp = folder_pars.data_folder_path;
+        match flags.import_ror {
+            true => {
+                match folder_exists (&dfp) {
+                    true => dfp,
+                    _ => return Result::Err(AppError::MissingProgramParameter("data_folder".to_string()))
+                }
+            },
+            false => dfp,
+        }
+    };
+
+    let mut log_folder = folder_pars.log_folder_path;
+    if log_folder == PathBuf::from("") && folder_exists (&data_folder) {
+        log_folder = data_folder.clone();
     }
+    else {
+        if !folder_exists (&log_folder) {
+            fs::create_dir_all(&log_folder)?;
+        }
+    }
+
+    let mut output_folder = folder_pars.output_folder_path;
+    if output_folder == PathBuf::from("") && folder_exists (&data_folder) {
+        output_folder = data_folder.clone();
+    }
+    else {
+        if !folder_exists (&output_folder) {
+            fs::create_dir_all(&output_folder)?;
+        }
+    }
+
+    // If source file name given in CL args the CL version takes precedence.
+
+    let mut source_file_name = cli_pars.source_file;
+    if source_file_name == "".to_string() {
+        source_file_name =  data_pars.src_file_name;
+        if source_file_name == "".to_string() && flags.import_ror {   // Required data is missing
+            return Result::Err(AppError::MissingProgramParameter("src_file_name".to_string()));
+        }
+    }
+
+    // Also ensure source file name ends in '.json', if it doesn't already.
+
+    let name_len = source_file_name.len();
+    if name_len > 5 {
+        let ext = &source_file_name[(name_len - 5)..];
+        if ext != ".json" {
+            source_file_name = source_file_name + ".json";
+       }
+    }
+
+    let mut data_version: String; 
+    let mut data_date: String; 
+
+    // If file name conforms to the correct pattern data version and data date can be derived.
+
+    if is_compliant_file_name(&source_file_name) {
+        data_version = get_data_version(&source_file_name);
+        data_date = get_data_date(&source_file_name);
+    }
+    else {
+
+        // Parsing of file name has not been completely successful, so get the version and date
+        // of the data from the CLI, or failing that the config file.
+        
+        if cli_pars.flags.test_run {            // for test runs they are pre-defined
+            data_version = "v99".to_string();
+            data_date = "2030-01-01".to_string()
+        }
+        else {
+            
+            data_version = cli_pars.data_version;
+            if data_version == "".to_string() {
+                data_version = data_pars.data_version;
+                if data_version == "".to_string() && flags.import_ror {   // Required data is missing - Raise error and exit program.
+                        return Result::Err(AppError::MissingProgramParameter("data_version".to_string()));
+                }
+            }
+            
+            data_date = match NaiveDate::parse_from_str(&cli_pars.data_date, "%Y-%m-%d") {  // check if valid date
+                Ok(_) => cli_pars.data_date,
+                _ => "".to_string(),
+            };
+            if data_date == "" {
+                let config_date = &data_pars.data_date;
+                data_date = match NaiveDate::parse_from_str(config_date, "%Y-%m-%d") {
+                    Ok(_) => config_date.to_string(),
+                    _ => "".to_string(),
+                };
     
-    Ok((cli_pars, config_string))
+                if data_date == "" && flags.import_ror {   // Raise an AppError...required data is missing.
+                    return Result::Err(AppError::MissingProgramParameter("data_date".to_string()));
+                }
+            }
+        }
+    }
+
+    // For execution flags read from the environment variables
+
+    Ok(InitParams {
+        data_folder,
+        log_folder,
+        output_folder,
+        source_file_name,
+        data_version,
+        data_date,
+        flags: cli_pars.flags,
+    })
+
 }
 
 
@@ -88,142 +203,6 @@ fn obtain_config_file_path() -> Result<PathBuf, AppError> {
 }
 
 
-pub fn combine_params(cli_pars: CliPars, config_string: &String) -> Result<InitParams, AppError> {
-
-    // The call from lib includes the CLI flags and parameters, previously processed,
-    // and the toml config data as a string derived from the toml file.
-    // The config data is analysed to create a Config object, and parent folders for
-    // logs and json data are created if not already in existence.
-    // CLI and config data are then combined into a struct with all the initial parameters.
-
-    let flags = cli_pars.flags;
-    let config_file: Config = config_reader::populate_config_vars(&config_string)?;
-
-    let folder_pars = config_file.folders;  // guaranteed to exist
-    let data_pars = config_file.data_details;
-
-    let empty_pb = PathBuf::from("");
-    let data_folder: PathBuf;
-    let mut data_folder_good = true;
-
-    if cli_pars.flags.test_run {
-        data_folder = cli_pars.test_folder;
-    }
-    else {
-        data_folder = folder_pars.data_folder_path;
-        if !folder_exists (&data_folder)
-        {
-            data_folder_good = false;
-        }
-
-        if !data_folder_good && flags.import_ror {
-            return Result::Err(AppError::MissingProgramParameter("data_folder".to_string()));
-        }
-    }
-
-    let mut log_folder = folder_pars.log_folder_path;
-    if log_folder == empty_pb && data_folder_good {
-        log_folder = data_folder.clone();
-    }
-    else {
-        if !folder_exists (&log_folder) {
-            fs::create_dir_all(&log_folder)?;
-        }
-    }
-
-    let mut output_folder = folder_pars.output_folder_path;
-    if output_folder == empty_pb && data_folder_good {
-        output_folder = data_folder.clone();
-    }
-    else {
-        if !folder_exists (&output_folder) {
-            fs::create_dir_all(&output_folder)?;
-        }
-    }
-
-    // If source file name given in CL args the CL version takes precedence.
-
-    let mut source_file_name = cli_pars.source_file;
-    if source_file_name == "".to_string() {
-        source_file_name =  data_pars.src_file_name;
-        if source_file_name == "".to_string() && flags.import_ror {   // Required data is missing
-            return Result::Err(AppError::MissingProgramParameter("ppr_file_name".to_string()));
-        }
-    }
-
-    // Also ensure source file name ends in '.json', if it doesn't already.
-
-    let name_len = source_file_name.len();
-    if name_len > 5 {
-        let ext = &source_file_name[(name_len - 5)..];
-        if ext != ".json" {
-            source_file_name = source_file_name + ".json";
-       }
-    }
-
-    let mut data_version = "".to_string();
-    let mut data_date = "".to_string();
-
-    // If file name conforms to the correct pattern data version and data date can be derived.
-
-    if cli_pars.flags.test_run {
-        data_version = "v99".to_string();
-        data_date = "2030-01-01".to_string()
-    }
-    else {
-        if is_compliant_file_name(&source_file_name) {
-            data_version = get_data_version(&source_file_name);
-            data_date = get_data_date(&source_file_name);
-        }
-    }
-
-
-    if data_version == "".to_string() ||  data_date == "".to_string()
-    {
-        // Parsing of file name has not been completely successful, so get the version and date
-        // of the data from the CLI, or failing that the config file.
-
-        data_version= cli_pars.data_version;
-        if data_version == "" {
-            data_version = data_pars.data_version;
-            if data_version == "" && flags.import_ror {   // Required data is missing - Raise error and exit program.
-                return Result::Err(AppError::MissingProgramParameter("data_version".to_string()));
-            }
-        }
-
-        data_date = match NaiveDate::parse_from_str(&cli_pars.data_date, "%Y-%m-%d") {
-            Ok(_) => cli_pars.data_date,
-            Err(_) => "".to_string(),
-        };
-
-        if data_date == "" {
-                let config_date = &data_pars.data_date;
-                data_date = match NaiveDate::parse_from_str(config_date, "%Y-%m-%d") {
-                Ok(_) => config_date.to_string(),
-                Err(_) => "".to_string(),
-            };
-
-            if data_date == "" && flags.import_ror {   // Raise an AppError...required data is missing.
-                return Result::Err(AppError::MissingProgramParameter("data_date".to_string()));
-            }
-        }
-    }
-
-    // For execution flags read from the environment variables
-
-    Ok(InitParams {
-        data_folder,
-        log_folder,
-        output_folder,
-        source_file_name,
-        data_version,
-        data_date,
-        flags: cli_pars.flags,
-    })
-
-}
-
-
 fn folder_exists(folder_name: &PathBuf) -> bool {
     match folder_name.try_exists() {
         Ok(true) => true,
@@ -231,15 +210,15 @@ fn folder_exists(folder_name: &PathBuf) -> bool {
     }
 }
 
-
-pub fn establish_log(params: &InitParams, config_string: &String) -> Result<(), AppError> {
+pub fn establish_log(params: &InitParams) -> Result<(), AppError> {
 
     if !log_set_up() {  // can be called more than once in context of integration tests
-        log_helper::setup_log(&params.log_folder, &params.source_file_name)?;
+        log_helper::setup_log(params)?;
         LOG_RUNNING.set(true).unwrap(); // should always work
-        log_helper::log_startup_params(&params);
+        log_helper::log_startup_params(params);
         if params.flags.create_config {
-            log_helper::write_config(config_string);
+            let config_string = get_config_string()?;
+            log_helper::write_config(&config_string);
         }
     }
     Ok(())
@@ -310,6 +289,12 @@ fn get_data_date(input: &str) -> String {
     else {
         "".to_string()
     }
+}
+
+pub fn get_config_string () -> Result<String, AppError> {
+    let config_path = obtain_config_file_path()?;               // The OS dependent location of the config file.
+    fs::read_to_string(&config_path)
+        .map_err(|e| AppError::IoReadErrorWithPath(e, config_path))
 }
 
 
@@ -418,15 +403,11 @@ db_name="ror"
 
         let args : Vec<&str> = vec!["dummy target"];
         let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
-        let cli_pars = cli_reader::fetch_valid_arguments(test_args).unwrap();
-
-        let res = combine_params(cli_pars, &config_string).unwrap();
+        let res = combine_params(test_args).unwrap();
 
         assert_eq!(res.flags.import_ror, true);
-        assert_eq!(res.flags.process_data, false);
-        assert_eq!(res.flags.export_text, false);
         assert_eq!(res.flags.export_csv, false);
-        assert_eq!(res.flags.export_full_csv, false);
+        assert_eq!(res.flags.export_all_csv, false);
         assert_eq!(res.flags.create_config, false);
         assert_eq!(res.flags.create_lookups, false);
         assert_eq!(res.flags.create_summary, false);
@@ -464,14 +445,11 @@ db_name="ror"
         let args : Vec<&str> = vec!["dummy target", "-r", "-p", "-t", "-x",
                                     "-d", "2026-12-25", "-s", "schema2 data.json", "-v", "v1.60"];
         let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
-        let cli_pars = cli_reader::fetch_valid_arguments(test_args).unwrap();
-        let res = combine_params(cli_pars, &config_string).unwrap();
+        let res = combine_params(test_args).unwrap();
 
         assert_eq!(res.flags.import_ror, true);
-        assert_eq!(res.flags.process_data, true);
-        assert_eq!(res.flags.export_text, true);
         assert_eq!(res.flags.export_csv, true);
-        assert_eq!(res.flags.export_full_csv, false);
+        assert_eq!(res.flags.export_all_csv, false);
         assert_eq!(res.flags.create_config, false);
         assert_eq!(res.flags.create_lookups, false);
         assert_eq!(res.flags.create_summary, false);
@@ -509,14 +487,11 @@ db_name="ror"
         let args : Vec<&str> = vec!["dummy target", "-r", "-p", "-x", "-y", "-c", "-m",
                                     "-d", "2026-12-25", "-s", "schema2 data.json", "-v", "v1.60"];
         let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
-        let cli_pars = cli_reader::fetch_valid_arguments(test_args).unwrap();
-        let res = combine_params(cli_pars, &config_string).unwrap();
+        let res = combine_params(test_args).unwrap();
 
         assert_eq!(res.flags.import_ror, false);
-        assert_eq!(res.flags.process_data, false);
-        assert_eq!(res.flags.export_text, false);
         assert_eq!(res.flags.export_csv, false);
-        assert_eq!(res.flags.export_full_csv, false);
+        assert_eq!(res.flags.export_all_csv, false);
         assert_eq!(res.flags.create_config, true);
         assert_eq!(res.flags.create_lookups,false);
         assert_eq!(res.flags.create_summary, true);
@@ -554,14 +529,11 @@ db_name="ror"
         config_reader::populate_config_vars(&config_string).unwrap();
         let args : Vec<&str> = vec!["dummy target", "-x", "-y", "-s", "schema2 data.json"];
         let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
-        let cli_pars = cli_reader::fetch_valid_arguments(test_args).unwrap();
-        let res = combine_params(cli_pars, &config_string).unwrap();
+        let res = combine_params(test_args).unwrap();
 
         assert_eq!(res.flags.import_ror, false);
-        assert_eq!(res.flags.process_data, false);
-        assert_eq!(res.flags.export_text, false);
         assert_eq!(res.flags.export_csv, true);
-        assert_eq!(res.flags.export_full_csv, true);
+        assert_eq!(res.flags.export_all_csv, true);
         assert_eq!(res.flags.create_config, false);
         assert_eq!(res.flags.create_lookups, false);
         assert_eq!(res.flags.create_summary, false);
@@ -599,15 +571,11 @@ db_name="ror"
 
         let args : Vec<&str> = vec!["dummy target", "-a"];
         let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
-        let cli_pars = cli_reader::fetch_valid_arguments(test_args).unwrap();
-
-        let res = combine_params(cli_pars, &config_string).unwrap();
+        let res = combine_params(test_args).unwrap();
 
         assert_eq!(res.flags.import_ror, true);
-        assert_eq!(res.flags.process_data, true);
-        assert_eq!(res.flags.export_text, true);
         assert_eq!(res.flags.export_csv, false);
-        assert_eq!(res.flags.export_full_csv, false);
+        assert_eq!(res.flags.export_all_csv, false);
         assert_eq!(res.flags.create_config, false);
         assert_eq!(res.flags.create_lookups, false);
         assert_eq!(res.flags.create_summary, false);
@@ -645,8 +613,7 @@ db_name="ror"
         config_reader::populate_config_vars(&config_string).unwrap();
         let args : Vec<&str> = vec!["dummy target", "-a", "-v", "v1.60"];
         let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
-        let cli_pars = cli_reader::fetch_valid_arguments(test_args).unwrap();
-        let _res = combine_params(cli_pars, &config_string).unwrap();
+        let _res = combine_params(test_args).unwrap();
     }
 
 
@@ -676,15 +643,11 @@ db_name="ror"
 
         let args : Vec<&str> = vec!["dummy target", "-p"];
         let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
-        let cli_pars = cli_reader::fetch_valid_arguments(test_args).unwrap();
-
-        let res = combine_params(cli_pars, &config_string).unwrap();
+        let res = combine_params(test_args).unwrap();
 
         assert_eq!(res.flags.import_ror, false);
-        assert_eq!(res.flags.process_data, true);
-        assert_eq!(res.flags.export_text, false);
         assert_eq!(res.flags.export_csv, false);
-        assert_eq!(res.flags.export_full_csv, false);
+        assert_eq!(res.flags.export_all_csv, false);
         assert_eq!(res.flags.create_config, false);
         assert_eq!(res.flags.create_lookups, false);
         assert_eq!(res.flags.create_summary, false);

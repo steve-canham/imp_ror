@@ -1,8 +1,10 @@
 
+/*
 pub fn get_version_details_sql <'a>() -> &'a str {
-       r#"insert into ppr.version_details (version, data_date, data_days)
+       r#"insert into ppr.version_details (version, data_date, data_days, exc_wd)
        select version, data_date, data_days from src.version_details;"#
 }
+*/
 
 pub fn get_core_data_sql <'a>() -> &'a str {
    
@@ -143,3 +145,23 @@ pub fn get_domains_sql <'a>() -> &'a str {
         on a.id = c.id;"#
 }
 
+pub fn get_withdrawn_sql <'a>() -> &'a str {
+        r#"insert into ppr.withdrawn(id, ror_name, established,
+           location, csubdiv_code, country_code,
+           successor_id, succ_name, succ_status, 
+           succ_established, succ_location, succ_csubdiv_code,
+           succ_country_code)
+           select c.id, c.ror_name, c.established,
+                   c.location, c.csubdiv_code, c.country_code,
+                   s.id, s.ror_name, s.status, s.established,
+                   s.location, s.csubdiv_code, s.country_code
+           from ppr.core_data c
+           left join  
+			    (select * from ppr.relationships
+			    where rel_type = 5) r
+           on c.id = r.id
+           left join ppr.core_data s
+           on r.related_id = s.id
+           where c.status = 3
+           order by c.ror_name;"#
+}
