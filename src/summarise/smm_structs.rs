@@ -1,12 +1,23 @@
 use sqlx::{Postgres, Pool, postgres::PgQueryResult};
 use crate::AppError;
 
-
 #[derive(sqlx::FromRow)]
 pub struct FileParams {
     pub vcode: String,
     pub vdate_as_string: String,
-    pub vdays: i32
+    pub vdays: i32,
+    pub inc_wd: bool,
+}
+
+#[derive(sqlx::FromRow)]
+pub struct TypeRow {
+    pub vcode: String,
+    pub id: i32,
+    pub name: String,
+    pub number_atts: i64,
+    pub pc_of_atts: f64,
+    pub number_orgs: i64,
+    pub pc_of_orgs: f64,
 }
 
 #[derive(sqlx::FromRow)]
@@ -26,16 +37,6 @@ pub struct RankedRow {
   pub pc_of_base_set: f64,
 }
 
-#[derive(sqlx::FromRow)]
-pub struct TypeRow {
-    pub vcode: String,
-    pub id: i32,
-    pub name: String,
-    pub number_atts: i64,
-    pub pc_of_atts: f64,
-    pub number_orgs: i64,
-    pub pc_of_orgs: f64,
-}
 
 #[derive(sqlx::FromRow)]
 pub struct OrgRow {
@@ -46,6 +47,7 @@ pub struct OrgRow {
 
 pub struct Singletons {
     pub vcodes: Vec<String>,
+    pub inc_wds: Vec<bool>,
     pub ids: Vec<String>,
     pub descriptions: Vec<String>,
     pub numbers: Vec<i64>,
@@ -57,6 +59,7 @@ impl Singletons {
     pub fn new(vsize: usize) -> Self {
         Singletons {
             vcodes: Vec::with_capacity(vsize),
+            inc_wds: Vec::with_capacity(vsize),
             ids: Vec::with_capacity(vsize),
             descriptions: Vec::with_capacity(vsize),
             numbers: Vec::with_capacity(vsize),
@@ -64,8 +67,9 @@ impl Singletons {
         }
     }
 
-    pub fn add(&mut self, vcode: &String, id: &str, description: &str, number: i64, pc: Option<f64>) {
+    pub fn add(&mut self, vcode: &String, inc_wd: bool, id: &str, description: &str, number: i64, pc: Option<f64>) {
         self.vcodes.push(vcode.to_string());
+        self.inc_wds.push(inc_wd);
         self.ids.push(id.to_string());
         self.descriptions.push(description.to_string());
         self.numbers.push(number);
@@ -74,20 +78,17 @@ impl Singletons {
 
     pub async fn store(&self, pool : &Pool<Postgres>)  -> Result<PgQueryResult, AppError> {
 
-        let sql = format!(r#"INSERT INTO smm.singletons (vcode, id, description, number, pc)
-            SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::int[], $5::real[])"#);
+        let sql = format!(r#"INSERT INTO smm.singletons (vcode, inc_wd, id, description, number, pc)
+            SELECT * FROM UNNEST($1::text[], $2::bool[], $3::text[], $4::text[], $5::int[], $6::real[])"#);
         sqlx::query(&sql)
         .bind(&self.vcodes)
+        .bind(&self.inc_wds)
         .bind(&self.ids)
         .bind(&self.descriptions)
         .bind(&self.numbers)
         .bind(&self.pcs)
         .execute(pool).await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))
-
-
-
-
     }
 
 

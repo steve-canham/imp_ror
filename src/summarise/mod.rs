@@ -23,34 +23,35 @@ pub async fn store_summary_data (params: &InitParams, pool: &Pool<Postgres>) -> 
     // and derive standard first item of many sql statements below.
 
     let sql = r#"SELECT version as vcode, data_date as vdate_as_string, 
-               data_days as vdays from ppr.version_details;"#;
+               data_days as vdays, inc_wd from ppr.version_details;"#;
     let fp: FileParams = sqlx::query_as(sql).fetch_one(pool).await
             .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     let vcode = fp.vcode;
     let vdate = NaiveDate::parse_from_str(&fp.vdate_as_string, "%Y-%m-%d").unwrap();
     let vdays = fp.vdays;
+    let inc_wd = fp.inc_wd;
     let sdv = format!("select '{}' as vcode, ",  vcode);   // common beginning of sql statements
     
     // Delete existing data in smm. tables for this version and construct the 
     // initial version summary table by obtaining record counts of all ppr tables.                  
 
-    smm_helper::delete_any_existing_data(&vcode, pool).await?;
+    smm_helper::delete_any_existing_data(&vcode, inc_wd, pool).await?;
 
     // Get status breakdown.
 
     let num_active = smm_helper::get_count("select count(*) from ppr.core_data where status = 1", pool).await?;
     let num_inactive = smm_helper::get_count("select count(*) from ppr.core_data where status = 2", pool).await?;
-    let num_withdrawn: i64;
-    if params.flags.inc_withdrawn {
-        num_withdrawn = smm_helper::get_count("select count(*) from ppr.core_data where status = 3", pool).await?;
-    }
+    let num_withdrawn =  if params.flags.inc_withdrawn {
+        smm_helper::get_count("select count(*) from ppr.core_data where status = 3", pool).await?
+    } 
     else {
-        num_withdrawn = smm_helper::get_count("select count(*) from ppr.withdrawn_core", pool).await?;
-    }
+        smm_helper::get_count("select count(*) from ppr.withdrawn", pool).await?
+    };
     let num_recs = num_active + num_inactive + num_withdrawn;
     let num_denom = if params.flags.inc_withdrawn {num_recs} else {num_active + num_inactive};
     
     // Get table count numbers
+    
     let num_names = smm_helper::get_count("select count(*) from ppr.names", pool).await?;
     let num_types = smm_helper::get_count("select count(*) from ppr.type", pool).await?;
     let num_links = smm_helper::get_count("select count(*) from ppr.links", pool).await?;
@@ -59,11 +60,11 @@ pub async fn store_summary_data (params: &InitParams, pool: &Pool<Postgres>) -> 
     let num_locations = smm_helper::get_count("select count(*) from ppr.locations", pool).await?;
     let num_domains = smm_helper::get_count("select count(*) from ppr.domains", pool).await?;
     
-    let sql = r#"INSERT into smm.version_summaries (vcode, vdate, vdays, num_recs, 
+    let sql = r#"INSERT into smm.version_summaries (vcode, inc_wd, vdate, vdays, num_recs, 
                       num_active, num_inactive, num_withdrawn, num_denom, num_names,
                       num_types, num_links, num_ext_ids, num_rels, num_locations, num_domains)
-                      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)"#;
-    sqlx::query(sql).bind(&vcode).bind(vdate).bind(vdays)
+                      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)"#;
+    sqlx::query(sql).bind(&vcode).bind(inc_wd).bind(vdate).bind(vdays)
         .bind(num_recs).bind(num_active).bind(num_inactive).bind(num_withdrawn).bind(num_denom)
         .bind(num_names).bind(num_types).bind(num_links)
         .bind(num_ext_ids).bind(num_rels).bind(num_locations).bind(num_domains)
@@ -74,19 +75,19 @@ pub async fn store_summary_data (params: &InitParams, pool: &Pool<Postgres>) -> 
 
     // Summarise the data in the groups represented by the functions below.
 
-    smm_helper::create_name_attributes(&sdv, &vcode, num_denom, num_names, pool).await?;
-    smm_helper::create_other_attributes(&sdv, num_denom, num_types, num_ext_ids, 
+    smm_helper::create_name_attributes(&sdv, &vcode, inc_wd, num_denom, num_names, pool).await?;
+    smm_helper::create_other_attributes(&sdv, inc_wd, num_denom, num_types, num_ext_ids, 
                             num_links, num_rels, pool).await?;
     info!("Attribute summaries created");
 
-    smm_helper::create_count_distributions(&sdv, num_denom, pool).await?;     
+    smm_helper::create_count_distributions(&sdv, inc_wd, num_denom, pool).await?;     
     info!("Count distributions created");
 
-    smm_helper::create_ranked_count_distributions(&vcode, &sdv, num_names, num_locations, pool).await?;   
+    smm_helper::create_ranked_count_distributions(&vcode, &sdv, inc_wd, num_names, num_locations, pool).await?;   
     info!("Ranked count distributions created");
 
-    smm_helper::create_type_linked_tables(&sdv, pool).await?;
-    smm_helper::store_singletons(&vcode, num_denom, num_names, pool).await?;
+    smm_helper::create_type_linked_tables(&sdv, inc_wd, pool).await?;
+    smm_helper::store_singletons(&vcode, inc_wd, num_denom, num_names, pool).await?;
     info!("All summary data transferred to smm tables"); 
     
     Ok(())

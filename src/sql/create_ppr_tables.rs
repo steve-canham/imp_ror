@@ -163,7 +163,7 @@ pub fn get_sql<'a>() -> &'a str {
     drop table if exists ppr.withdrawn;
     create table ppr.withdrawn
     (
-        id                int         Generated always as identity RESTART WITH 10001 Primary Key
+        id                int         Generated always as identity (START WITH 10001 INCREMENT BY 1) Primary Key
       , ror_id            varchar     not null
       , ror_name          varchar     not null	
       , established       int         null

@@ -4,6 +4,8 @@ pub mod config_reader;
 pub mod db_pars;
 pub mod log_helper;
 
+use crate::setup::cli_reader::CliPars;
+use crate::setup::cli_reader::Flags;
 use crate::sql::create_lup_tables;
 use crate::sql::create_countries_table;
 use crate::sql::create_lang_codes_table;
@@ -22,7 +24,6 @@ use std::path::PathBuf;
 use std::fs;
 use regex::Regex;
 use config_reader::Config;
-use cli_reader::Flags;
 
 pub struct InitParams {
     pub data_folder: PathBuf,
@@ -36,20 +37,23 @@ pub struct InitParams {
 
 pub static LOG_RUNNING: OnceLock<bool> = OnceLock::new();
 
-pub fn combine_params(args: Vec<OsString>) -> Result<InitParams, AppError>{
-       
+pub fn get_command_line_args(args: Vec<OsString>) -> Result<CliPars, AppError> {
+    
     // CLI parameters must be collected first as they may contain the '-c' flag,
     // which forces an initial creation or edit of the config file.
+    
+    cli_reader::fetch_valid_arguments(args)
+}
+
+pub fn get_config_file_args(f: Flags)-> Result<Config, AppError> {
+
     // The config data is then processed to create a Config object, which includes 
     // database connection parameters, and parent folders for logs, source data, and output data.
     // These are created if not already in existence. 
-    // CLI and config data are then combined into a single InitParams struct - the CLI's 
-    // source file parameter will overrule any in the config file.
-    
-    let cli_pars = cli_reader::fetch_valid_arguments(args)?;    // Derived from the command line arguments. 
+
     let config_path = obtain_config_file_path()?;               // The OS dependent location of the config file.
 
-    let config_string = if cli_pars.flags.create_config {    // -c flag set, so create, or edit an existing, config file.
+    let config_string = if f.create_config {    // -c flag set, so create, or edit an existing, config file.
         match config_path.try_exists() {
             Ok(true) => edit_config_file(&config_path)?,        
             _ => create_config_file(&config_path)?,          // No matching or not accessible file
@@ -59,11 +63,19 @@ pub fn combine_params(args: Vec<OsString>) -> Result<InitParams, AppError>{
         fs::read_to_string(&config_path)
             .map_err(|e| AppError::IoReadErrorWithPath(e, config_path.to_owned()))?
     };
+    
+    config_reader::populate_config_vars(&config_string)
+}
+
+
+pub fn combine_args(cli_pars: CliPars, config: Config) -> Result<InitParams, AppError>{
+       
+    // CLI and config data are then combined into a single InitParams struct - the CLI's 
+    // source file parameters will overrule any in the config file.
    
     let flags = cli_pars.flags;
-    let configuration: Config = config_reader::populate_config_vars(&config_string)?;
-    let folder_pars = configuration.folders;  // guaranteed to exist
-    let data_pars = configuration.data_details;
+    let folder_pars = config.folders;  // guaranteed to exist
+    let data_pars = config.data_details;
 
     let data_folder = if cli_pars.flags.test_run {
         cli_pars.test_folder
@@ -304,7 +316,7 @@ pub fn get_config_string () -> Result<String, AppError> {
 mod tests {
     use super::*;
     use std::ffi::OsString;
-
+    
    // regex tests
    #[test]
    fn check_file_name_regex_works_1 () {
@@ -374,6 +386,7 @@ mod tests {
 
     // Ensure the parameters are being correctly combined.
 
+ 
     #[test]
     fn check_config_vars_overwrite_blank_cli_values() {
 
@@ -398,12 +411,14 @@ db_password="password"
 db_port="5433"
 db_name="ror"
 "#;
-        let config_string = config.to_string();
-        config_reader::populate_config_vars(&config_string).unwrap();
-
         let args : Vec<&str> = vec!["dummy target"];
         let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
-        let res = combine_params(test_args).unwrap();
+        let cli = get_command_line_args(test_args).unwrap();
+        
+        let config_string = config.to_string();
+        let config = config_reader::populate_config_vars(&config_string).unwrap();
+        
+        let res = combine_args(cli, config).unwrap();
 
         assert_eq!(res.flags.import_ror, true);
         assert_eq!(res.flags.export_csv, false);
@@ -419,7 +434,7 @@ db_name="ror"
         assert_eq!(res.data_date, "2024-12-11");
     }
 
-
+    
     #[test]
     fn check_cli_vars_overwrite_env_values() {
         let config = r#"
@@ -440,12 +455,15 @@ db_password="password"
 db_port="5433"
 db_name="ror"
         "#;
-        let config_string = config.to_string();
-        config_reader::populate_config_vars(&config_string).unwrap();
-        let args : Vec<&str> = vec!["dummy target", "-r", "-p", "-t", "-x",
-                                    "-d", "2026-12-25", "-s", "schema2 data.json", "-v", "v1.60"];
+        let args : Vec<&str> = vec!["dummy target", "-a", "-x",
+                                    "-d", "2026-12-25", "-f", "schema2 data.json", "-v", "v1.60"];
         let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
-        let res = combine_params(test_args).unwrap();
+        let cli = get_command_line_args(test_args).unwrap();
+        
+        let config_string = config.to_string();
+        let config = config_reader::populate_config_vars(&config_string).unwrap();
+        
+        let res = combine_args(cli, config).unwrap();
 
         assert_eq!(res.flags.import_ror, true);
         assert_eq!(res.flags.export_csv, true);
@@ -482,12 +500,15 @@ db_password="password"
 db_port="5433"
 db_name="ror"
     "#;
-        let config_string = config.to_string();
-        config_reader::populate_config_vars(&config_string).unwrap();
-        let args : Vec<&str> = vec!["dummy target", "-r", "-p", "-x", "-y", "-c", "-m",
-                                    "-d", "2026-12-25", "-s", "schema2 data.json", "-v", "v1.60"];
+        let args : Vec<&str> = vec!["dummy target", "-a", "-x", "-c", "-m",
+                                    "-d", "2026-12-25", "-f", "schema2 data.json", "-v", "v1.60"];
         let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
-        let res = combine_params(test_args).unwrap();
+        let cli = get_command_line_args(test_args).unwrap();
+        
+        let config_string = config.to_string();
+        let config = config_reader::populate_config_vars(&config_string).unwrap();
+        
+        let res = combine_args(cli, config).unwrap();
 
         assert_eq!(res.flags.import_ror, false);
         assert_eq!(res.flags.export_csv, false);
@@ -525,14 +546,17 @@ db_password="password"
 db_port="5433"
 db_name="ror"
     "#;
-        let config_string = config.to_string();
-        config_reader::populate_config_vars(&config_string).unwrap();
-        let args : Vec<&str> = vec!["dummy target", "-x", "-y", "-s", "schema2 data.json"];
+        let args : Vec<&str> = vec!["dummy target", "-x", "-y", "-f", "schema2 data.json"];
         let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
-        let res = combine_params(test_args).unwrap();
+        let cli = get_command_line_args(test_args).unwrap();
+        
+        let config_string = config.to_string();
+        let config = config_reader::populate_config_vars(&config_string).unwrap();
+        
+        let res = combine_args(cli, config).unwrap();
 
         assert_eq!(res.flags.import_ror, false);
-        assert_eq!(res.flags.export_csv, true);
+        assert_eq!(res.flags.export_csv, false);
         assert_eq!(res.flags.export_all_csv, true);
         assert_eq!(res.flags.create_config, false);
         assert_eq!(res.flags.create_lookups, false);
@@ -544,52 +568,11 @@ db_name="ror"
         assert_eq!(res.data_version, "v1.60");
         assert_eq!(res.data_date, "2025-12-11");
     }
-
-    #[test]
-    fn check_cli_vars_with_a_flag_and_posix_folders() {
-
-        let config = r#"
-[data]
-src_file_name="v1.58 20241211.json"
-data_version=""
-data_date=""
-
-[folders]
-data_folder_path="/home/steve/Data/MDR source data/ROR/data"
-output_folder_path="/home/steve/Data/MDR source data/ROR/outputs"
-log_folder_path="/home/steve/Data/MDR logs/ror"
-
-[database]
-db_host="localhost"
-db_user="user_name"
-db_password="password"
-db_port="5433"
-db_name="ror"
-"#;
-        let config_string = config.to_string();
-        config_reader::populate_config_vars(&config_string).unwrap();
-
-        let args : Vec<&str> = vec!["dummy target", "-a"];
-        let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
-        let res = combine_params(test_args).unwrap();
-
-        assert_eq!(res.flags.import_ror, true);
-        assert_eq!(res.flags.export_csv, false);
-        assert_eq!(res.flags.export_all_csv, false);
-        assert_eq!(res.flags.create_config, false);
-        assert_eq!(res.flags.create_lookups, false);
-        assert_eq!(res.flags.create_summary, false);
-        assert_eq!(res.data_folder, PathBuf::from("/home/steve/Data/MDR source data/ROR/data"));
-        assert_eq!(res.log_folder, PathBuf::from("/home/steve/Data/MDR logs/ror"));
-        assert_eq!(res.output_folder, PathBuf::from("/home/steve/Data/MDR source data/ROR/outputs"));
-        assert_eq!(res.source_file_name, "v1.58 20241211.json");
-        assert_eq!(res.data_version, "v1.58");
-        assert_eq!(res.data_date, "2024-12-11");
-    }
+   
 
     #[test]
     #[should_panic]
-    fn check_wrong_data_folder_panics_if_r() {
+    fn check_wrong_data_folder_panics_if_a() {
 
         let config = r#"
 [data]
@@ -609,16 +592,19 @@ db_password="password"
 db_port="5433"
 db_name="ror"
 "#;
-        let config_string = config.to_string();
-        config_reader::populate_config_vars(&config_string).unwrap();
         let args : Vec<&str> = vec!["dummy target", "-a", "-v", "v1.60"];
         let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
-        let _res = combine_params(test_args).unwrap();
+        let cli = get_command_line_args(test_args).unwrap();
+        
+        let config_string = config.to_string();
+        let config = config_reader::populate_config_vars(&config_string).unwrap();
+        
+        let _res = combine_args(cli, config).unwrap();
     }
 
 
     #[test]
-    fn check_wrong_data_folder_does_not_panic_if_not_r() {
+    fn check_wrong_data_folder_does_not_panic_if_not_a() {
 
         let config = r#"
 [data]
@@ -638,15 +624,17 @@ db_password="password"
 db_port="5433"
 db_name="ror"
 "#;
-        let config_string = config.to_string();
-        config_reader::populate_config_vars(&config_string).unwrap();
-
-        let args : Vec<&str> = vec!["dummy target", "-p"];
+        let args : Vec<&str> = vec!["dummy target", "-x"];
         let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
-        let res = combine_params(test_args).unwrap();
+        let cli = get_command_line_args(test_args).unwrap();
+        
+        let config_string = config.to_string();
+        let config = config_reader::populate_config_vars(&config_string).unwrap();
+        
+        let res = combine_args(cli, config).unwrap();
 
         assert_eq!(res.flags.import_ror, false);
-        assert_eq!(res.flags.export_csv, false);
+        assert_eq!(res.flags.export_csv, true);
         assert_eq!(res.flags.export_all_csv, false);
         assert_eq!(res.flags.create_config, false);
         assert_eq!(res.flags.create_lookups, false);
@@ -660,3 +648,4 @@ db_name="ror"
     }
 
 }
+

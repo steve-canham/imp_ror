@@ -15,7 +15,10 @@ pub async fn run(args: Vec<OsString>) -> Result<(), AppError> {
     // Combine parameters from CLI and config file,
     // establish a log file and obtain a pool of database connections.
 
-    let params = setup::combine_params(args)?;
+    let cli = setup::get_command_line_args(args)?;
+    let config = setup::get_config_file_args(cli.flags)?;
+    let params = setup::combine_args(cli, config)?;
+    
     setup::establish_log(&params)?;
     let pool = setup::db_pars::get_db_pool().await?;
     
@@ -45,7 +48,6 @@ pub async fn run(args: Vec<OsString>) -> Result<(), AppError> {
 
         process::process_data(&params, &pool).await?;
         summarise::store_summary_data(&params, &pool).await?;
-
         export::export_as_text(&params, &pool).await?;
     }
 
@@ -60,9 +62,9 @@ pub async fn run(args: Vec<OsString>) -> Result<(), AppError> {
         export::export_all_as_csv(&params, &pool).await?;
     }
 
-    if flags.test_run {  // Clear any test data from the smm tables.
-        summarise::smm_helper::delete_any_existing_data(&"v99".to_string(), &pool).await?;
-    }
+    //if flags.test_run {  // Clear any test data from the smm tables.
+    //    summarise::smm_helper::delete_any_existing_data(&"v99".to_string(), false, &pool).await?;
+    //}
 
     Ok(())
 }

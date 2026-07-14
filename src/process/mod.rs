@@ -155,7 +155,7 @@ async fn delete_withdrawn(table_name: &str, pool: &Pool<Postgres>) -> Result<PgQ
 
     let sql = format!(r#"delete from ppr.{table_name} a
         using ppr.withdrawn w
-        where a.id = w.id"#);
+        where a.id = w.ror_id"#);
     execute_sql(&sql, pool).await
 }
 

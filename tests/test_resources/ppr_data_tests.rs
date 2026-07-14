@@ -1,6 +1,3 @@
-
-use imp_ror::run;
-use std::ffi::OsString;
 use chrono::NaiveDate;
 
 use imp_ror::setup::db_pars::get_db_pool;
@@ -16,21 +13,6 @@ use super::ppr_record_structs::{PprCoreData, PprRelationship, PprExternalId,
  * ************************************************************
  *************************************************************/
 
-#[tokio::test] 
-async fn k_process_v2_0_data_to_ppr_and_summarise() {
- 
-    // Run the program with v2.0 test data
-
-    let args : Vec<&str> = vec!["target/debug/src1.exe", "-p", "-z"];
-    let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
-    run(test_args).await.unwrap();
-
-    // Assert     
-    // Check numbers of records
-    let pool = get_db_pool().await.unwrap();
-    let rec_number = ppr_data_access::fetch_ppr_record_num("core_data", &pool).await;
-    assert_eq!(rec_number, 20);
-}
 
 
 #[tokio::test] 

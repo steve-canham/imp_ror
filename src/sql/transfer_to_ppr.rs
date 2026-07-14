@@ -146,7 +146,7 @@ pub fn get_domains_sql <'a>() -> &'a str {
 }
 
 pub fn get_withdrawn_sql <'a>() -> &'a str {
-        r#"insert into ppr.withdrawn(id, ror_name, established,
+        r#"insert into ppr.withdrawn(ror_id, ror_name, established,
            location, csubdiv_code, country_code,
            successor_id, succ_name, succ_status, 
            succ_established, succ_location, succ_csubdiv_code,

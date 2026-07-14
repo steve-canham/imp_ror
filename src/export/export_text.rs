@@ -18,27 +18,28 @@ pub async fn generate_text(output_folder : &PathBuf, vcode: &String,
     let output_file_name = format!("{} summary at {}.txt", &vcode, &datetime_string);
     let output_file_path: PathBuf = [output_folder, &PathBuf::from(output_file_name)].iter().collect();
             
-    let singvals:HashMap<String, Singleton> = collect_singleton_values(vcode, pool).await?;
+    let singvals:HashMap<String, Singleton> = collect_singleton_values(vcode, inc_withdrawn, pool).await?;
     write_header_and_summary(&output_file_path, vcode, inc_withdrawn, pool).await?;
     write_explanation(&output_file_path).await?;
-    write_name_info(&output_file_path, vcode, pool, &singvals).await?;
-    write_name_wolc_info(&output_file_path, vcode, pool, &singvals).await?;
+    write_name_info(&output_file_path, vcode, inc_withdrawn, pool, &singvals).await?;
+    write_name_wolc_info(&output_file_path, vcode, inc_withdrawn, pool, &singvals).await?;
     write_ror_name_details(&output_file_path, &singvals).await?;
-    write_ranked_name_info(&output_file_path, vcode, pool, &singvals).await?;
-    write_type_details(&output_file_path, vcode, pool).await?;
-    write_location_details(&output_file_path, vcode, pool, &singvals).await?;
-    write_links_and_extid_details(&output_file_path, vcode, pool).await?;
-    write_relationship_details(&output_file_path, vcode, pool, &singvals).await?;
-    write_domain_details(&output_file_path, vcode, pool).await?;
+    write_ranked_name_info(&output_file_path, vcode, inc_withdrawn, pool, &singvals).await?;
+    write_type_details(&output_file_path, vcode, inc_withdrawn, pool).await?;
+    write_location_details(&output_file_path, vcode, inc_withdrawn, pool, &singvals).await?;
+    write_links_and_extid_details(&output_file_path, vcode, inc_withdrawn, pool).await?;
+    write_relationship_details(&output_file_path, vcode, inc_withdrawn, pool, &singvals).await?;
+    write_domain_details(&output_file_path, vcode, inc_withdrawn, pool).await?;
 
     info!("Content appended successfully");
     Ok(())
 }
 
-async fn collect_singleton_values(vcode: &String, pool: &Pool<Postgres>) -> Result<HashMap<String, Singleton>, AppError> {
+async fn collect_singleton_values(vcode: &String, inc_withdrawn: bool, pool: &Pool<Postgres>) -> Result<HashMap<String, Singleton>, AppError> {
 
     let mut sstructs = HashMap::new();
-    let sql = format!(r#"SELECT id, description, number, pc from smm.singletons WHERE vcode = '{vcode}';"#);
+    let sql = format!(r#"SELECT id, description, number, pc from smm.singletons 
+              WHERE vcode = '{vcode}' and inc_wd = {inc_withdrawn};"#);
     let srows: Vec<SingletonRow> = sqlx::query_as(&sql).fetch_all(pool).await
         .map_err(|e| AppError::SqlxError(e, sql))?;
     for r in srows { 
@@ -62,9 +63,11 @@ async fn write_header_and_summary(output_file_path: &PathBuf, vcode: &String,
     let import_dt: DateTime<Local> = sqlx::query_scalar(sql).fetch_one(pool).await 
            .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
-    let sql = format!("SELECT * from smm.version_summaries WHERE vcode = '{vcode}';");
+    let sql = format!(r#"SELECT * from smm.version_summaries 
+                      WHERE vcode = '{vcode}' and inc_wd = {inc_withdrawn};"#);
     let summ: VSummary = sqlx::query_as(&sql).fetch_one(pool).await
            .map_err(|e| AppError::SqlxError(e, sql))?;
+    
     let header_txt = get_hdr_line("SUMMARY OF ROR DATASET")
                    + "\n\n\tVersion: " + vcode  
                    + "\n\tDate: " + &summ.vdate.to_string() 
@@ -74,32 +77,35 @@ async fn write_header_and_summary(output_file_path: &PathBuf, vcode: &String,
                    + "\n\tReport generated: " + &Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
     append_to_file(output_file_path, &header_txt)?;
 
-    let org_text = "\n\n\tORGANISATION NUMBERS\n\t".to_string() 
-                  + "----------------------------------------------------------------------------------" 
-                  + &get_data_line("Total", summ.num_recs) 
-                  + &get_data_line("Active", summ.num_active) 
-                  + &get_data_line("Inactive", summ.num_inactive) 
-                  + &get_data_line("Withdrawn", summ.num_withdrawn) 
+    let org_text = "\n\n\tORGANISATION NUMBERS                                               number          %age".to_string() 
+                  + &"\n\t" + &"-".repeat(88) 
+                  + &get_data_and_pc_line("Active", summ.num_active,summ.num_recs ) 
+                  + &get_data_and_pc_line("Inactive", summ.num_inactive, summ.num_recs) 
+                  + &get_data_and_pc_line("Withdrawn", summ.num_withdrawn, summ.num_recs) 
+                  + &get_data_and_pc_line("Total", summ.num_recs, summ.num_recs) 
                   + "\n";
     append_to_file(output_file_path, &org_text)?;
 
     let withdrawn_text: String;
     if inc_withdrawn {
-        withdrawn_text = "\n\tN.B. Withdrawn organisations have been retained in the dataset ".to_string()
+        withdrawn_text = "\n\tN.B. Withdrawn organisations have been RETAINED in the dataset ".to_string()
                  + "\n\tand the figures below reflect this. Thay apply to all ROR organisations, "
-                 + &format!("\n\ti.e. the denominator for % organisations is {}", summ.num_denom);
+                 + "\n\twhatever their status."
+                 + &format!("\n\ti.e. the denominator for % organisations is therefore {}", summ.num_denom);
     } else {
-        withdrawn_text = "\n\tN.B. Withdrawn organisations have been removed from the dataset ".to_string()
-                 + "\n\tThe figures below therefore reflect active and inactive ROR organisations, but not"
-                 + "\n\twithdrawn organisations, " + &format!("i.e. the denominator for % organisations is {}", summ.num_denom)
+        withdrawn_text = "\n\tN.B. Withdrawn organisations have been REMOVED from the main dataset.".to_string()
+                 + "\n\tThe figures below reflect both active and inactive ROR organisations, but not"
+                 + "\n\tthose classed as 'withdrawn', i.e. those added to ROR in error or duplicated. " 
+                 + &format!("\n\tThe denominator for % organisations is therefore {}.", summ.num_denom)
                  + "\n\tData on withdrawn organisations, including successor " 
                  + "\n\torganisations where relevant, can be found in the ppr.withdrawn table."
                  + "\n";
     }
     append_to_file(output_file_path, &withdrawn_text)?;
 
-    let entity_txt = "\n\n\tENTITY NUMBERS\n\t".to_string() 
-                    + "----------------------------------------------------------------------------------" 
+    let entity_txt = "\n\n\tENTITY NUMBERS                                                     number".to_string() 
+                + &"\n\t" + &"-".repeat(88) 
+                + &get_data_line("Organisations", summ.num_denom) 
                 + &get_data_line("Names", summ.num_names) 
                 + &get_data_line("Types", summ.num_types) 
                 + &get_data_line("Links", summ.num_links) 
@@ -112,19 +118,22 @@ async fn write_header_and_summary(output_file_path: &PathBuf, vcode: &String,
     Ok(())
 }
 
+fn get_data_and_pc_line(topic: &str, num: i32, total: i32) -> String {
+    let spacer = " ".repeat(71 - topic.len() - num.to_string().len());
+    let pc_as_string = format!("{:.2}", num*100 / total);
+    let spacer2 = " ".repeat(15 - pc_as_string.len());
+    "\n\t".to_string() + topic + &spacer + &num.to_string() + &spacer2 + &pc_as_string 
+}
+
+fn get_data_line(topic: &str, num: i32) -> String {
+    let spacer = " ".repeat(71 - topic.len() - num.to_string().len());
+    "\n\t".to_string() + topic + &spacer + &num.to_string() 
+}
+
 async fn write_explanation(output_file_path: &PathBuf) -> Result<(), AppError> {
     
     append_to_file(output_file_path, &get_hdr_line("ABBREVIATIONS AND TOTALS"))?;
-
-    let expl_text = "\n\n\tN.B. In the data below:".to_string() 
-    + "\n\t'nacro' refers to non-acronym names, i.e. labels and aliases considered"
-    + "\n\ttogether."
-    + "\n\t'cmps' refers to organisations designated as companies."
-    + "\n\t'noncmp' refers to all organisations except companies."
-    + "\n\t'nac-ncmp' refers to the non-acronym names of non-company organisations."
-    + "\n\t'wolc' signifies names without a language code.";
-    append_to_file(output_file_path, &expl_text)?;
-
+   
     let expl_text = "\n\n\tThe totals under some columns in the tables are generated from".to_string() 
     + "\n\tthe table data, and were included to provide a visual check on that data."
     + "\n"
@@ -133,7 +142,7 @@ async fn write_explanation(output_file_path: &PathBuf) -> Result<(), AppError> {
     append_to_file(output_file_path, &expl_text)
 }
 
-async fn write_name_info(output_file_path: &PathBuf, vcode: &String, pool: &Pool<Postgres>, 
+async fn write_name_info(output_file_path: &PathBuf, vcode: &String, inc_withdrawn: bool, pool: &Pool<Postgres>, 
                          singvals: &HashMap<String, Singleton>) -> Result<(), AppError> {
 
     append_to_file(output_file_path, &get_hdr_line("NAMES"))?;
@@ -148,56 +157,58 @@ async fn write_name_info(output_file_path: &PathBuf, vcode: &String, pool: &Pool
 
     // Write name attribute summary - att_type 1
 
-    let table_text = get_attrib_table(1, "Names", "TOTAL (excl. nacro lines)", vcode, pool).await?;
+    let table_text = get_attrib_table(1, "Names", "TOTAL", vcode, inc_withdrawn, pool).await?;
     append_to_file(output_file_path, &table_text)?;
 
     // Write count distributions - count_type: names, labels, aliases, acronyms
 
-    let table_text = get_distrib_table("names", "names", vcode, pool).await?;
+    let table_text = get_distrib_table("names", "names", vcode, inc_withdrawn, pool).await?;
     append_to_file(output_file_path, &table_text)?;
 
-    let table_text = get_distrib_table("labels", "labels", vcode, pool).await?;
+    let table_text = get_distrib_table("labels", "labels", vcode, inc_withdrawn, pool).await?;
     append_to_file(output_file_path, &table_text)?;
 
-    let table_text = get_distrib_table("aliases", "aliases", vcode, pool).await?;
+    let table_text = get_distrib_table("aliases", "aliases", vcode, inc_withdrawn, pool).await?;
     append_to_file(output_file_path, &table_text)?;
 
-    let table_text = get_distrib_table("acronyms", "acronyms", vcode, pool).await?;
+    let table_text = get_distrib_table("acronyms", "acronyms", vcode, inc_withdrawn, pool).await?;
     append_to_file(output_file_path, &table_text)?;
 
     Ok(())
 }
 
-async fn write_name_wolc_info(output_file_path: &PathBuf, vcode: &String, pool: &Pool<Postgres>
+async fn write_name_wolc_info(output_file_path: &PathBuf, vcode: &String, inc_withdrawn: bool, pool: &Pool<Postgres>
                                                    , singvals: &HashMap<String, Singleton>) -> Result<(), AppError> {
     let s1 = &singvals["total_wolc"]; 
     let s2 = &singvals["nacro_wolc"];
     let s3 = &singvals["nacncmp_wolc"];
 
-    append_to_file(output_file_path, &get_hdr_line("NAMES WITHOUT LANGUAGE CODE (WOLC)"))?;
+    append_to_file(output_file_path, &get_hdr_line("NAMES WITHOUT LANGUAGE CODE (w/o LCs)"))?;
            
-    let wolc_text = get_sing_hdr()+ &get_singleton_line(&s1.description, s1.number, s1.pc)
-                           + &get_singleton_line(&s2.description, s2.number, s2.pc)
-                           + &get_singleton_line(&s3.description, s3.number, s3.pc);
-        
-    append_to_file(output_file_path, &wolc_text)?;
+    let wolc_text1 = get_sing_hdr()+ &get_singleton_line(&s1.description, s1.number, s1.pc);
+    append_to_file(output_file_path, &wolc_text1)?;
 
     // Write name wolc attribute summary - att_type 11.
 
-    let table_text = get_attrib_table(11, "Names without language codes (wolc)", "TOTAL (excl. nacro lines)", vcode, pool).await?;
+    let table_text = get_attrib_table(11, "Names without language codes (w/o LCs)", "TOTAL", vcode, inc_withdrawn, pool).await?;
     append_to_file(output_file_path, &table_text)?;
-   
+
+    let wolc_text2 = get_sing_hdr() + &get_singleton_line(&s2.description, s2.number, s2.pc)
+                           + &get_singleton_line(&s3.description, s3.number, s3.pc);
+    append_to_file(output_file_path, &wolc_text2)?;
+    
     // org type and lang code data 
 
     let sql = format!(r#"select org_type, name_type, names_num, names_wolc, names_wolc_pc 
-                 from smm.org_type_and_lang_code where vcode = '{vcode}' order by 
+                 from smm.org_type_and_lang_code where vcode = '{vcode}' and inc_wd = {inc_withdrawn} order by 
                  org_type, name_type;"#);
     let rows: Vec<OrgAndLangCode> = sqlx::query_as(&sql).fetch_all(pool).await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    let mut tbl_text = "\n\n\tNumbers of name types without language codes for different organisational types:".to_string() 
-                     + "\n\n\t                                           number          names           %age"
-                       + "\n\torg type               name type            names           wolc           wolc"
-                       + "\n\t----------------------------------------------------------------------------------";
+    
+    let mut tbl_text = "\n\n\n\tNumbers of name types without language codes for different organisational types".to_string() 
+                     + "\n\n\t                                                    number         names         %age"
+                       + "\n\torg type                     name type              names          w/o LC       w/o LC"
+                       + "\n\t" + &"-".repeat(88);
     for r in rows {
         tbl_text += &get_orglc_line(&r.org_type, &r.name_type, r.names_num, r.names_wolc, r.names_wolc_pc);
     }
@@ -205,7 +216,7 @@ async fn write_name_wolc_info(output_file_path: &PathBuf, vcode: &String, pool: 
     append_to_file(output_file_path, &tbl_text)
 }
 
-async fn write_ranked_name_info(output_file_path: &PathBuf, vcode: &String, pool: &Pool<Postgres>, 
+async fn write_ranked_name_info(output_file_path: &PathBuf, vcode: &String, inc_withdrawn: bool, pool: &Pool<Postgres>, 
                                         singvals: &HashMap<String, Singleton>) -> Result<(), AppError> {
     
     append_to_file(output_file_path, &get_hdr_line("LANGUAGE AND SCRIPT USAGE"))?;
@@ -222,10 +233,10 @@ async fn write_ranked_name_info(output_file_path: &PathBuf, vcode: &String, pool
 
     // Ranked languages other than English in use - Ranked Distributions, dist_type = 1.
 
-    let tbl_hdr_text = "\n\n\t                                           number           %age           %age".to_string()
-                       + "\n\tBy Language (nacro names only)            of names      non-en nacro    nacro names"
-                       + "\n\t-----------------------------------------------------------------------------------";
-    let tbl_text = get_ranked_distrib_table(1, vcode, pool).await?;
+    let tbl_hdr_text = "\n\n\t                                                   number       %age non-en     %age non-".to_string()
+                       + "\n\tBy Language (non acronym names only)              of names        non-acr       acr names"
+                       + "\n\t" + &"-".repeat(88);
+    let tbl_text = get_ranked_distrib_table(1, vcode, inc_withdrawn, pool).await?;
     append_to_file(output_file_path, &(tbl_hdr_text + &tbl_text))?;
 
     // Singleton - Names that are not in Latin script
@@ -241,10 +252,10 @@ async fn write_ranked_name_info(output_file_path: &PathBuf, vcode: &String, pool
 
     // Ranked scripts other than Latin in use - Ranked Distributions, dist_type = 2.
     
-    let tbl_hdr_text = "\n\n\t                                           number          %age           %age".to_string()
-                       + "\n\tBy Script                                 of names     NonLtn names    total names"
-                       + "\n\t----------------------------------------------------------------------------------";
-    let tbl_text = get_ranked_distrib_table(2, vcode, pool).await?;
+    let tbl_hdr_text = "\n\n\t                                                   number          %age           %age".to_string()
+                       + "\n\tBy Script                                         of names     non-ltn names  total names"
+                       + "\n\t" + &"-".repeat(88);
+    let tbl_text = get_ranked_distrib_table(2, vcode, inc_withdrawn, pool).await?;
     append_to_file(output_file_path, &(tbl_hdr_text + &tbl_text))?;
     
     Ok(())
@@ -255,7 +266,7 @@ async fn write_ror_name_details(output_file_path: &PathBuf, singvals: &HashMap<S
     
     append_to_file(output_file_path, &get_hdr_line("ROR NAMES"))?;
     
-    // Write out singleton values, go from ids 10 to 16, requires index range (9..16).
+    // Write out singleton values.
 
     let s1 = &singvals["label_ror"]; 
     let s3 = &singvals["nlabel_ror"];
@@ -277,24 +288,24 @@ async fn write_ror_name_details(output_file_path: &PathBuf, singvals: &HashMap<S
     Ok(())
 }
 
-async fn write_type_details(output_file_path: &PathBuf, vcode: &String, pool: &Pool<Postgres>) -> Result<(), AppError> {
+async fn write_type_details(output_file_path: &PathBuf, vcode: &String, inc_withdrawn: bool, pool: &Pool<Postgres>) -> Result<(), AppError> {
     
     append_to_file(output_file_path, &get_hdr_line("ORGANISATION TYPES"))?;
 
     // Write type attribute summary - att_type 2
 
-    let table_text = get_attrib_table(2, "Organisation types", "TOTAL", vcode, pool).await?;
+    let table_text = get_attrib_table(2, "Organisation types", "TOTAL", vcode, inc_withdrawn, pool).await?;
     append_to_file(output_file_path, &table_text)?;
    
     // write count distributions - count_type: org_types
 
-    let table_text = get_distrib_table("org_types", "organisation types", vcode, pool).await?;
+    let table_text = get_distrib_table("org_types", "organisation types", vcode, inc_withdrawn, pool).await?;
     append_to_file(output_file_path, &table_text)?;
 
     Ok(())
 }
 
-async fn write_location_details(output_file_path: &PathBuf, vcode: &String, pool: &Pool<Postgres>, singvals: &HashMap<String, Singleton>) -> Result<(), AppError> {
+async fn write_location_details(output_file_path: &PathBuf, vcode: &String, inc_withdrawn: bool, pool: &Pool<Postgres>, singvals: &HashMap<String, Singleton>) -> Result<(), AppError> {
        
     append_to_file(output_file_path, &get_hdr_line("LOCATIONS"))?;
 
@@ -312,72 +323,72 @@ async fn write_location_details(output_file_path: &PathBuf, vcode: &String, pool
 
         // Count distribution.
 
-    let table_text = get_distrib_table("locs", "locations", vcode, pool).await?;
+    let table_text = get_distrib_table("locs", "locations", vcode, inc_withdrawn, pool).await?;
     append_to_file(output_file_path, &table_text)?;
    
     // Ranked countries - Ranked Distributions, dist_type = 3
  
     let tbl_hdr_text ="\n\n\tNumber of locations by country:".to_string()
-                    + "\n\n\t                                           number           %age           %age"
-                      + "\n\tCountry                                    of locs       NonUS locs     total locs"
-                      + "\n\t----------------------------------------------------------------------------------";
-    let tbl_text = get_ranked_distrib_table(3, vcode, pool).await?;
+                    + "\n\n\t                                                  number           %age           %age"
+                      + "\n\tCountry                                           of locs       NonUS locs     total locs"
+                      + "\n\t" + &"-".repeat(88);
+    let tbl_text = get_ranked_distrib_table(3, vcode, inc_withdrawn, pool).await?;
     append_to_file(output_file_path, &(tbl_hdr_text + &tbl_text))?;
 
     Ok(())
 }
 
-async fn write_links_and_extid_details(output_file_path: &PathBuf, vcode: &String, pool: &Pool<Postgres>) -> Result<(), AppError> {
+async fn write_links_and_extid_details(output_file_path: &PathBuf, vcode: &String, inc_withdrawn: bool, pool: &Pool<Postgres>) -> Result<(), AppError> {
     
     append_to_file(output_file_path, &get_hdr_line("EXTERNAL IDS AND LINKS"))?;
 
     // Write link attribute summary - att_type 4
 
-    let table_text = get_attrib_table(4, "Links", "TOTAL", vcode, pool).await?;
+    let table_text = get_attrib_table(4, "Links", "TOTAL", vcode, inc_withdrawn, pool).await?;
     append_to_file(output_file_path, &table_text)?;
 
     // Write count distributions.
 
-    let table_text = get_distrib_table("links", "links", vcode, pool).await?;
+    let table_text = get_distrib_table("links", "links", vcode, inc_withdrawn, pool).await?;
     append_to_file(output_file_path, &table_text)?;
         
     // Write ext id attribute summary - att_type 3
-    let table_text = get_attrib_table(3, "External Ids", "TOTAL", vcode, pool).await?;
+    let table_text = get_attrib_table(3, "External Ids", "TOTAL", vcode, inc_withdrawn, pool).await?;
     append_to_file(output_file_path, &table_text)?;
    
     // Write count distribution.
     
-    let table_text = get_distrib_table("ext_ids", "external ids", vcode, pool).await?;
+    let table_text = get_distrib_table("ext_ids", "external ids", vcode, inc_withdrawn, pool).await?;
     append_to_file(output_file_path, &table_text)?;
 
     Ok(())
 }
 
-async fn write_relationship_details(output_file_path: &PathBuf, vcode: &String, pool: &Pool<Postgres>, 
+async fn write_relationship_details(output_file_path: &PathBuf, vcode: &String, inc_withdrawn: bool, pool: &Pool<Postgres>, 
                                      singvals: &HashMap<String, Singleton>) -> Result<(), AppError> {
    
     append_to_file(output_file_path, &get_hdr_line("RELATIONSHIPS"))?;
 
     // Write relationship attribute summary - att_type 5
     
-    let table_text = get_attrib_table(5, "Relationships", "TOTAL", vcode, pool).await?;
+    let table_text = get_attrib_table(5, "Relationships", "TOTAL", vcode, inc_withdrawn, pool).await?;
     append_to_file(output_file_path, &table_text)?;
 
     // Write count distributions.
 
-    let table_text = get_distrib_table("parent orgs", "'has parent' relationships", vcode, pool).await?;
+    let table_text = get_distrib_table("parent orgs", "'has parent' relationships", vcode, inc_withdrawn, pool).await?;
     append_to_file(output_file_path, &table_text)?;
 
-    let table_text = get_distrib_table("child orgs", "'has child' relationships", vcode, pool).await?;
+    let table_text = get_distrib_table("child orgs", "'has child' relationships", vcode, inc_withdrawn, pool).await?;
     append_to_file(output_file_path, &table_text)?;
 
-    let table_text = get_distrib_table("related orgs", "'is related to' relationships", vcode, pool).await?;
+    let table_text = get_distrib_table("related orgs", "'is related to' relationships", vcode, inc_withdrawn, pool).await?;
     append_to_file(output_file_path, &table_text)?;
     
-    let table_text = get_distrib_table("predecessor orgs", "'has predecessor' relationships", vcode, pool).await?;
+    let table_text = get_distrib_table("predecessor orgs", "'has predecessor' relationships", vcode, inc_withdrawn, pool).await?;
     append_to_file(output_file_path, &table_text)?;
 
-    let table_text = get_distrib_table("successor orgs", "'has successor' relationshipss", vcode, pool).await?;
+    let table_text = get_distrib_table("successor orgs", "'has successor' relationshipss", vcode, inc_withdrawn, pool).await?;
     append_to_file(output_file_path, &table_text)?;
 
     // Write out singleton values
@@ -399,9 +410,9 @@ async fn write_relationship_details(output_file_path: &PathBuf, vcode: &String, 
         .map_err(|e| AppError::SqlxError(e, sql))?;                               
                                         
     let mut tbl_text = "\n\n\tNumbers of relationship links for different organisational types:".to_string() 
-                     + "\n\n\t                                             number        number          %age"
-                       + "\n\torg type               relationship          links          orgs         org type"
-                       + "\n\t----------------------------------------------------------------------------------";
+                     + "\n\n\t                                                    number        number          %age"
+                       + "\n\torg type                      relationship          links          orgs         org type"
+                       + "\n\t" + &"-".repeat(88);
     for r in rows {
         tbl_text += &get_orgrel_line(&r.org_type, &r.rel_type, r.num_links, r.num_orgs, r.num_orgs_pc);
     }
@@ -411,11 +422,11 @@ async fn write_relationship_details(output_file_path: &PathBuf, vcode: &String, 
     Ok(())
 }
 
-async fn write_domain_details(output_file_path: &PathBuf, vcode: &String, pool: &Pool<Postgres>) -> Result<(), AppError> {
+async fn write_domain_details(output_file_path: &PathBuf, vcode: &String, inc_withdrawn: bool, pool: &Pool<Postgres>) -> Result<(), AppError> {
    
     append_to_file(output_file_path,  &get_hdr_line("DOMAINS"))?;
     
-    let table_text = get_distrib_table("domains", "domains", vcode, pool).await?;
+    let table_text = get_distrib_table("domains", "domains", vcode, inc_withdrawn, pool).await?;
     append_to_file(output_file_path, &table_text)?;
 
     Ok(())
@@ -423,18 +434,19 @@ async fn write_domain_details(output_file_path: &PathBuf, vcode: &String, pool: 
 
 
 async fn get_attrib_table(att_type: i32, header_type: &str, total_text: &str, 
-                          vcode: &String, pool: &Pool<Postgres>) -> Result<String, AppError> {
+                          vcode: &String,  inc_withdrawn: bool, pool: &Pool<Postgres>) -> Result<String, AppError> {
 
     let sql = format!(r#"select name, number_atts, pc_of_atts, number_orgs, pc_of_orgs 
             from smm.attributes_summary
-            where vcode = '{vcode}' and att_type = {att_type} order by id; "#);
+            where vcode = '{vcode}' and inc_wd = {inc_withdrawn} and att_type = {att_type} 
+            order by id; "#);
     let rows: Vec<TypeRow> = sqlx::query_as(&sql).fetch_all(pool).await
         .map_err(|e| AppError::SqlxError(e, sql))?;
     
     let mut tbl_text = "\n\n\t".to_string() + header_type + ", categories and numbers:"
-          + "\n\n\t                              number         %age         number          %age"
-            + "\n\tCategory                      in cat       all cats        orgs        total orgs"
-            + "\n\t----------------------------------------------------------------------------------";
+          + "\n\n\t                                       number       %age           number        %age"
+            + "\n\tCategory                               in cat     all cats          orgs      total orgs"
+            + "\n\t" + &"-".repeat(88);
     let mut rt_numbercat: i32 = 0;
     let mut rt_numbercat_pc: f32 = 0.0;
     for r in rows {
@@ -445,14 +457,14 @@ async fn get_attrib_table(att_type: i32, header_type: &str, total_text: &str,
             rt_numbercat_pc += r.pc_of_atts;
         }
     }
-    tbl_text = tbl_text + "\n\t----------------------------------------------------------------------------------"
+    tbl_text = tbl_text + "\n\t" + &"-".repeat(88)
     + &get_attrib_line(total_text, rt_numbercat, rt_numbercat_pc, -1, -1.0);
     Ok(tbl_text + "\n")
 }
 
 
 fn get_attrib_line(category: &str, num_atts: i32, pc_atts: f32, num_orgs: i32, pc_orgs: f32)-> String {
-    let spacer1 = " ".repeat(36 - category.chars().count() - num_atts.to_string().len());
+    let spacer1 = " ".repeat(43 - category.chars().count() - num_atts.to_string().len());
     let pc1_as_string = format!("{:.2}", pc_atts);
     let spacer2 = " ".repeat(13 - pc1_as_string.len());
     let spacer3 = " ".repeat(15 - num_orgs.to_string().len());
@@ -468,18 +480,18 @@ fn get_attrib_line(category: &str, num_atts: i32, pc_atts: f32, num_orgs: i32, p
     }
 }
 
-async fn get_distrib_table(count_type: &str, header_type: &str, vcode: &String, 
+async fn get_distrib_table(count_type: &str, header_type: &str, vcode: &String, inc_withdrawn: bool, 
                                  pool: &Pool<Postgres>) -> Result<String, AppError> {
     let sql = format!(r#"select count, num_of_orgs, pc_of_orgs from smm.count_distributions
-            where vcode = '{vcode}' and count_type = '{count_type}' 
+            where vcode = '{vcode}' and inc_wd = {inc_withdrawn} and count_type = '{count_type}' 
             order by count;"#);
     let rows: Vec<DistribRow> = sqlx::query_as(&sql).fetch_all(pool).await
         .map_err(|e| AppError::SqlxError(e, sql))?;
 
     let hdr_spacer = " ".repeat(33 - header_type.len());
-    let mut tbl_text = "\n\n\tNumbers of organisations with specified       count        number         %age".to_string()
-                       + "\n\tcount of " + header_type + &hdr_spacer + "                  orgs       total orgs"
-                       + "\n\t----------------------------------------------------------------------------------";
+    let mut tbl_text = "\n\n\tNumbers of organisations with specified              count        number         %age".to_string()
+                       + "\n\tcount of " + header_type + &hdr_spacer + "                         orgs       total orgs"
+                       + "\n\t" + &"-".repeat(88);
     
     let mut rt_numberorgs: i32 = 0;
     let mut rt_numberorgs_pc: f32 = 0.0;
@@ -489,17 +501,17 @@ async fn get_distrib_table(count_type: &str, header_type: &str, vcode: &String,
         rt_numberorgs_pc += r.pc_of_orgs;
     }
 
-    let spacer1 = " ".repeat(59 - rt_numberorgs.to_string().len());
+    let spacer1 = " ".repeat(66 - rt_numberorgs.to_string().len());
     let pc_as_string = format!("{:.2}", rt_numberorgs_pc);
     let spacer2 = " ".repeat(15 - pc_as_string.len());
 
-    tbl_text = tbl_text + "\n\t----------------------------------------------------------------------------------"
+    tbl_text = tbl_text + "\n\t" + &"-".repeat(88)
     + "\n\tTOTAL" + &spacer1 + &rt_numberorgs.to_string() + &spacer2 + &pc_as_string;
     Ok(tbl_text + "\n")
 }
 
 fn get_distrib_line(count: i32, num: i32, pc: f32)-> String {
-    let count_as_string = " ".repeat(49 - count.to_string().len()) + &count.to_string();
+    let count_as_string = " ".repeat(56 - count.to_string().len()) + &count.to_string();
     let spacer1 = " ".repeat(15 - num.to_string().len());
     let pc_as_string = format!("{:.2}", pc);
     let spacer2 = " ".repeat(15 - pc_as_string.len());
@@ -507,10 +519,10 @@ fn get_distrib_line(count: i32, num: i32, pc: f32)-> String {
            + &spacer2 + &pc_as_string
 }
 
-async fn get_ranked_distrib_table(dist_type: i32, vcode: &String, pool: &Pool<Postgres>) -> Result<String, AppError> {
+async fn get_ranked_distrib_table(dist_type: i32, vcode: &String, inc_withdrawn: bool, pool: &Pool<Postgres>) -> Result<String, AppError> {
 
     let sql = format!(r#"SELECT entity, number, pc_of_entities, pc_of_base_set from smm.ranked_distributions 
-            where vcode = '{vcode}' and dist_type = {dist_type} order by rank; "#);
+            where vcode = '{vcode}' and inc_wd = {inc_withdrawn} and dist_type = {dist_type} order by rank; "#);
     let lang_rows: Vec<RankedRow> = sqlx::query_as(&sql).fetch_all(pool).await
             .map_err(|e| AppError::SqlxError(e, sql))?;
 
@@ -524,13 +536,13 @@ async fn get_ranked_distrib_table(dist_type: i32, vcode: &String, pool: &Pool<Po
             rt_numberents_pc += r.pc_of_entities;
         }
     }
-    tbl_text = tbl_text + "\n\t----------------------------------------------------------------------------------"
+    tbl_text = tbl_text+ "\n\t" + &"-".repeat(88)
     + &get_ranked_distrib_line("TOTAL", rt_numberents, rt_numberents_pc, -1.0);
     Ok(tbl_text + "\n")
 }
 
 fn get_ranked_distrib_line(topic: &str, num: i32, pc1: f32, pc2: f32)-> String {
-    let spacer1 = " ".repeat(49 - topic.chars().count() - num.to_string().len());
+    let spacer1 = " ".repeat(56 - topic.chars().count() - num.to_string().len());
     let pc1_as_string = format!("{:.2}", pc1);
     let spacer2 = " ".repeat(15 - pc1_as_string.len());
     let pc2_as_string = format!("{:.2}", pc2);
@@ -552,49 +564,47 @@ fn get_ranked_distrib_line(topic: &str, num: i32, pc1: f32, pc2: f32)-> String {
 }
  
 fn get_hdr_line(topic: &str) -> String {
-    "\n\n\t==================================================================================".to_string()
-    + "\n\t" + topic 
-    + "\n\t=================================================================================="
-}
-
-fn get_sing_hdr() -> String {
-    "\n\t                                                          number          %age\n".to_string()
-}
-
-fn get_data_line(topic: &str, num: i32) -> String {
-    let spacer = " ".repeat(49 - topic.len() - num.to_string().len());
-    "\n\t".to_string() + topic + &spacer + &num.to_string() 
+    format!("\n\n\t{}\n\t{topic}\n\t{}", "=".repeat(88),  "=".repeat(88),)
 }
 
 fn get_orglc_line(org_type: &str, name_type: &str, names_num: i32, names_wolc: i32, names_wolc_pc: f32) -> String {
-    let spacer1 = " ".repeat(23 - org_type.chars().count());
+    let spacer1 = " ".repeat(30 - org_type.chars().count());
     let spacer2 = " ".repeat(26 - name_type.chars().count()- names_num.to_string().len());
     let spacer3 = " ".repeat(15 - names_wolc.to_string().len());
     let pc_as_string = format!("{:.2}", names_wolc_pc);
     let spacer4 = " ".repeat(15 - pc_as_string.to_string().len());
-    "\n\t".to_string() + org_type + &spacer1 + name_type + &spacer2 + &names_num.to_string() 
-           + &spacer3 + &names_wolc.to_string() + &spacer4 + &pc_as_string
+    
+    format!("\n\t{org_type}{spacer1}{name_type}{spacer2}{names_num}{spacer3}{names_wolc}{spacer4}{:.2}", names_wolc_pc)
+    //"\n\t".to_string() + org_type + &spacer1 + name_type + &spacer2 + &names_num.to_string() 
+    //       + &spacer3 + &names_wolc.to_string() + &spacer4 + &pc_as_string
 }
 
 fn get_orgrel_line(org_type: &str, rel_type: &str, num_links: i32, num_orgs: i32, num_orgs_pc: f32) -> String {
-    let spacer1 = " ".repeat(23 - org_type.chars().count());
+    let spacer1 = " ".repeat(30 - org_type.chars().count());
     let spacer2 = " ".repeat(26 - rel_type.chars().count() - num_links.to_string().len());
     let spacer3 = " ".repeat(15 - num_orgs.to_string().len());
     let pc_as_string = format!("{:.2}", num_orgs_pc);
     let spacer4 = " ".repeat(15 - pc_as_string.to_string().len());
-    "\n\t".to_string() + org_type + &spacer1 + rel_type + &spacer2 + &num_links.to_string() 
-           + &spacer3 + &num_orgs.to_string() + &spacer4 + &pc_as_string
+    
+    format!("\n\t{org_type}{spacer1}{rel_type}{spacer2}{num_links}{spacer3}{num_orgs}{spacer4}{:.2}", num_orgs_pc)
+    //"\n\t".to_string() + org_type + &spacer1 + rel_type + &spacer2 + &num_links.to_string() 
+    //       + &spacer3 + &num_orgs.to_string() + &spacer4 + &pc_as_string
+}
+
+fn get_sing_hdr() -> String {
+    "\n\n\t                                                                   number         %age".to_string()
 }
 
 fn get_singleton_line(topic: &str, num: i32, pc: Option<f32>) -> String {
-    let spacer1 = " ".repeat(64 - topic.chars().count() - num.to_string().len());
+
+    let spacer1 = " ".repeat(71 - topic.chars().count() - num.to_string().len());
     if pc.is_some() {
         let pc_as_string = format!("{:.2}", pc.unwrap());
         let spacer2 = " ".repeat(15 - pc_as_string.len());
-        "\n\t".to_string() + topic + &spacer1 + &num.to_string() + &spacer2 + &pc_as_string
+        format!("\n\t{topic}{spacer1}{num}{spacer2}{:.2}", pc.unwrap())
     }
     else {
-        "\n\t".to_string() + topic + &spacer1 + &num.to_string() 
+        format!("\n\t{topic}{spacer1}{num}")
     }
 }
 
