@@ -125,7 +125,7 @@ fn parse_args(args: Vec<OsString>) -> Result<ArgMatches, clap::Error> {
         .arg(
              Arg::new("src_file")
             .short('f')
-            .long("source")
+            .long("file")
             .visible_aliases(["source file"])
             .help("A string with the source file name (over-rides any config file value)")
             .default_value("")
@@ -133,7 +133,7 @@ fn parse_args(args: Vec<OsString>) -> Result<ArgMatches, clap::Error> {
         .arg(
             Arg::new("data_version")
            .short('v')
-           .long("data_version")
+           .long("version")
            .required(false)
            .help("A string with the version ascribed to the data by ror, in a semver format")
            .default_value("")

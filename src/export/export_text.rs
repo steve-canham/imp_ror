@@ -15,7 +15,8 @@ pub async fn generate_text(output_folder : &PathBuf, vcode: &String,
     // Get path and set up file for writing.
 
     let datetime_string = Local::now().format("%Y-%m-%d %H-%M").to_string();
-    let output_file_name = format!("{} summary at {}.txt", &vcode, &datetime_string);
+    let inc_wd_tag = if inc_withdrawn {" (inc. withdrawn orgs)"} else {""};
+    let output_file_name = format!("{} summary{} at {}.txt", &vcode, inc_wd_tag, &datetime_string);
     let output_file_path: PathBuf = [output_folder, &PathBuf::from(output_file_name)].iter().collect();
             
     let singvals:HashMap<String, Singleton> = collect_singleton_values(vcode, inc_withdrawn, pool).await?;

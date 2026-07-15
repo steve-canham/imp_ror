@@ -2,15 +2,16 @@ A program to process and summarise ROR organisation data, as made available by R
 on Zenodo (see https://ror.readme.io/docs/data-dump). A new version of the data is posted 
 on a roughly monthly basis. 
 
-***The program is written and tested on Linux (Kubuntu 24.04) though was originally developed on Windows 11.   
-It should also work, but has not yet been tested, on Macs.  
-The current version MAY also work on Windows machines, though this is yet to be tested.***
+***The program is written and tested on Linux (Kubuntu 24.04). though was originally developed on Windows 11.   
+Theoretically, it should also run on Macs and on Windows machines, but this has not yet been tested. Further 
+work is planned to develop and confirm Windows compatability.***
 
 The program processes and retains a single version of the ROR data at a time, 
 but retains summaries of the key features of all versions imported. Data is stored using a 
 Postgres database. As outputs, the system can summarise any specific version as a text file, 
 or create a set of CSV files representing the stored summary data, for a single version or 
-for all those so far imported.
+for all those so far imported. The intention is also to provde an 'export to Excel' feature 
+in the future.
 
 The system uses the version 2 schema files as input, and so covers data 
 made available from April 2024 onwards. It can handle versions 2.0 and 2.1, the latter in 
@@ -30,7 +31,7 @@ a quick overview of the system.
 Anyone seeking a more detailed understanding of what the system does, how to set it up and use it, including 
 the various command line arguments available, and the data structures created should consult the more 
 detailed documentation within the docs folder on this GitHub page. Those documents are much more detailed and 
-assume less familiarity with Rust and its development environment. They cover:
+cover:
 
 - Background and intended purpose
 - Installation and Configuration
@@ -48,9 +49,9 @@ assume less familiarity with Rust and its development environment. They cover:
 ### Initialising the system
 The system uses a configuration file to provide details of the database connection, and the folders holding data, output files amd logs. This configuration file must be established during the intial running of the system.
 
-_On initial run:_
+*On initial run:*
 - In the development environment (e.g. in the terminal in VS Code or Zed) input  
-**_cargo run -- -i_**  
+***cargo run -- -i***  
 Note the double hyphen following 'run' and before '-i' - this allows cargo to recognise the following parameters as applying to the application rather than to cargo itself. The 'i' (initialisation) flag causes the system to create the configuration file.
 - In creating the file the system will ask for various parameters: the postgress database host, user name, user password, port and database name, the folder where data source files will be found, and the folders to be used for outputs and logs. It will also ask for an optional source file name, though in most scenarios this can be left as an empty string, because it will normally be supplied from the command line (see Docs for details).
 - The values should be supplied in response to each of the prompts, after which a configuration file is constructed.
@@ -59,11 +60,11 @@ Note the double hyphen following 'run' and before '-i' - this allows cargo to re
 
 ### Routine use
 - In most scenarios, data can be input, processed and output by the system using a single command.
-- This involves running the system with the -a (all) flag and the -s source file flag, as in  
-**cargo run -- -a -s "&lt;source-file-name&gt;"**,  
+- This involves running the system with the -a (all) flag and the -f source file flag, as in  
+**cargo run -- -a -f "&lt;source-file-name&gt;"**,  
 for example:  
-cargo run -- -a -s "v1.59-2025-01-23-ror-data_schema_v2.json" or  
-cargo run -- -a -s "v2.2-2026-01-29-ror-data". (The final '.json' on the file name is not required).
+cargo run -- -a -f "v1.59-2025-01-23-ror-data_schema_v2.json" or  
+cargo run -- -a -f "v2.2-2026-01-29-ror-data". (The final '.json' on the file name is not required).
 - The -a command will take the data in the json file through a four stage pipeline:
     - importing it into a set of 'src' schema tables, with very little change;
     - transforming it, albeit lightly, into a series of 'ppr' schema tables, and 
@@ -73,7 +74,13 @@ cargo run -- -a -s "v2.2-2026-01-29-ror-data". (The final '.json' on the file na
 - Successive use of the -a command will overwrite the data in the src and ppr schema tables, with data from whatever is the most recently imported version. The summary smm schema data for each version is, however, stored permanently.
 - *cargo run -- -x* will generate a set of 7 csv files with the summary data linked to the current (most recently imported) version. Specifying a different version is also possible as long as it has been previously imported and summarised.
 - *cargo run -- -y* will generate a set of 7 csv files with the summary data from all the versions imported to that point.
-
+  
+*Withdrawn Organisations*  
+By default the processing step removes organisations with a 'withdrawn' status from the main data set, and consequently excludes them from the summarising process. This is because ROR defines such organisations as having been added in error, e.g. are duplicates or out of scope. (The withdrawn organisations are stored in a separate table, together with an indication of any 'successor'organisation.)  
+If desired, however, withdrawn organisations can be included in the main dataset, and therefore in subsequent summary data, if a '-w' flag is added to the command line, for example:  
+cargo run -- -a -f "v2.9-2026-06-23-ror-data" -w.  
+Summary data for 'withdrawn included' datasets are stored independently of the summary data for the corresponding version with the withdrawn organisations removed - in other words it is possible to accumulate summary data for both 'versions' of the same ror dataset at the same time.  
+If extracting summary data to CSV files, if the 'withdrawn included' data is required, it is also necesary to add a '-w' flag to the extraction command - please see Docs for further details. 
 
 #### Command line arguments
 For the full list of command line arguments please see the doc '3_Operation and Commands.md':
@@ -105,12 +112,19 @@ For the full list of command line arguments please see the doc '3_Operation and 
 This was because on Linux permissions to write files are more restricted, (compared to Windows) and setting the required permissions for the Postgres account is difficult.  
 Using the user's own permissions, running the Rust executable through cargo run, is easier and more transparent to manage.
 
-
 #### Version 1.4
 24/06/2026  -  Changes:
-- All code reviewed, with substantial refactoring and simplification in many source files. In particular code changed to be more idiomatic Rust where possible, e.g. greater use of guarded match arms.
+- Large portions of code reviewed, with substantial refactoring and simplification in many source files. In particular code changed to be more idiomatic Rust where possible, e.g. greater use of guarded match arms.
 - Creating and editing configuration file better separated from setup and code substantially improved.
 - Location of the configuration file made OS dependent, using conventional choices for application configuration data, via 'Directories' crate. This simplifies support for multiple platforms.
 - SQL scripts and functions largely separated from other code but calling them retained within a Rust framework (to make supporting multiple platforms easier).
 - Setup code simplified and command line flags made more logical.
 - Markdown text in Readme and Docs changed tro comply with GitHub standards.
+
+#### Version 1.5
+15/07/2026  -  Changes:
+- Removal, by default, of withdrawn organisations during transformation step, to ppr schema.
+- Introduction of -w flag to override default behaviour and include withdrawn organisations.
+- Simplification of command line flags.
+- Improved text generation code.
+- Improved and simplified design of text output file.

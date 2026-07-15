@@ -34,11 +34,11 @@ In most cases the commands above are sufficient, but to maximise flexibility a r
 
 #### Related to the source file
 
-***-s***&nbsp;&nbsp;&nbsp;&nbsp;[or --source]. Followed by a string representing the source file name. This must be double quoted if it includes a space. (If it does not include the '.json' extension that will be added by the system before processing). 
+***-f***&nbsp;&nbsp;&nbsp;&nbsp;[or --file]. Followed by a string representing the source file name. This must be double quoted if it includes a space. (If it does not include the '.json' extension that will be added by the system before processing). 
 
-***-v***&nbsp;&nbsp;&nbsp;&nbsp;[or --data_version]. Followed by a double quoted string representing a version number, e.g. "v1.52". In many circumstances can be derived from the source file name (see below).
+***-v***&nbsp;&nbsp;&nbsp;&nbsp;[or --version]. Followed by a double quoted string representing a version number, e.g. "v1.52". In most circumstances can be derived from the source file name (see below), so only necessary if that is not possible. Can also be used with the -x flag to export a specific version's data into csv files, if that version has been previously summarised.
 
-***-d***&nbsp;&nbsp;&nbsp;&nbsp;[or --date]. Followed by a double quoted string in ISO YYYY-mm-DD format, representing the date of the data. In many circumstances can be derived from the source file name (see below).
+***-d***&nbsp;&nbsp;&nbsp;&nbsp;[or --date]. Followed by a double quoted string in ISO YYYY-mm-DD format, representing the date of the data. In most circumstances can be derived from the source file name (see below), so only necessary if that is not possible.
 
 ***N.B. If the file name starts with a 'v' followed by a semantic versioning string, followed by a space or a hyphen and then the date in ISO format, either with hyphens or without, then (whatever any following text in the name) the system is able to extract the data version and date from the file name.*** 
 
@@ -53,19 +53,18 @@ all follow the required pattern. The first and last are the forms of the name su
 
 #### Related to import and processing
 
-***-a***&nbsp;&nbsp;&nbsp;&nbsp;[or --all]. Run all three main processes for a particular ROR data version (equivalent to -r, -p, and -t together). The source file, data version and data date must be specified, but the latter two can usually be derived from the first.
+***-a***&nbsp;&nbsp;&nbsp;&nbsp;[or --all]. Run all import processes for a particular ROR data version, store both the source ROR data and a lightly transformed post-processing version of that data, and generate summary data records and a textual summary. The source file, data version and data date must be specified, but the latter two can usually be derived from the first.
 
-***-r***&nbsp;&nbsp;&nbsp;&nbsp;[or --import]. A flag that causes import of the specified source data to src schema tables, but not to the ppr schema. The source file, data version and data date must be specified. Allows the initial import process to take place in isolation. 
-
-***-p***&nbsp;&nbsp;&nbsp;&nbsp;[or --process]. A flag that causes processing and summarising of the data in the src schema tables to the ppr and smm schema tables. The system necessarily uses the version that is currently resident in the src tables.  If a version is specified and it is different from that in the src tables the user is prompted to run -r (or -a) to first add the data to the src tables.
-
-***-t***&nbsp;&nbsp;&nbsp;&nbsp;[or --text]. A flag that causes production of a text file summarising the main features of a version currently held within the system's summary tables. The version can be specified explicitly using the -v flag (it must have been summarised previously). If not specified the 'current' version is used, i.e. the last imported one, which has its data in the src and ppr schema. The name of the file is constructed from the version and the date-time of the run. 
+***-w***&nbsp;&nbsp;&nbsp;&nbsp;[or --inc_wd]. **Must be used as an additional flag to the -a flag.** Run all import processes for a particular ROR data version and generate summary data and a textual summary, but include withdrawn organisations within the dataset, overriding the default behaviour, which is to exclude them. The source file, data version and data date must be specified, but the latter two can usually be derived from the first.
 
 #### Related to export
 
-***-x***&nbsp;&nbsp;&nbsp;&nbsp;[or --export]. A flag that causes production of a collection of 7 csv files, representing the data in the summary tables for the specified version. The version can be specified explicitly using the -v flag (it must have been summarised previously). If not specified the 'current' version is used, i.e. the last imported one, which has its data in the src and ppr schema. The name of the files reference both the version and the date-time of the run. The files are now generated in Rust (using the 'csv' crate) rather than directly from Postgres - this allows greater flexibility in where the files can be stored.
+***-x***&nbsp;&nbsp;&nbsp;&nbsp;[or --export]. A flag that causes production of a collection of 7 csv files, representing the data in the summary tables for the specified version. The version can be specified explicitly using the -v flag (it must have been summarised previously). If not specified the 'current' version is used, i.e. the last imported one, which has its data in the src and ppr schema. By default the version refers to summary data for ROR imports where the withdrawn organisations have been removed. The name of the files reference both the version and the date-time of the run. The files are now generated in Rust (using the 'csv' crate) rather than directly from Postgres - this allows greater flexibility in where the files can be stored.
 
-***-y***&nbsp;&nbsp;&nbsp;&nbsp;[or --export_all]. A flag that causes production of a collection of 7 csv files, representing <i>all</i> the data in the summary tables, for all imported versions. (v1.57 data is not exported, as it appears to be exactly the same as v1.58, just without the added geographical details of the v2.1 schema). The name of the files are constructed from the version and the date-time of the run. The files are now generated in Rust (using the 'csv' crate) rather than directly from Postgres - this allows greater flexibility in where the files can be stored.
+***-y***&nbsp;&nbsp;&nbsp;&nbsp;[or --export_all]. A flag that causes production of a collection of 7 csv files, representing <i>all</i> the data in the summary tables, for all imported versions where withdrawn organisations have been removed (the default assumption). N.B. v1.57 data is not exported, as it appears to be exactly the same as v1.58, just without the added geographical details of the v2.1 schema. The name of the files are constructed from the version and the date-time of the run. The files are now generated in Rust (using the 'csv' crate) rather than directly from Postgres - this allows greater flexibility in where the files can be stored.
+
+***-w***&nbsp;&nbsp;&nbsp;&nbsp;[or --inc_wd]. **Must be used as an additional flag to the -x or -y flags.** With the -x flag, -w will export CSV files from the specified version, or the most recent version if none is specified, if that version has been previously imported using -w, i.e. if the version includes withdrawn organisations. If no such version exists the program will error.
+With the -y flag, it will export summary data from <i>all</i> the summary data that relates to versions imported using -w, i.e. all data related to 'withdrawn included' versions.
 
 #### Related to system setup
 
@@ -83,6 +82,6 @@ all follow the required pattern. The first and last are the forms of the name su
 
 ***The final two parameters are used only in the context of integration tests, and would not normally be relevant to users.***
 
-***-z***&nbsp;&nbsp;&nbsp;&nbsp;[or --test]. A flag signifying that this is part of an integration test run - suppresses logs. 
+***-t***&nbsp;&nbsp;&nbsp;&nbsp;[or --test]. A flag signifying that this is part of an integration test run - suppresses logs. 
 
-***-f***&nbsp;&nbsp;&nbsp;&nbsp;[or --folder]. The source folder for test data in integration tests. 
+***-u***&nbsp;&nbsp;&nbsp;&nbsp;[or --folder]. The source folder for test data in integration tests. 
