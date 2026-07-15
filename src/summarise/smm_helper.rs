@@ -15,7 +15,6 @@ pub async fn delete_any_existing_data(vcode: &String, inc_wd: bool, pool: &Pool<
                 DELETE from smm.org_type_and_relationships {}"#
                 , wc, wc, wc, wc, wc, wc, wc);
 
-   println!("{del_sql}");
    sqlx::raw_sql(&del_sql).execute(pool).await
          .map_err(|e| AppError::SqlxError(e, del_sql))
 }

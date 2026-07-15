@@ -7,7 +7,7 @@ pub fn get_sql<'a>() -> &'a str {
     drop table if exists smm.version_summaries;
     create table smm.version_summaries
     (    
-        vcode             varchar     not null primary key
+        vcode             varchar     not null
       , vdate             date        not null
       , vdays             int         not null
       , inc_wd            bool        not null
