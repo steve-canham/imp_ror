@@ -6,12 +6,12 @@ N.B. Using cargo to run a program with parameters requires a double hyphen befor
 
 #### To import and report on a single ROR version
 
-In most cases the ROR data is most easily processed by running the program with an -a (= all) parameter and the -s parameter together with the source file name: ***cargo run -- -a -s "&lt;source-file-name&gt;"***,  
-e.g. *cargo run -- -a -s "v1.59-2025-01-23-ror-data_schema_v2.json"*, or  
-*cargo run -- -a -s "v2.2-2026-01-29-ror-data"*. 
+In most cases the ROR data is most easily processed by running the program with an -a (= all) parameter and the -f parameter together with the source file name: ***cargo run -- -a -f "&lt;source-file-name&gt;"***,  
+e.g. *cargo run -- -a -f "v1.59-2025-01-23-ror-data_schema_v2.json"*, or  
+*cargo run -- -a -f "v2.2-2026-01-29-ror-data"*. 
 
 The source file name can be provided without the '.json' extension, in which case the program will add it. In addition the double quotes can be removed if the name does not contain spaces. Text after the date indicator is not read. The command:
-*cargo run -- -a -s v1.59-2025-01-23* is therefore equivalent to the first command above.  
+*cargo run -- -a -f v1.59-2025-01-23* is therefore equivalent to the first command above.  
 Alternatively the source file name can be provided within the configuration file, when *cargo run -- -a* is sufficient.
 
 The -a command will take the data in the json file through a four stage pipeline: 
@@ -84,4 +84,4 @@ With the -y flag, it will export summary data from <i>all</i> the summary data t
 
 ***-t***&nbsp;&nbsp;&nbsp;&nbsp;[or --test]. A flag signifying that this is part of an integration test run - suppresses logs. 
 
-***-u***&nbsp;&nbsp;&nbsp;&nbsp;[or --folder]. The source folder for test data in integration tests. 
+***-u***&nbsp;&nbsp;&nbsp;&nbsp;[or --test_folder]. The source folder for test data in integration tests. 

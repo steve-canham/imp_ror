@@ -31,17 +31,27 @@ date of the data within the system.
 The 'src' schema data can be processed to form a new set of tables within the 'ppr' schema. 
 The processing is relatively limited but includes:
 
-a) Replacement of the strings of categorised values by integers. The integers are as provided by 
+a) By default, removal of withdrawn organisations from the main dataset. The withdrawn organisations
+are listed in the ppr.withdrawn table, along with an indication of any successor organisation(s). Their
+attributes are removed from the various attribute tables. The rationale for this is that ROR states that 
+withdrawn orgasnisation have been added in error, e.g. are duplicates or are out of scope. It therefore 
+makes little sense to retain them in the ROR dataset. Summary data relates only to the main dataset.  
+
+Note that the default behaviour can be over-ridden, and withdrawn organisations included, by use of the 
+additional -w flag during data import.
+
+b) Replacement of the strings of categorised values by integers. The integers are as provided by 
 lookup tables (set up within the 'lup' or lookup schema) which effectively provide enumerations 
 of these categorised values, e.g. the organisation, name, link, external id and relationship types. 
 This is intended to make any future data processing quicker and future display more flexible.
 
-b) Ensuring all names specified as a 'ROR name' have a name type designated. In a very small number of cases 
+c) Ensuring all names specified as a 'ROR name' have a name type designated. In a very small number of cases 
 this is not the case. They are therefore classified as labels, which allows them to 
 be processed in the same way as all other ROR names.
 
-c) The removal of duplicates from the names table. There are a small number of organisations that 
-have two names with the same value. In most of these cases these are identical names with two types listed in the source file, usually both 'label' and 'alias'. In further cases the names are the same type but have two 
+d) The removal of duplicates from the names table. There are a small number of organisations that 
+have two names with the same value. In most of these cases these are identical names with two types 
+listed in the source file, usually both 'label' and 'alias'. In further cases the names are the same type but have two 
 different language codes applied. These duplications are removed according to the following rules:
 
 - If one of the duplicate pairs is a ror name and the other is not, the one that is not is removed.
@@ -49,7 +59,7 @@ different language codes applied. These duplications are removed according to th
 - If one is an alias and the other an acronym, the alias is removed, as the names in this group all appear to be acronyms.
 - For the remaining (very few) duplicated names, the language code least associated with the organisation's location, or if that is not clear that is referring to the more obscure language, is removed. This is an arbitrary decision but the choices are not difficult in practice.  
 
-d) The addition of script codes to the name data. Though most of the the names listed (apart 
+e) The addition of script codes to the name data. Though most of the the names listed (apart 
 from acronyms and company names) have language codes linked to them there is no explicit indication of 
 the script being used. The great majority of the names use latin characters, but a substantial number 
 use other script systems, such as Cyrilic, Greek, Arabic, Han, Hebrew or Gujarati. Details on scripts are 
@@ -57,24 +67,24 @@ provided by ISO 15924, which also provides the Unicode code pages on which each 
 Examining the Unicodes of the characters in the names allows the script to be readily identified, and this 
 information is added to each name record, as being of potential value when selecting names for display.
 
-e) The expansion of the admin_data table, to include for each organisation the numbers of entities 
+f) The expansion of the admin_data table, to include for each organisation the numbers of entities 
 of each type it is linked with, e.g. how many names (of various types), links and external ids (of 
 various types), relationships (of various types), locations, countries etc. are included in that organisation's 
 ror record. This is to make it easier both to use and display the information, to support some of the 
 production of summary data, and to more easily identify organisations that are missing certain 
 types of data.
 
-f) The addition of summary geographical data to the core_data table. This includes the location name and codes for 
+g) The addition of summary geographical data to the core_data table. This includes the location name and codes for 
 geographical subdivision and country. For the great majority of organisations, that only have a single location, 
 this data is taken from the locations table and is present to make it easier to use the geographical data (especially
 the country code) in later processing, as well as making it easier to distinguish organisations with the same or 
 very similar names. Names that have multiple locations (and / or subdivisions and / or countries), are clearly 
 indicated within the same data.
 
-g) The renaming of a few field names to make them clearer, more consistent or simpler, e.g. 
+h) The renaming of a few field names to make them clearer, more consistent or simpler, e.g. 
 country_subdivision_code becomes csubdiv_code, lang becomes lang_code, etc.
 
-h) For one record, the replacement of a deprecated language code with the current equivalent.
+i) For one record, the replacement of a deprecated language code with the current equivalent.
  
 The ppr data is designed to be used as the basis for ad hoc SQL queries of the data. They are also used as 
 the basis of the summary statistics described below, and are designed to provide a more useful set of base 
@@ -84,10 +94,14 @@ tables are recreated each time a version's data is transformed into them.
 ### Summary data and the 'smm' schema
 
 The Summary (smm) schema includes a set of persistent tables that summarise various aspects of the ROR dataset. 
-It includes records for all versions of the ROR data that have been imported (within each table the initial field 
-is the data version, allowing easy selection of the summary data for any particular version). To make processing 
-and export easier, many of the summary tables are aggregate, i.e. they hold data about different entities in the 
-same table, because that data has the same structure. The tables are:
+It includes records for all versions of the ROR data that have been imported.  
+Imports that include withdrawn organisations are considered to be distinct from imports that do not, 
+so both types of summary data can be stored for any particular version. Within each table the initial two 
+fields are the data version ('vcode') and a boolean ('inc_wd') indicating if withdrawn organisations are included.  
+This allows easy selection of the summary data for any particular version, and also allows the sets of 'withdrawn included'
+and 'withdrawn excluded' summary records to be easily differentiated.  
+To make processing and export easier, many of the summary tables are aggregate, i.e. they hold data about 
+different entities in the same table, because that data has the same structure. The tables are:
 
 - version_summary - Gives the number of organisations, and the numbers of linked entities (names, organisation types, locations, external ids, links, relationships, domains), for a specified version, equivalent to the record numbers in each of the tables in the ppr schemas when the version is processed. It also includes the version date, and the number of days that date represents since 29/04/2024, the earliest of the datasets in the system. This was the date of the 1.45.2 patch - in general the latest patch of any version is preferred.
 
