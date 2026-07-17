@@ -36,7 +36,7 @@ In most cases the commands above are sufficient, but to maximise flexibility a r
 
 ***-f***&nbsp;&nbsp;&nbsp;&nbsp;[or --file]. Followed by a string representing the source file name. This must be double quoted if it includes a space. (If it does not include the '.json' extension that will be added by the system before processing). 
 
-***-v***&nbsp;&nbsp;&nbsp;&nbsp;[or --version]. Followed by a double quoted string representing a version number, e.g. "v1.52". In most circumstances can be derived from the source file name (see below), so only necessary if that is not possible. Can also be used with the -x flag to export a specific version's data into csv files, if that version has been previously summarised.
+***-v***&nbsp;&nbsp;&nbsp;&nbsp;[or --data_version]. Followed by a double quoted string representing a version number, e.g. "v1.52". In most circumstances can be derived from the source file name (see below), so only necessary if that is not possible. Can also be used with the -x flag to export a specific version's data into csv files, if that version has been previously summarised.
 
 ***-d***&nbsp;&nbsp;&nbsp;&nbsp;[or --date]. Followed by a double quoted string in ISO YYYY-mm-DD format, representing the date of the data. In most circumstances can be derived from the source file name (see below), so only necessary if that is not possible.
 

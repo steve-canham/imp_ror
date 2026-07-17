@@ -22,6 +22,7 @@ pub struct VSummary {
 #[derive(sqlx::FromRow, Serialize)]
 pub struct CSVSummaryRow {
     pub vcode: String,
+    pub inc_wd: bool,
     pub vdate: String,
     pub vdays: i32,
     pub num_recs: i32,
@@ -40,8 +41,8 @@ pub struct CSVSummaryRow {
 
 #[derive(sqlx::FromRow)]
 pub struct TypeRow {
-    pub name: String,
-    pub number_atts: i32,
+    pub cat_name: String,
+    pub number_cat: i32,
     pub pc_of_atts: f32,
     pub number_orgs: i32,
     pub pc_of_orgs: f32,
@@ -51,13 +52,14 @@ pub struct TypeRow {
 #[derive(sqlx::FromRow, Serialize)]
 pub struct CSVAttributeRow {
     pub vcode: String,
+    pub inc_wd: bool,
     pub vdate: String,
     pub vdays: i32,
     pub att_id: i32,
     pub att_name: String,
     pub cat_id: i32,
     pub cat_name: String,
-    pub number_atts: i32,
+    pub number_cat: i32,
     pub pc_of_atts: f32,
     pub number_orgs: i32,
     pub pc_of_orgs: f32,
@@ -74,6 +76,7 @@ pub struct DistribRow {
 #[derive(sqlx::FromRow, Serialize)]
 pub struct CSVDistribRow {
   pub vcode: String,
+  pub inc_wd: bool, 
   pub vdate: String,
   pub vdays: i32,
   pub count_type: String,
@@ -94,6 +97,7 @@ pub struct RankedRow {
 #[derive(sqlx::FromRow, Serialize)]
 pub struct CSVRankedRow {
   pub vcode: String,
+  pub inc_wd: bool,
   pub vdate: String,
   pub vdays: i32,
   pub dist_type: i32,
@@ -116,6 +120,7 @@ pub struct SingletonRow {
 #[derive(sqlx::FromRow, Serialize)]
 pub struct CSVSingletonRow {
     pub vcode: String,
+    pub inc_wd: bool,
     pub vdate: String,
     pub vdays: i32,
     pub id: String,
@@ -143,6 +148,7 @@ pub struct OrgAndRel{
 #[derive(sqlx::FromRow, Serialize)]
 pub struct CSVOrgAndRelRow{
     pub vcode: String,
+    pub inc_wd: bool,
     pub vdate: String,
     pub vdays: i32,
     pub org_type: String,
@@ -165,6 +171,7 @@ pub struct OrgAndLangCode{
 #[derive(sqlx::FromRow, Serialize)]
 pub struct CSVOrgAndLangRow{
     pub vcode: String,
+    pub inc_wd: bool,
     pub vdate: String,
     pub vdays: i32,
     pub org_type: String,

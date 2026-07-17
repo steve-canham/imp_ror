@@ -18,11 +18,11 @@ pub async fn generate_csv(output_folder : &PathBuf, data_version: &String,
 
     let output_file_name = format!("{} {} {}.csv", dv_string, "summary", datetime_string);
     let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
-           
-    let sql = format!("SELECT vcode, inc_wd, vdate::text, vdays, num_orgs, 
-                               num_active, num_inactive, nium_withdrawn, num_names, 
+
+    let sql = format!("SELECT vcode, inc_wd, vdate::text, vdays, num_recs, 
+                               num_active, num_inactive, num_withdrawn, num_denom, num_names, 
                                num_types, num_links, num_ext_ids, num_rels, num_locations, num_domains 
-                               from smm.version_summaries 
+                               from smm.version_summaries vs
                                {where_clause}");
     let summ: CSVSummaryRow = sqlx::query_as(&sql).fetch_one(pool).await
            .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
@@ -35,13 +35,13 @@ pub async fn generate_csv(output_folder : &PathBuf, data_version: &String,
     let output_file_name = format!("{} {} {}.csv", dv_string, "attributes", datetime_string);
     let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
 
-    let sql = format!(r#"SELECT vs.vcode, inc_wd, vs.vdate::text, vs.vdays, att_type as att_id, att_name, 
-                            id as cat_id, name as cat_name, number_atts, pc_of_atts, number_orgs, pc_of_orgs
+    let sql = format!(r#"SELECT vs.vcode, vs.inc_wd, vs.vdate::text, vs.vdays, att_type as att_id, att_name, 
+                            cat_id, cat_name, number_cat, pc_of_atts, number_orgs, pc_of_orgs
                             from smm.attributes_summary ss
                             inner join smm.version_summaries vs 
                             on vs.vcode = ss.vcode 
                             {where_clause}
-                            order by att_name, id;"#);
+                            order by att_name, cat_id;"#);
 
     let att_rows: Vec<CSVAttributeRow> = sqlx::query_as(&sql).fetch_all(pool).await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
@@ -53,7 +53,7 @@ pub async fn generate_csv(output_folder : &PathBuf, data_version: &String,
     let output_file_name = format!("{} {} {}.csv", dv_string, "counts", datetime_string);
     let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
 
-    let sql = format!(r#"SELECT vs.vcode, inc_wd, vs.vdate::text, vs.vdays, 
+    let sql = format!(r#"SELECT vs.vcode, vs.inc_wd, vs.vdate::text, vs.vdays, 
                             count_type, count, num_of_orgs, pc_of_orgs
                             from smm.count_distributions ss
                             inner join smm.version_summaries vs 
@@ -71,7 +71,7 @@ pub async fn generate_csv(output_folder : &PathBuf, data_version: &String,
     let output_file_name = format!("{} {} {}.csv", dv_string, "ranked_counts", datetime_string);
     let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
 
-    let sql = format!(r#"SELECT vs.vcode, inc_wd, vs.vdate::text, vs.vdays, 
+    let sql = format!(r#"SELECT vs.vcode, vs.inc_wd, vs.vdate::text, vs.vdays, 
                             dist_type, rank, entity, number, pc_of_entities, pc_of_base_set
                             from smm.ranked_distributions ss
                             inner join smm.version_summaries vs 
@@ -89,7 +89,7 @@ pub async fn generate_csv(output_folder : &PathBuf, data_version: &String,
     let output_file_name = format!("{} {} {}.csv", dv_string, "singletons", datetime_string);
     let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
     
-    let sql = format!(r#"SELECT vs.vcode, inc_wd, vs.vdate::text, vs.vdays, 
+    let sql = format!(r#"SELECT vs.vcode, vs.inc_wd, vs.vdate::text, vs.vdays, 
                             id, description, number, pc
                             from smm.singletons ss
                             inner join smm.version_summaries vs 
@@ -107,7 +107,7 @@ pub async fn generate_csv(output_folder : &PathBuf, data_version: &String,
     let output_file_name = format!("{} {} {}.csv", dv_string, "orgtypes and names", datetime_string);
     let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
    
-    let sql = format!(r#"SELECT vs.vcode, inc_wd, vs.vdate::text, vs.vdays, 
+    let sql = format!(r#"SELECT vs.vcode, vs.inc_wd, vs.vdate::text, vs.vdays, 
                             org_type, name_type, names_num,names_wlc, names_wolc, names_wlc_pc, names_wolc_pc
                             from smm.org_type_and_lang_code ss
                             inner join smm.version_summaries vs 
@@ -125,7 +125,7 @@ pub async fn generate_csv(output_folder : &PathBuf, data_version: &String,
     let output_file_name = format!("{} {} {}.csv", dv_string, "orgtypes and relationships", datetime_string);
     let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
 
-    let sql = format!(r#"SELECT vs.vcode, inc_wd, vs.vdate::text, vs.vdays, 
+    let sql = format!(r#"SELECT vs.vcode, vs.inc_wd, vs.vdate::text, vs.vdays, 
                             org_type, rel_type, ss.num_links, ss.num_orgs, num_orgs_total, num_orgs_pc 
                             from smm.org_type_and_relationships ss
                             inner join smm.version_summaries vs 
@@ -152,8 +152,8 @@ pub async fn generate_all_versions_csv(output_folder : &PathBuf, inc_withdrawn: 
     let output_file_name = format!("{} {} {}.csv", dv_string, "summary", datetime_string);
     let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
 
-    let sql = format!("SELECT vcode, inc_wd, vdate::text, vdays, num_orgs, 
-                               num_active, num_inactive, nium_withdrawn, num_names, 
+    let sql = format!("SELECT vcode, inc_wd, vdate::text, vdays, num_recs, 
+                               num_active, num_inactive, num_withdrawn, num_denom, num_names, 
                                num_types, num_links, num_ext_ids, num_rels, num_locations, num_domains 
                                from smm.version_summaries vs 
                                {where_clause} 
@@ -168,13 +168,13 @@ pub async fn generate_all_versions_csv(output_folder : &PathBuf, inc_withdrawn: 
     let output_file_name = format!("{} {} {}.csv", dv_string, "attributes", datetime_string);
     let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
     
-    let sql = format!(r#"SELECT vs.vcode, inc_wd, vs.vdate::text, vs.vdays, att_type as att_id, att_name, 
-                            id as cat_id, name as cat_name, number_atts, pc_of_atts, number_orgs, pc_of_orgs
+    let sql = format!(r#"SELECT vs.vcode, vs.inc_wd, vs.vdate::text, vs.vdays, att_type as att_id, att_name, 
+                            cat_id, cat_name, number_cat, pc_of_atts, number_orgs, pc_of_orgs
                             from smm.attributes_summary ss
                             inner join smm.version_summaries vs 
                             on vs.vcode = ss.vcode 
                             {where_clause}
-                            order by vcode, att_name, id;"#);
+                            order by vcode, att_name, cat_id;"#);
 
     let att_rows: Vec<CSVAttributeRow> = sqlx::query_as(&sql).fetch_all(pool).await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
@@ -186,7 +186,7 @@ pub async fn generate_all_versions_csv(output_folder : &PathBuf, inc_withdrawn: 
     let output_file_name = format!("{} {} {}.csv", dv_string, "counts", datetime_string);
     let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
 
-    let sql = format!(r#"SELECT vs.vcode, inc_wd, vs.vdate::text, vs.vdays, 
+    let sql = format!(r#"SELECT vs.vcode, vs.inc_wd, vs.vdate::text, vs.vdays, 
                             count_type, count, num_of_orgs, pc_of_orgs
                             from smm.count_distributions ss
                             inner join smm.version_summaries vs 
@@ -206,7 +206,7 @@ pub async fn generate_all_versions_csv(output_folder : &PathBuf, inc_withdrawn: 
     let output_file_name = format!("{} {} {}.csv", dv_string, "ranked_languages", datetime_string);
     let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
 
-    let sql = format!(r#"SELECT vs.vcode, inc_wd, vs.vdate::text, vs.vdays, 
+    let sql = format!(r#"SELECT vs.vcode, vs.inc_wd, vs.vdate::text, vs.vdays, 
                             dist_type, rank, entity, number, pc_of_entities, pc_of_base_set
                             from smm.ranked_distributions ss
                             inner join smm.version_summaries vs 
@@ -224,7 +224,7 @@ pub async fn generate_all_versions_csv(output_folder : &PathBuf, inc_withdrawn: 
     let output_file_name = format!("{} {} {}.csv", dv_string, "ranked_scripts", datetime_string);
     let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
 
-    let sql = format!(r#"SELECT vs.vcode, inc_wd, vs.vdate::text, vs.vdays, 
+    let sql = format!(r#"SELECT vs.vcode, vs.inc_wd, vs.vdate::text, vs.vdays, 
                             dist_type, rank, entity, number, pc_of_entities, pc_of_base_set
                             from smm.ranked_distributions ss
                             inner join smm.version_summaries vs 
@@ -242,7 +242,7 @@ pub async fn generate_all_versions_csv(output_folder : &PathBuf, inc_withdrawn: 
     let output_file_name = format!("{} {} {}.csv", dv_string, "ranked_countries", datetime_string);
     let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
 
-    let sql = format!(r#"SELECT vs.vcode, inc_wd, vs.vdate::text, vs.vdays, 
+    let sql = format!(r#"SELECT vs.vcode, vs.inc_wd, vs.vdate::text, vs.vdays, 
                             dist_type, rank, entity, number, pc_of_entities, pc_of_base_set
                             from smm.ranked_distributions ss
                             inner join smm.version_summaries vs 
@@ -266,7 +266,7 @@ pub async fn generate_all_versions_csv(output_folder : &PathBuf, inc_withdrawn: 
 
     let output_file_name = format!("{} {} {}.csv", dv_string, "singletons", datetime_string);
     let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
-    let sql = format!(r#"SELECT vs.vcode, inc_wd, vs.vdate::text, vs.vdays, 
+    let sql = format!(r#"SELECT vs.vcode, vs.inc_wd, vs.vdate::text, vs.vdays, 
                             id, description, number, pc
                             from smm.singletons ss
                             inner join smm.version_summaries vs 
@@ -284,7 +284,7 @@ pub async fn generate_all_versions_csv(output_folder : &PathBuf, inc_withdrawn: 
     let output_file_name = format!("{} {} {}.csv", dv_string, "orgtypes and names", datetime_string);
     let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
 
-    let sql = format!(r#"SELECT vs.vcode, inc_wd, vs.vdate::text, vs.vdays, 
+    let sql = format!(r#"SELECT vs.vcode, vs.inc_wd, vs.vdate::text, vs.vdays, 
                             org_type, name_type, names_num, names_wlc, names_wolc, names_wlc_pc, names_wolc_pc
                             from smm.org_type_and_lang_code ss
                             inner join smm.version_summaries vs 
@@ -302,7 +302,7 @@ pub async fn generate_all_versions_csv(output_folder : &PathBuf, inc_withdrawn: 
     let output_file_name = format!("{} {} {}.csv", dv_string, "orgtypes and relationships", datetime_string);
     let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
 
-        let sql = format!(r#"SELECT vs.vcode, inc_wd, vs.vdate::text, vs.vdays, 
+        let sql = format!(r#"SELECT vs.vcode, vs.inc_wd, vs.vdate::text, vs.vdays, 
                             org_type, rel_type, ss.num_links, ss.num_orgs, num_orgs_total, num_orgs_pc 
                             from smm.org_type_and_relationships ss
                             inner join smm.version_summaries vs 

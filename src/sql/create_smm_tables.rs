@@ -56,9 +56,9 @@ pub fn get_sql<'a>() -> &'a str {
       , inc_wd            bool        not null
       , att_type          int         null
       , att_name          varchar     null
-      , id                int         null
-      , name              varchar     null
-      , number_atts       int         null
+      , cat_id            int         null
+      , cat_name          varchar     null
+      , number_cat        int         null
       , pc_of_atts        real        null
       , number_orgs       int         null
       , pc_of_orgs        real        null        
@@ -80,7 +80,9 @@ pub fn get_sql<'a>() -> &'a str {
     (    
         vcode             varchar     not null
       , inc_wd            bool        not null
+      , org_type_id       int         null
       , org_type          varchar     null
+      , rel_type_id       int         null
       , rel_type          varchar     null
       , num_links         int         null
       , num_orgs          int         null
@@ -93,7 +95,9 @@ pub fn get_sql<'a>() -> &'a str {
     (    
         vcode             varchar     not null
       , inc_wd            bool        not null
+      , org_type_id       int         null
       , org_type          varchar     null
+      , name_type_id      int         null
       , name_type         varchar     null
       , names_num         int         null
       , names_wlc         int         null

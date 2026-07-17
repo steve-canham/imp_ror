@@ -133,7 +133,7 @@ fn parse_args(args: Vec<OsString>) -> Result<ArgMatches, clap::Error> {
         .arg(
             Arg::new("data_version")
            .short('v')
-           .long("version")
+           .long("data_version")
            .required(false)
            .help("A string with the version ascribed to the data by ror, in a semver format")
            .default_value("")

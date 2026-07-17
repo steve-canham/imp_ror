@@ -25,11 +25,11 @@ pub async fn create_name_attributes(sdv: &str, vcode: &String, inc_wd: bool, num
 
     // Name attributes summary
 
-    let sql  = format!(r#"{sdv} rn.id, 
+    let sql  = format!(r#"{sdv} rn.id as cat_id, 
             case when rn.name  = 'alias' then 'aliases'
             else rn.name||'s'
-            end as name,
-            count(t.id) as number_atts, 0::float as pc_of_atts,
+            end as cat_name,
+            count(t.id) as number_cat, 0::float as pc_of_atts,
             count(distinct t.id) as number_orgs, 0::float as pc_of_orgs
             from lup.ror_name_types rn
             inner join ppr.names t
@@ -41,11 +41,11 @@ pub async fn create_name_attributes(sdv: &str, vcode: &String, inc_wd: bool, num
              .map_err(|e| AppError::SqlxError(e, sql))?;
     store_summary(rows, inc_wd, 1, "name types", pool).await?;
 
-    let sql  = format!(r#"{sdv} rn.id + 100 as id, 
+    let sql  = format!(r#"{sdv} rn.id + 100 as cat_id, 
             case when rn.name  = 'alias' then 'aliases w/o LCs'
             else rn.name||'s w/o LCs'
-            end as name,
-            count(t.id) as number_atts, 0::float as pc_of_atts,
+            end as cat_name,
+            count(t.id) as number_cat, 0::float as pc_of_atts,
             count(distinct t.id) as number_orgs, 0::float as pc_of_orgs
             from lup.ror_name_types rn
             inner join ppr.names t
@@ -60,7 +60,7 @@ pub async fn create_name_attributes(sdv: &str, vcode: &String, inc_wd: bool, num
 
 
     let sql  = format!(r#"Update smm.attributes_summary set
-            pc_of_atts = ROUND(number_atts*10000::float / {num_names})/100.0,
+            pc_of_atts = ROUND(number_cat*10000::float / {num_names})/100.0,
             pc_of_orgs = ROUND(number_orgs*10000::float / {num_denom})/100.0
             where vcode = '{vcode}' and att_type in (1, 11) "#);
     sqlx::raw_sql(&sql).execute(pool).await
@@ -73,13 +73,13 @@ num_ext_ids:i64, num_links: i64, num_rels: i64, pool: &Pool<Postgres>) ->  Resul
 
     // Org type attributes summary
 
-    let sql  = format!(r#"{sdv} gt.id, gt.name, count(t.id) as number_atts,
+    let sql  = format!(r#"{sdv} gt.id as cat_id, gt.name as cat_name, count(t.id) as number_cat,
             round(count(t.id)*10000::float/{num_types})/100.0 as pc_of_atts,
             count(distinct t.id) as number_orgs,
             round(count(distinct t.id)*10000::float/{num_denom})/100.0 as pc_of_orgs
             from lup.ror_org_types gt
             inner join ppr.type t
-            on gt.id = t.org_type
+            on gt.id = t.org_type   
             group by gt.id, gt.name
             order by gt.id;"#);
 
@@ -89,7 +89,7 @@ num_ext_ids:i64, num_links: i64, num_rels: i64, pool: &Pool<Postgres>) ->  Resul
 
     // External ids attributes summary
 
-   let sql  = format!(r#"{sdv} it.id, it.name, count(t.id) as number_atts,
+   let sql  = format!(r#"{sdv} it.id as cat_id, it.name as cat_name, count(t.id) as number_cat,
             round(count(t.id)*10000::float / {num_ext_ids})/100.0 as pc_of_atts,
             count(distinct t.id) as number_orgs,
             round(count(distinct t.id)*10000::float / {num_denom})/100.0 as pc_of_orgs
@@ -104,7 +104,7 @@ num_ext_ids:i64, num_links: i64, num_rels: i64, pool: &Pool<Postgres>) ->  Resul
 
     // Links attributes summary
 
-    let sql  = format!(r#"{sdv} lt.id, lt.name, count(t.id) as number_atts,
+    let sql  = format!(r#"{sdv} lt.id as cat_id, lt.name as cat_name, count(t.id) as number_cat,
             round(count(t.id)*10000::float / {num_links})/100.0 as pc_of_atts,
             count(distinct t.id) as number_orgs,
             round(count(distinct t.id)*10000::float / {num_denom})/100.0 as pc_of_orgs
@@ -119,7 +119,7 @@ num_ext_ids:i64, num_links: i64, num_rels: i64, pool: &Pool<Postgres>) ->  Resul
 
     // Relationships attributes summary
 
-    let sql = format!(r#"{sdv} rr.id, rr.name, count(t.id) as number_atts,
+    let sql = format!(r#"{sdv} rr.id as cat_id, rr.name as cat_name, count(t.id) as number_cat,
             round(count(t.id)*10000::float / {num_rels})/100.0 as pc_of_atts,
             count(distinct t.id) as number_orgs,
             round(count(distinct t.id)*10000::float / {num_denom})/100.0 as pc_of_orgs
@@ -132,19 +132,85 @@ num_ext_ids:i64, num_links: i64, num_rels: i64, pool: &Pool<Postgres>) ->  Resul
         .map_err(|e| AppError::SqlxError(e, sql))?;
     store_summary(rows, inc_wd, 5, "rel types", pool).await?;
 
-    Ok(())
+   // Funder types attributes summary.
+    
+   let num_funders = get_count("select count(*) from ppr.type where org_type = 600", pool).await?;
+   let rows = get_funder_cotypes(num_funders, num_denom, sdv, pool).await?; 
+   store_summary(rows, inc_wd, 7, "funder co-types", pool).await?;  
+
+   Ok(())
+}
+
+async fn get_funder_cotypes(num_funders:i64, num_denom: i64, sdv: &str, pool: &Pool<Postgres>) -> Result<Vec<TypeRow>, AppError> {
+
+    let sql =  format!(r#"drop table if exists ppr.temp_funder_types;
+        create table ppr.temp_funder_types (
+          	 org_type         int,
+          	 org_type_count   bigint
+        );
+        
+        insert into ppr.temp_funder_types (org_type, org_type_count)
+        select a.other_type, count(a.other_type)
+        from 
+    	(select * from 
+    		(select t.*
+    		from ppr.type t
+    		where t.org_type = 600) f
+    	left join 
+    		(select t.id as id2, t.org_type as other_type
+    		from ppr.type t
+    		where t.org_type <> 600) g
+    	on f.id = g.id2) a
+        group by other_type
+        order by count(other_type) desc;
+        
+        update ppr.temp_funder_types
+        set org_type = 1000, org_type_count = n.null_count
+        from
+    	(select count(*) as null_count from
+    		(select * from 
+    				(select t.*
+    				from ppr.type t
+    				where t.org_type = 600) f
+    		 left join 
+    				(select t.id as id2, t.org_type as other_type
+    				from ppr.type t
+    				where t.org_type <> 600) g
+    		 on f.id = g.id2)
+    	where other_type is null) n
+        where org_type is null;"#);
+
+    sqlx::raw_sql(&sql).execute(pool).await
+            .map_err(|e| AppError::SqlxError(e, sql))?;
+
+    let sql =  format!(r#"{sdv} gt.id as cat_id, gt.name as cat_name, org_type_count as number_cat,
+         round(org_type_count*10000::float/{num_funders})/100.0 as pc_of_atts,
+         org_type_count as number_orgs,
+         round(org_type_count*10000::float/{num_denom})/100.0 as pc_of_orgs
+         from lup.ror_org_types gt
+         inner join ppr.temp_funder_types t
+         on gt.id = t.org_type;"#);
+
+    let rows: Vec<TypeRow> = sqlx::query_as(&sql).fetch_all(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql))?;
+
+    let sql = "drop table if exists ppr.temp_funder_types;";
+    sqlx::raw_sql(sql).execute(pool).await
+            .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+              
+    Ok(rows)
 }
 
 
 async fn store_summary(rows: Vec<TypeRow>, inc_wd: bool, att_type: i32, att_name: &str, pool: &Pool<Postgres>) -> Result<(), AppError> {
 
     let sql = r#"INSERT into smm.attributes_summary (vcode, inc_wd, att_type, att_name,
-    id, name, number_atts, pc_of_atts, number_orgs, pc_of_orgs)
+    cat_id, cat_name, number_cat, pc_of_atts, number_orgs, pc_of_orgs)
     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"#;
 
     for t in rows {
-        sqlx::query(sql).bind(t.vcode).bind(inc_wd).bind(att_type).bind(att_name).bind(t.id).bind(t.name)
-        .bind(t.number_atts).bind(t.pc_of_atts).bind(t.number_orgs).bind(t.pc_of_orgs)
+        sqlx::query(sql).bind(t.vcode).bind(inc_wd).bind(att_type).bind(att_name).bind(t.cat_id).bind(t.cat_name)
+        .bind(t.number_cat).bind(t.pc_of_atts).bind(t.number_orgs).bind(t.pc_of_orgs)
         .execute(pool).await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     }
@@ -303,7 +369,7 @@ pub async fn create_type_linked_tables(sdv: &str, inc_wd: bool, pool: &Pool<Post
     // Get the organisation type categories and total numbers (twice).
     // These are then fed into each of the type linked summary typoes
 
-    let org_sql  = r#"select org_type as type_id, p.name,
+    let org_sql  = r#"select org_type as org_type_id, p.name,
             count(distinct t.id) as org_num
             from ppr.type t
             inner join lup.ror_org_types p
@@ -328,6 +394,7 @@ pub async fn store_types_with_lang_code(sdv: &str, org_rows: &Vec<OrgRow>, inc_w
     #[derive(sqlx::FromRow)]
     struct NameLCRow {
         vcode: String,
+        ntype_id: i32,
         ntype: String,
         total: i64,
         names_wlc: i64,
@@ -341,6 +408,7 @@ pub async fn store_types_with_lang_code(sdv: &str, org_rows: &Vec<OrgRow>, inc_w
         // Get the data on the names linked to these organisations
 
         let lc_sql = format!(r#"{sdv}
+                name_type as ntype_id,
                 case name_type
                     when 5 then 'label'
                     when 7 then 'alias'
@@ -362,7 +430,7 @@ pub async fn store_types_with_lang_code(sdv: &str, org_rows: &Vec<OrgRow>, inc_w
                     on n.id = t.id
                     where t.org_type = {}) ns
                 group by ns.name_type
-                order by ns.name_type;"#, t.type_id);
+                order by ns.name_type;"#, t.org_type_id);
 
         let name_lc_rows: Vec<NameLCRow> = sqlx::query_as(&lc_sql).fetch_all(pool).await
             .map_err(|e| AppError::SqlxError(e, lc_sql))?;
@@ -370,11 +438,11 @@ pub async fn store_types_with_lang_code(sdv: &str, org_rows: &Vec<OrgRow>, inc_w
         // Store the individual rows.
 
         for r in name_lc_rows {
-            let sql = r#"INSERT INTO smm.org_type_and_lang_code (vcode, inc_wd, org_type, name_type,
-                        names_num, names_wlc, names_wolc, names_wlc_pc, names_wolc_pc)
-                        values($1, $2, $3, $4, $5, $6, $7, $8, $9)"#;
+            let sql = r#"INSERT INTO smm.org_type_and_lang_code (vcode, inc_wd, org_type_id, org_type, 
+                        name_type_id, name_type, names_num, names_wlc, names_wolc, names_wlc_pc, names_wolc_pc)
+                        values($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"#;
             sqlx::query(sql)
-            .bind(r.vcode).bind(inc_wd).bind(t.name.clone()).bind(r.ntype).bind(r.total)
+            .bind(r.vcode).bind(inc_wd).bind(t.org_type_id).bind(t.name.clone()).bind(r.ntype_id). bind(r.ntype).bind(r.total)
             .bind(r.names_wlc).bind(r.names_wolc).bind(r.names_wlc_pc).bind(r.names_wolc_pc)
             .execute(pool)
             .await
@@ -394,6 +462,7 @@ pub async fn store_types_and_relationships(sdv: &str, org_rows: &Vec<OrgRow>, in
     #[derive(sqlx::FromRow)]
     struct TypeRelRow {
         vcode: String,
+        rtype_id: i32,
         rtype: String,
         num_rels: i64,
         num_orgs: i64,
@@ -404,7 +473,8 @@ pub async fn store_types_and_relationships(sdv: &str, org_rows: &Vec<OrgRow>, in
 
         // Get the data on the names linked to these organisations
 
-        let tr_sql = format!(r#"{}
+        let tr_sql = format!(r#"{sdv}
+            rs.rel_type as rtype_id,
             case rs.rel_type
                 when 1 then 'has parent'
                 when 2 then 'has child'
@@ -422,7 +492,7 @@ pub async fn store_types_and_relationships(sdv: &str, org_rows: &Vec<OrgRow>, in
                 on r.id = t.id
                 where t.org_type ={}) rs
             group by rs.rel_type
-            order by rs.rel_type;"#, sdv, t.org_num, t.type_id);
+            order by rs.rel_type;"#, t.org_num, t.org_type_id);
 
         let rel_rows: Vec<TypeRelRow> = sqlx::query_as(&tr_sql).fetch_all(pool).await
             .map_err(|e| AppError::SqlxError(e, tr_sql))?;
@@ -430,11 +500,11 @@ pub async fn store_types_and_relationships(sdv: &str, org_rows: &Vec<OrgRow>, in
         // Store the individual rows.
 
         for r in rel_rows {
-            let sql = r#"INSERT INTO smm.org_type_and_relationships (vcode, inc_wd, org_type,
-                    rel_type, num_links, num_orgs, num_orgs_total, num_orgs_pc)
-                    values($1, $2, $3, $4, $5, $6, $7, $8)"#;
+            let sql = r#"INSERT INTO smm.org_type_and_relationships (vcode, inc_wd, org_type_id, org_type,
+                    rel_type_id, rel_type, num_links, num_orgs, num_orgs_total, num_orgs_pc)
+                    values($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"#;
             sqlx::query(sql)
-            .bind(r.vcode).bind(inc_wd).bind(t.name.clone()).bind(r.rtype).bind(r.num_rels)
+            .bind(r.vcode).bind(inc_wd).bind(t.org_type_id).bind(t.name.clone()).bind(r.rtype_id).bind(r.rtype).bind(r.num_rels)
             .bind(r.num_orgs).bind(t.org_num).bind(r.num_orgs_pc)
             .execute(pool)
             .await

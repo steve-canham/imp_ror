@@ -12,9 +12,9 @@ pub struct FileParams {
 #[derive(sqlx::FromRow)]
 pub struct TypeRow {
     pub vcode: String,
-    pub id: i32,
-    pub name: String,
-    pub number_atts: i64,
+    pub cat_id: i32,
+    pub cat_name: String,
+    pub number_cat: i64,
     pub pc_of_atts: f64,
     pub number_orgs: i64,
     pub pc_of_orgs: f64,
@@ -40,7 +40,7 @@ pub struct RankedRow {
 
 #[derive(sqlx::FromRow)]
 pub struct OrgRow {
-    pub type_id: i32,
+    pub org_type_id: i32,
     pub name: String,
     pub org_num: i64,
 }

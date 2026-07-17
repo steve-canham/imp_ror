@@ -23,7 +23,7 @@ pub fn get_sql<'a>() -> &'a str {
     insert into lup.ror_org_types(id, name) 
     values (100, 'government'), (200, 'education'), (300, 'healthcare'), 
     (400, 'company'), (500, 'nonprofit'), (600, 'funder'),
-    (700, 'facility'), (800, 'archive'),  (900, 'other');
+    (700, 'facility'), (800, 'archive'),  (900, 'other'), (1000, 'none');
 
     
     drop table if exists lup.ror_name_types;
