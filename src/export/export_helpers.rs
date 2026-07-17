@@ -113,12 +113,12 @@ pub fn get_orgrel_line(org_type: &str, rel_type: &str, num_links: i32, num_orgs:
 }
 
 
-pub async fn get_attrib_table(att_type: i32, header_type: &str, 
+pub async fn get_attrib_table(att_name: &str, header_type: &str, 
                           vcode: &String,  inc_withdrawn: bool, pool: &Pool<Postgres>) -> Result<String, AppError> {
 
     let sql = format!(r#"select cat_name, number_cat, pc_of_atts, number_orgs, pc_of_orgs 
             from smm.attributes_summary
-            where vcode = '{vcode}' and inc_wd = {inc_withdrawn} and att_type = {att_type} 
+            where vcode = '{vcode}' and inc_wd = {inc_withdrawn} and att_name = '{att_name}' 
             order by cat_id; "#);
     let rows: Vec<TypeRow> = sqlx::query_as(&sql).fetch_all(pool).await
         .map_err(|e| AppError::SqlxError(e, sql))?;
@@ -145,10 +145,10 @@ pub async fn get_attrib_table(att_type: i32, header_type: &str,
 }
 
 
-pub async fn get_distrib_table(count_type: &str, header_type: &str, vcode: &String, inc_withdrawn: bool, 
+pub async fn get_distrib_table(count_name: &str, header_type: &str, vcode: &String, inc_withdrawn: bool, 
                                  pool: &Pool<Postgres>) -> Result<String, AppError> {
     let sql = format!(r#"select count, num_of_orgs, pc_of_orgs from smm.count_distributions
-            where vcode = '{vcode}' and inc_wd = {inc_withdrawn} and count_type = '{count_type}' 
+            where vcode = '{vcode}' and inc_wd = {inc_withdrawn} and count_name = '{count_name}' 
             order by count;"#);
     let rows: Vec<DistribRow> = sqlx::query_as(&sql).fetch_all(pool).await
         .map_err(|e| AppError::SqlxError(e, sql))?;
@@ -171,10 +171,11 @@ pub async fn get_distrib_table(count_type: &str, header_type: &str, vcode: &Stri
 }
 
 
-pub async fn get_ranked_distrib_table(dist_type: i32, vcode: &String, inc_withdrawn: bool, pool: &Pool<Postgres>) -> Result<String, AppError> {
+pub async fn get_ranked_distrib_table(dist_name: &str, vcode: &String, inc_withdrawn: bool, pool: &Pool<Postgres>) -> Result<String, AppError> {
 
     let sql = format!(r#"SELECT entity, number, pc_of_entities, pc_of_base_set from smm.ranked_distributions 
-            where vcode = '{vcode}' and inc_wd = {inc_withdrawn} and dist_type = {dist_type} order by rank; "#);
+            where vcode = '{vcode}' and inc_wd = {inc_withdrawn} and dist_name = '{dist_name}' 
+            order by rank; "#);
     let lang_rows: Vec<RankedRow> = sqlx::query_as(&sql).fetch_all(pool).await
             .map_err(|e| AppError::SqlxError(e, sql))?;
 
@@ -205,7 +206,7 @@ pub async fn get_org_type_and_lang_code_table(vcode: &String, inc_withdrawn: boo
     let mut tbl_text = format!("\n\n
     Numbers of name types without language codes for different organisational types
         
-                                                    number          names          %age
+                                                      number          names          %age
     name type                org type                  names         w/o LC         w/o LC\n\t{}",                                                 
     "-".repeat(88));
     let mut old_name_type = "".to_string();
@@ -278,7 +279,7 @@ pub async fn set_up_country_grid(pool: &Pool<Postgres>) -> Result<(), AppError> 
                 select entity,
                 lower(replace(entity, ' ', '_'))
                 from smm.ranked_distributions
-                where dist_type = 3
+                where dist_id = 3
                 and entity <> 'Remaining countries'
                 group by entity
                 order by sum(number) desc;
@@ -299,7 +300,7 @@ pub async fn set_up_country_grid(pool: &Pool<Postgres>) -> Result<(), AppError> 
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     
     let start_sql = r#"drop table if exists smm.countries_grid; 
-                create table smm.countries_grid (vcode  varchar, vdate  date,"#;
+                create table smm.countries_grid (vcode  varchar, vdate  date, vdays  int, "#;
     let sql = format!("{} {});", start_sql, mid_string);
 
     sqlx::raw_sql(&sql).execute(pool)
@@ -307,16 +308,16 @@ pub async fn set_up_country_grid(pool: &Pool<Postgres>) -> Result<(), AppError> 
 
     // Add a row to the countries_grid table for each version
 
-    let sql = r#"insert into smm.countries_grid (vcode, vdate)
-                       select vcode, vdate from smm.version_summaries
+    let sql = r#"insert into smm.countries_grid (vcode, vdate, vdays)
+                       select vcode, vdate, vdays from smm.version_summaries
                        where vcode <> 'v1.57'
-                       order by vcode"#;
+                       order by vdays"#;
     sqlx::raw_sql(&sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
     // Fill in the grid values
     // Obtain the colum / country names from the temp clist table
-    // Construct the sqwl for each country to update the grid
+    // Construct the sql for each country to update the grid
     
     let sql = r#"select cname, colname from smm.temp_clist"#;
     let cpars: Vec<CPars> = sqlx::query_as(&sql).fetch_all(pool)
@@ -341,7 +342,6 @@ pub async fn set_up_country_grid(pool: &Pool<Postgres>) -> Result<(), AppError> 
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
     Ok(())
-
 }
 
 

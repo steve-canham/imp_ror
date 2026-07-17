@@ -62,9 +62,9 @@ pub async fn run(args: Vec<OsString>) -> Result<(), AppError> {
         export::export_all_as_csv(&params, &pool).await?;
     }
 
-    //if flags.test_run {  // Clear any test data from the smm tables.
-    //    summarise::smm_helper::delete_any_existing_data(&"v99".to_string(), false, &pool).await?;
-    //}
+    if flags.test_run {  // Clear any test data from the smm tables.
+        summarise::smm_helper::delete_any_existing_data(&"v99".to_string(), false, &pool).await?;
+    }
 
     Ok(())
 }

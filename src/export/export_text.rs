@@ -37,7 +37,7 @@ pub async fn generate_text(output_folder : &PathBuf, vcode: &String,
 async fn collect_singleton_values(vcode: &String, inc_withdrawn: bool, pool: &Pool<Postgres>) -> Result<HashMap<String, Singleton>, AppError> {
 
     let mut sstructs = HashMap::new();
-    let sql = format!(r#"SELECT id, description, number, pc from smm.singletons 
+    let sql = format!(r#"SELECT name, description, number, pc from smm.singletons 
               WHERE vcode = '{vcode}' and inc_wd = {inc_withdrawn};"#);
     let srows: Vec<SingletonRow> = sqlx::query_as(&sql).fetch_all(pool).await
         .map_err(|e| AppError::SqlxError(e, sql))?;
@@ -48,7 +48,7 @@ async fn collect_singleton_values(vcode: &String, inc_withdrawn: bool, pool: &Po
             number: r.number,
             pc: r.pc,
         };
-        sstructs.insert(r.id, s);
+        sstructs.insert(r.name, s);
     }
     Ok(sstructs)
 }
@@ -140,7 +140,7 @@ async fn write_name_info(output_file_path: &PathBuf, vcode: &String, inc_withdra
 
     // Name attribute summary - att_type 1
 
-    let table_text = get_attrib_table(1, "Names", vcode, inc_withdrawn, pool).await?;
+    let table_text = get_attrib_table("name types", "Names", vcode, inc_withdrawn, pool).await?;
     append_to_file(output_file_path, &table_text)?;
 
     // Count distributions - count_type: names, labels, aliases, acronyms
@@ -170,7 +170,7 @@ async fn write_name_wolc_info(output_file_path: &PathBuf, vcode: &String, inc_wi
 
     // Write name wolc attribute summary - att_type 11.
 
-    let table_text = get_attrib_table(11, "Names without language codes (w/o LCs)", vcode, inc_withdrawn, pool).await?;
+    let table_text = get_attrib_table("name types wolc", "Names without language codes (w/o LCs)", vcode, inc_withdrawn, pool).await?;
     append_to_file(output_file_path, &table_text)?;
 
     let wolc_text2 = format!("{}{}", get_sing_hdr(),
@@ -184,7 +184,6 @@ async fn write_name_wolc_info(output_file_path: &PathBuf, vcode: &String, inc_wi
 }
 
 
-
 async fn write_ror_name_details(output_file_path: &PathBuf, singvals: &HashMap<String, Singleton>) -> Result<(), AppError> {
 
     let sng_text = format!("{}\n{}{}\n{}\n{}\n", get_hdr_line("ROR NAMES"), get_sing_hdr(), 
@@ -193,6 +192,7 @@ async fn write_ror_name_details(output_file_path: &PathBuf, singvals: &HashMap<S
         get_singleton_rows(singvals, vec!["ror_wolc_ncmp"]));
     append_to_file(output_file_path, &sng_text)
 }
+
 
 async fn write_ranked_name_info(output_file_path: &PathBuf, vcode: &String, inc_withdrawn: bool, pool: &Pool<Postgres>, 
                                         singvals: &HashMap<String, Singleton>) -> Result<(), AppError> {
@@ -209,7 +209,7 @@ async fn write_ranked_name_info(output_file_path: &PathBuf, vcode: &String, inc_
                                                        number       %age non-en     %age non-
     By Language (non acronym names only)              of names        non-acr       acr names\n\t{}",                                                 
     "-".repeat(88));
-    tbl_text += &get_ranked_distrib_table(1, vcode, inc_withdrawn, pool).await?;
+    tbl_text += &get_ranked_distrib_table("languages", vcode, inc_withdrawn, pool).await?;
     append_to_file(output_file_path, &tbl_text)?;
 
     // Names that are not in Latin script.
@@ -224,7 +224,7 @@ async fn write_ranked_name_info(output_file_path: &PathBuf, vcode: &String, inc_
                                                        number          %age           %age
     By Script                                         of names     non-ltn names  total names\n\t{}",                                                 
     "-".repeat(88));
-    tbl_text += &get_ranked_distrib_table(2, vcode, inc_withdrawn, pool).await?;
+    tbl_text += &get_ranked_distrib_table("scripts", vcode, inc_withdrawn, pool).await?;
     append_to_file(output_file_path, &tbl_text)?;
     
     Ok(())
@@ -237,7 +237,7 @@ async fn write_type_details(output_file_path: &PathBuf, vcode: &String, inc_with
 
     // Write type attribute summary - att_type 2
 
-    let table_text = get_attrib_table(2, "Organisation Types", vcode, inc_withdrawn, pool).await?;
+    let table_text = get_attrib_table("org types", "Organisation Types", vcode, inc_withdrawn, pool).await?;
     append_to_file(output_file_path, &table_text)?;
    
     // Write count distributions - count_type: org_types.
@@ -252,7 +252,7 @@ async fn write_type_details(output_file_path: &PathBuf, vcode: &String, inc_with
         are tabulated below.\n");
     append_to_file(output_file_path, &funder_cotype_text1)?;
     
-    let table_text = get_attrib_table(7, "Funder Co-types", vcode, inc_withdrawn, pool).await?;
+    let table_text = get_attrib_table("funder co-types", "Funder Co-types", vcode, inc_withdrawn, pool).await?;
     append_to_file(output_file_path, &table_text)?;
 
     let funder_cotype_text2 = format!("\n\n\t\tN.B. A small number of funders have two additional type
@@ -283,7 +283,7 @@ async fn write_location_details(output_file_path: &PathBuf, vcode: &String, inc_
                                                       number           %age           %age
     Country                                           of locs       NonUS locs     total locs\n\t{}", 
     "-".repeat(88));
-    tbl_text += &get_ranked_distrib_table(3, vcode, inc_withdrawn, pool).await?;
+    tbl_text += &get_ranked_distrib_table("countries", vcode, inc_withdrawn, pool).await?;
     append_to_file(output_file_path, &tbl_text)?;
 
     Ok(())
@@ -296,7 +296,7 @@ async fn write_links_and_extid_details(output_file_path: &PathBuf, vcode: &Strin
 
     // Write link attribute summary - att_type 4
 
-    let table_text = get_attrib_table(4, "Links",vcode, inc_withdrawn, pool).await?;
+    let table_text = get_attrib_table("link types", "Links",vcode, inc_withdrawn, pool).await?;
     append_to_file(output_file_path, &table_text)?;
 
     // Write count distributions.
@@ -305,7 +305,7 @@ async fn write_links_and_extid_details(output_file_path: &PathBuf, vcode: &Strin
     append_to_file(output_file_path, &table_text)?;
         
     // Write ext id attribute summary - att_type 3
-    let table_text = get_attrib_table(3, "External Ids", vcode, inc_withdrawn, pool).await?;
+    let table_text = get_attrib_table("external id types", "External Ids", vcode, inc_withdrawn, pool).await?;
     append_to_file(output_file_path, &table_text)?;
    
     // Write count distribution.
@@ -324,7 +324,7 @@ async fn write_relationship_details(output_file_path: &PathBuf, vcode: &String, 
 
     // Write relationship attribute summary - att_type 5
     
-    let table_text = get_attrib_table(5, "Relationships", vcode, inc_withdrawn, pool).await?;
+    let table_text = get_attrib_table("rel types", "Relationships", vcode, inc_withdrawn, pool).await?;
     append_to_file(output_file_path, &table_text)?;
 
     // Write count distributions.

@@ -35,13 +35,13 @@ pub async fn generate_csv(output_folder : &PathBuf, data_version: &String,
     let output_file_name = format!("{} {} {}.csv", dv_string, "attributes", datetime_string);
     let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
 
-    let sql = format!(r#"SELECT vs.vcode, vs.inc_wd, vs.vdate::text, vs.vdays, att_type as att_id, att_name, 
+    let sql = format!(r#"SELECT vs.vcode, vs.inc_wd, vs.vdate::text, vs.vdays, att_id, att_name, 
                             cat_id, cat_name, number_cat, pc_of_atts, number_orgs, pc_of_orgs
                             from smm.attributes_summary ss
                             inner join smm.version_summaries vs 
                             on vs.vcode = ss.vcode 
                             {where_clause}
-                            order by att_name, cat_id;"#);
+                            order by att_id, cat_id;"#);
 
     let att_rows: Vec<CSVAttributeRow> = sqlx::query_as(&sql).fetch_all(pool).await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
@@ -53,13 +53,13 @@ pub async fn generate_csv(output_folder : &PathBuf, data_version: &String,
     let output_file_name = format!("{} {} {}.csv", dv_string, "counts", datetime_string);
     let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
 
-    let sql = format!(r#"SELECT vs.vcode, vs.inc_wd, vs.vdate::text, vs.vdays, 
-                            count_type, count, num_of_orgs, pc_of_orgs
+    let sql = format!(r#"SELECT vs.vcode, vs.inc_wd, vs.vdate::text, vs.vdays, count_id,
+                            count_name, count, num_of_orgs, pc_of_orgs
                             from smm.count_distributions ss
                             inner join smm.version_summaries vs 
                             on vs.vcode = ss.vcode 
                             {where_clause}
-                            order by count_type, count;"#);
+                            order by count_id, count;"#);
 
     let cdist_rows: Vec<CSVDistribRow> = sqlx::query_as(&sql).fetch_all(pool).await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
@@ -71,13 +71,13 @@ pub async fn generate_csv(output_folder : &PathBuf, data_version: &String,
     let output_file_name = format!("{} {} {}.csv", dv_string, "ranked_counts", datetime_string);
     let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
 
-    let sql = format!(r#"SELECT vs.vcode, vs.inc_wd, vs.vdate::text, vs.vdays, 
-                            dist_type, rank, entity, number, pc_of_entities, pc_of_base_set
+    let sql = format!(r#"SELECT vs.vcode, vs.inc_wd, vs.vdate::text, vs.vdays, dist_id,
+                            dist_name, rank, entity, number, pc_of_entities, pc_of_base_set
                             from smm.ranked_distributions ss
                             inner join smm.version_summaries vs 
                             on vs.vcode = ss.vcode 
                             {where_clause}
-                            order by dist_type, rank;"#);
+                            order by dist_id, rank;"#);
 
     let rdist_rows: Vec<CSVRankedRow> = sqlx::query_as(&sql).fetch_all(pool).await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
@@ -90,7 +90,7 @@ pub async fn generate_csv(output_folder : &PathBuf, data_version: &String,
     let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
     
     let sql = format!(r#"SELECT vs.vcode, vs.inc_wd, vs.vdate::text, vs.vdays, 
-                            id, description, number, pc
+                            id, name, description, number, pc
                             from smm.singletons ss
                             inner join smm.version_summaries vs 
                             on vs.vcode = ss.vcode 
@@ -108,12 +108,13 @@ pub async fn generate_csv(output_folder : &PathBuf, data_version: &String,
     let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
    
     let sql = format!(r#"SELECT vs.vcode, vs.inc_wd, vs.vdate::text, vs.vdays, 
-                            org_type, name_type, names_num,names_wlc, names_wolc, names_wlc_pc, names_wolc_pc
+                            name_type_id, name_type, org_type_id, org_type, 
+                            names_num, names_wlc, names_wolc, names_wlc_pc, names_wolc_pc
                             from smm.org_type_and_lang_code ss
                             inner join smm.version_summaries vs 
                             on vs.vcode = ss.vcode 
                             {where_clause}
-                            order by org_type, name_type;"#);
+                            order by name_type_id, org_type_id;"#);
 
     let orglang_rows: Vec<CSVOrgAndLangRow> = sqlx::query_as(&sql).fetch_all(pool).await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
@@ -126,12 +127,13 @@ pub async fn generate_csv(output_folder : &PathBuf, data_version: &String,
     let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
 
     let sql = format!(r#"SELECT vs.vcode, vs.inc_wd, vs.vdate::text, vs.vdays, 
-                            org_type, rel_type, ss.num_links, ss.num_orgs, num_orgs_total, num_orgs_pc 
+                            rel_type_id, rel_type, org_type_id, org_type, 
+                            ss.num_links, ss.num_orgs, num_orgs_total, num_orgs_pc 
                             from smm.org_type_and_relationships ss
                             inner join smm.version_summaries vs 
                             on vs.vcode = ss.vcode 
                             {where_clause}
-                            order by org_type, rel_type;"#);
+                            order by rel_type_id, org_type_id;"#);
    
     let orgrel_rows: Vec<CSVOrgAndRelRow> = sqlx::query_as(&sql).fetch_all(pool).await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;                               
@@ -157,7 +159,7 @@ pub async fn generate_all_versions_csv(output_folder : &PathBuf, inc_withdrawn: 
                                num_types, num_links, num_ext_ids, num_rels, num_locations, num_domains 
                                from smm.version_summaries vs 
                                {where_clause} 
-                               order by vcode;");
+                               order by vdays;");
     let summs: Vec<CSVSummaryRow> = sqlx::query_as(&sql).fetch_all(pool).await
            .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     generate_file(&file_path, summs)?;
@@ -168,13 +170,13 @@ pub async fn generate_all_versions_csv(output_folder : &PathBuf, inc_withdrawn: 
     let output_file_name = format!("{} {} {}.csv", dv_string, "attributes", datetime_string);
     let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
     
-    let sql = format!(r#"SELECT vs.vcode, vs.inc_wd, vs.vdate::text, vs.vdays, att_type as att_id, att_name, 
+    let sql = format!(r#"SELECT vs.vcode, vs.inc_wd, vs.vdate::text, vs.vdays, att_id, att_name, 
                             cat_id, cat_name, number_cat, pc_of_atts, number_orgs, pc_of_orgs
                             from smm.attributes_summary ss
                             inner join smm.version_summaries vs 
                             on vs.vcode = ss.vcode 
                             {where_clause}
-                            order by vcode, att_name, cat_id;"#);
+                            order by att_id, cat_id, vs.vdays;"#);
 
     let att_rows: Vec<CSVAttributeRow> = sqlx::query_as(&sql).fetch_all(pool).await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
@@ -187,12 +189,12 @@ pub async fn generate_all_versions_csv(output_folder : &PathBuf, inc_withdrawn: 
     let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
 
     let sql = format!(r#"SELECT vs.vcode, vs.inc_wd, vs.vdate::text, vs.vdays, 
-                            count_type, count, num_of_orgs, pc_of_orgs
+                            count_id, count_name, count, num_of_orgs, pc_of_orgs
                             from smm.count_distributions ss
                             inner join smm.version_summaries vs 
                             on vs.vcode = ss.vcode 
                             {where_clause} 
-                            order by vcode, count_type, count;"#);
+                            order by count_id, count, vs.vdays;"#);
 
     let cdist_rows: Vec<CSVDistribRow> = sqlx::query_as(&sql).fetch_all(pool).await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
@@ -207,13 +209,13 @@ pub async fn generate_all_versions_csv(output_folder : &PathBuf, inc_withdrawn: 
     let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
 
     let sql = format!(r#"SELECT vs.vcode, vs.inc_wd, vs.vdate::text, vs.vdays, 
-                            dist_type, rank, entity, number, pc_of_entities, pc_of_base_set
+                            dist_id, dist_name, rank, entity, number, pc_of_entities, pc_of_base_set
                             from smm.ranked_distributions ss
                             inner join smm.version_summaries vs 
                             on vs.vcode = ss.vcode 
                             {where_clause} 
-                            and dist_type = 1
-                            order by vcode, dist_type, rank;"#);
+                            and dist_id = 1
+                            order by dist_id, rank, vs.vdays;"#);
 
     let rdist_rows: Vec<CSVRankedRow> = sqlx::query_as(&sql).fetch_all(pool).await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
@@ -225,13 +227,13 @@ pub async fn generate_all_versions_csv(output_folder : &PathBuf, inc_withdrawn: 
     let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
 
     let sql = format!(r#"SELECT vs.vcode, vs.inc_wd, vs.vdate::text, vs.vdays, 
-                            dist_type, rank, entity, number, pc_of_entities, pc_of_base_set
+                            dist_id, dist_name, rank, entity, number, pc_of_entities, pc_of_base_set
                             from smm.ranked_distributions ss
                             inner join smm.version_summaries vs 
                             on vs.vcode = ss.vcode 
                             {where_clause}
-                            and dist_type = 2
-                            order by vcode, dist_type, rank;"#);
+                            and dist_id = 2
+                            order by dist_id, rank, vs.vdays;"#);
 
     let rdist_rows: Vec<CSVRankedRow> = sqlx::query_as(&sql).fetch_all(pool).await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
@@ -243,13 +245,13 @@ pub async fn generate_all_versions_csv(output_folder : &PathBuf, inc_withdrawn: 
     let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
 
     let sql = format!(r#"SELECT vs.vcode, vs.inc_wd, vs.vdate::text, vs.vdays, 
-                            dist_type, rank, entity, number, pc_of_entities, pc_of_base_set
+                            dist_id, dist_name, rank, entity, number, pc_of_entities, pc_of_base_set
                             from smm.ranked_distributions ss
                             inner join smm.version_summaries vs 
                             on vs.vcode = ss.vcode 
                             {where_clause}
-                            and dist_type = 3
-                            order by vcode, dist_type, rank;"#);
+                            and dist_id = 3
+                            order by dist_id, rank, vs.vdays;"#);
 
     let rdist_rows: Vec<CSVRankedRow> = sqlx::query_as(&sql).fetch_all(pool).await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
@@ -267,12 +269,12 @@ pub async fn generate_all_versions_csv(output_folder : &PathBuf, inc_withdrawn: 
     let output_file_name = format!("{} {} {}.csv", dv_string, "singletons", datetime_string);
     let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
     let sql = format!(r#"SELECT vs.vcode, vs.inc_wd, vs.vdate::text, vs.vdays, 
-                            id, description, number, pc
+                            id, name, description, number, pc
                             from smm.singletons ss
                             inner join smm.version_summaries vs 
                             on vs.vcode = ss.vcode 
                             {where_clause}
-                            order by vcode, id;"#);
+                            order by id, vs.vdays;"#);
     
     let sing_rows: Vec<CSVSingletonRow> = sqlx::query_as(&sql).fetch_all(pool).await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
@@ -285,12 +287,13 @@ pub async fn generate_all_versions_csv(output_folder : &PathBuf, inc_withdrawn: 
     let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
 
     let sql = format!(r#"SELECT vs.vcode, vs.inc_wd, vs.vdate::text, vs.vdays, 
-                            org_type, name_type, names_num, names_wlc, names_wolc, names_wlc_pc, names_wolc_pc
+                            name_type_id, name_type, org_type_id, org_type, 
+                            names_num, names_wlc, names_wolc, names_wlc_pc, names_wolc_pc
                             from smm.org_type_and_lang_code ss
                             inner join smm.version_summaries vs 
                             on vs.vcode = ss.vcode 
                             {where_clause}
-                            order by vcode, org_type, name_type;"#);
+                            order by name_type_id, org_type_id, vs.vdays;"#);
 
     let orglang_rows: Vec<CSVOrgAndLangRow> = sqlx::query_as(&sql).fetch_all(pool).await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
@@ -303,12 +306,13 @@ pub async fn generate_all_versions_csv(output_folder : &PathBuf, inc_withdrawn: 
     let file_path: PathBuf = [output_folder, &PathBuf::from(&output_file_name)].iter().collect();
 
         let sql = format!(r#"SELECT vs.vcode, vs.inc_wd, vs.vdate::text, vs.vdays, 
-                            org_type, rel_type, ss.num_links, ss.num_orgs, num_orgs_total, num_orgs_pc 
+                            rel_type_id, rel_type, org_type_id, org_type, 
+                            ss.num_links, ss.num_orgs, num_orgs_total, num_orgs_pc 
                             from smm.org_type_and_relationships ss
                             inner join smm.version_summaries vs 
                             on vs.vcode = ss.vcode 
                             {where_clause}
-                            order by vcode, org_type, rel_type;"#);
+                            order by rel_type_id, org_type_id, vs.vdays;"#);
    
     let orgrel_rows: Vec<CSVOrgAndRelRow> = sqlx::query_as(&sql).fetch_all(pool).await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;       
@@ -316,7 +320,6 @@ pub async fn generate_all_versions_csv(output_folder : &PathBuf, inc_withdrawn: 
 
     Ok(())
 }
-
 
 
 fn generate_file<T: Serialize>(file_path: &PathBuf, data:Vec<T>) -> Result<(), AppError> {

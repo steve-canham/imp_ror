@@ -48,7 +48,8 @@ pub struct OrgRow {
 pub struct Singletons {
     pub vcodes: Vec<String>,
     pub inc_wds: Vec<bool>,
-    pub ids: Vec<String>,
+    pub ids: Vec<i32>,
+    pub names: Vec<String>,
     pub descriptions: Vec<String>,
     pub numbers: Vec<i64>,
     pub pcs: Vec<Option<f64>>,
@@ -61,16 +62,18 @@ impl Singletons {
             vcodes: Vec::with_capacity(vsize),
             inc_wds: Vec::with_capacity(vsize),
             ids: Vec::with_capacity(vsize),
+            names: Vec::with_capacity(vsize),
             descriptions: Vec::with_capacity(vsize),
             numbers: Vec::with_capacity(vsize),
             pcs: Vec::with_capacity(vsize),
         }
     }
 
-    pub fn add(&mut self, vcode: &String, inc_wd: bool, id: &str, description: &str, number: i64, pc: Option<f64>) {
+    pub fn add(&mut self, vcode: &String, inc_wd: bool, id: i32, name: &str, description: &str, number: i64, pc: Option<f64>) {
         self.vcodes.push(vcode.to_string());
         self.inc_wds.push(inc_wd);
-        self.ids.push(id.to_string());
+        self.ids.push(id);
+        self.names.push(name.to_string());
         self.descriptions.push(description.to_string());
         self.numbers.push(number);
         self.pcs.push(pc);
@@ -78,15 +81,12 @@ impl Singletons {
 
     pub async fn store(&self, pool : &Pool<Postgres>)  -> Result<PgQueryResult, AppError> {
 
-        let sql = format!(r#"INSERT INTO smm.singletons (vcode, inc_wd, id, description, number, pc)
-            SELECT * FROM UNNEST($1::text[], $2::bool[], $3::text[], $4::text[], $5::int[], $6::real[])"#);
+        let sql = format!(r#"INSERT INTO smm.singletons (vcode, inc_wd, id, name, description, number, pc)
+            SELECT * FROM UNNEST($1::text[], $2::bool[], $3::int[], $4::text[], $5::text[], $6::int[], $7::real[])"#);
         sqlx::query(&sql)
-        .bind(&self.vcodes)
-        .bind(&self.inc_wds)
-        .bind(&self.ids)
-        .bind(&self.descriptions)
-        .bind(&self.numbers)
-        .bind(&self.pcs)
+        .bind(&self.vcodes).bind(&self.inc_wds).bind(&self.ids)
+        .bind(&self.names).bind(&self.descriptions)
+        .bind(&self.numbers).bind(&self.pcs)
         .execute(pool).await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))
     }
