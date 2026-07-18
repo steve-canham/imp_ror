@@ -34,13 +34,20 @@ pub fn get_sql<'a>() -> &'a str {
     
     -- ror names has an identity column to help resolve ambiguities 
     -- The column does not appear in the derived ppr.names table
+    -- It also has an orig_value and value columns, as some 
+    -- original values are changed (to correct errors, make them more consistent) 
+    -- before further processing. The change_hist and change_type
+    -- columns are used to record the nature of any changes
     
     drop table if exists src.names;
     create table src.names
     (  
         ident             int         GENERATED ALWAYS AS IDENTITY
       , id                varchar     not null
+      , orig_value        varchar     not null 
       , value             varchar     not null  
+      , changed           bool        not null  default false
+      , change_type       varchar     null
       , name_type         varchar     not null
       , is_ror_name       bool        null
       , lang              varchar     null
@@ -109,17 +116,16 @@ pub fn get_sql<'a>() -> &'a str {
     );
     create index ppr_domains_idx on src.domains(id);
     
-    drop table if exists src.bare_ror_names;
-    create table src.bare_ror_names
+    drop table if exists rec.bare_ror_names;
+    create table rec.bare_ror_names
     (
         id                varchar     not null
       , value             varchar     not null
     );
-    create index ppr_bare_ror_names_idx on src.bare_ror_names(id);
-    
-    
-    drop table if exists src.dup_names;
-    create table src.dup_names
+    create index ppr_bare_ror_names_idx on rec.bare_ror_names(id);
+        
+    drop table if exists rec.dup_names;
+    create table rec.dup_names
     (
         ident             int         not null
       , id                varchar     not null
@@ -129,7 +135,7 @@ pub fn get_sql<'a>() -> &'a str {
       , lang_code         varchar     null
       , fate              varchar     null
     );
-    create index dup_names_idx on src.dup_names(id);
+    create index dup_names_idx on rec.dup_names(id);
     
     SET client_min_messages TO NOTICE;"#
 }

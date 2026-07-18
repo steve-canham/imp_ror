@@ -160,8 +160,8 @@ pub fn get_sql<'a>() -> &'a str {
       , lm_schema         varchar     not null  
     );
 
-    drop table if exists ppr.withdrawn;
-    create table ppr.withdrawn
+    drop table if exists rec.withdrawn;
+    create table rec.withdrawn
     (
         id                int         Generated always as identity (START WITH 10001 INCREMENT BY 1) Primary Key
       , ror_id            varchar     not null
@@ -177,6 +177,16 @@ pub fn get_sql<'a>() -> &'a str {
       , succ_location     varchar     null
       , succ_csubdiv_code varchar     null
       , succ_country_code varchar     null
+    );
+
+    drop table if exists rec.name_changes;
+    create table rec.name_changes
+    (
+        id                int         Generated always as identity (START WITH 10001 INCREMENT BY 1) Primary Key
+      , ror_id            varchar     not null
+      , orig_name         varchar     not null	
+      , changed_name      varchar     not null	
+      , nature_of_change  varchar     null	
     );
         
     SET client_min_messages TO NOTICE"#

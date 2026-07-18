@@ -45,7 +45,7 @@ pub async fn store_summary_data (params: &InitParams, pool: &Pool<Postgres>) -> 
         smm_helper::get_count("select count(*) from ppr.core_data where status = 3", pool).await?
     } 
     else {
-        smm_helper::get_count("select count(*) from ppr.withdrawn", pool).await?
+        smm_helper::get_count("select count(*) from rec.withdrawn", pool).await?
     };
     let num_recs = num_active + num_inactive + num_withdrawn;
     let num_denom = if params.flags.inc_withdrawn {num_recs} else {num_active + num_inactive};

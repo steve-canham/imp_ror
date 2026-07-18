@@ -9,7 +9,7 @@ pub async fn remove_dups (pool: &Pool<Postgres>) -> Result<(), AppError> {
     // as some organisations have more than one name marked as the 'ror name' (the 
     // import therefore fails because of a duplicated PK). 
 
-    // The duplicates, as found at the beginning of the process, are stored in src.dup_names
+    // The duplicates, as found at the beginning of the process, are stored in rec.dup_names
 
     // No organisation seems to have - in the source file - two names that are exactly the same in 
     // all respects  - i.e. have the same value, name type, language code and 'is_ror_name' status.
@@ -82,7 +82,7 @@ fn make_duplicates_table <'a>() -> &'a str {
     // of the organisations found with duplicate names, and the way in
     // which the duplication was resolved.
     
-    r#"insert into src.dup_names (ident, id, value, name_type, is_ror_name, lang_code)
+    r#"insert into rec.dup_names (ident, id, value, name_type, is_ror_name, lang_code)
     select n.ident, d.id, n.value, n.name_type, n.is_ror_name, n.lang
     from (
         select id, lower(value) as lvalue from src.names
@@ -133,7 +133,7 @@ async fn recreate_dups(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
 async fn drop_non_ror_name_dups(pool: &Pool<Postgres>) -> Result<u64, AppError> {
     
-    let sql = r#"update src.dup_names d
+    let sql = r#"update rec.dup_names d
            set fate = 'Dropped because of non-ror status when ror equivalent present'
            from 
             (select f.* from 
@@ -170,7 +170,7 @@ async fn drop_non_ror_name_dups(pool: &Pool<Postgres>) -> Result<u64, AppError> 
 
 async fn drop_alias_dups(pool: &Pool<Postgres>) -> Result<u64, AppError> {
     
-    let sql = r#"update src.dup_names d
+    let sql = r#"update rec.dup_names d
         set fate = 'Dropped because an alias when equivalent label present'
         from 
             (select s.* from 
@@ -209,7 +209,7 @@ async fn drop_long_acros_dups(pool: &Pool<Postgres>) -> Result<u64, AppError> {
 
     // Names >= 5 in length are viewed as non-acronyms.
     
-    let sql = r#"update src.dup_names d
+    let sql = r#"update rec.dup_names d
         set fate = 'Dropped because an acronym when equivalent alias or label present'
         from 
             (select a.* from 
@@ -249,7 +249,7 @@ async fn drop_short_alias_dups(pool: &Pool<Postgres>) -> Result<u64, AppError> {
 
     // Names <= 5 in length are viewed as acronyms.
     
-    let sql = r#"update src.dup_names d
+    let sql = r#"update rec.dup_names d
         set fate = 'Dropped because an alias or label when equivalent acronym present'
         from 
            (select f.* from 
@@ -310,7 +310,7 @@ async fn drop_specific_dups(pool: &Pool<Postgres>) -> Result<u64, AppError> {
 
 async fn drop_specific_dup(id: &str, name: &str, lang: &str, pool: &Pool<Postgres>) -> Result<u64, AppError> {
     
-    let sql = format!(r#"update src.dup_names 
+    let sql = format!(r#"update rec.dup_names 
            set fate = 'Dropped using a specific call for this name / language code'
            where id = '{}' and value = '{}' and lang_code = '{}';"#, id, name, lang);
     execute_sql(&sql, pool).await?;
@@ -327,7 +327,7 @@ async fn drop_lowest_ident_dups(pool: &Pool<Postgres>) -> Result<u64, AppError> 
     // Final 'catch all' drop mechanism. On an arbitrary basis  the duplicate with 
     // the lowest Id - all other fields being equal.
     
-    let sql = r#"update src.dup_names d
+    let sql = r#"update rec.dup_names d
         set fate = 'Dropped because the lower ident, other fields being equivalent'
         from 
            (select id, min(ident) as min
@@ -337,7 +337,7 @@ async fn drop_lowest_ident_dups(pool: &Pool<Postgres>) -> Result<u64, AppError> 
     
     execute_sql(&sql, pool).await?;
 
-    let sql = r#"update src.dup_names d
+    let sql = r#"update rec.dup_names d
         set fate = 'Retained'
         where fate is null;"#;
 

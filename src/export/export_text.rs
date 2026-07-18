@@ -103,7 +103,7 @@ async fn write_summary(output_file_path: &PathBuf, summ: &VSummary, inc_withdraw
         those classed as 'withdrawn', i.e. those added to ROR in error or duplicated.  
         The denominator for % organisations is therefore {}.
         Data on withdrawn organisations, including successor
-        organisations where relevant, can be found in the 'ppr.withdrawn' table.
+        organisations where relevant, can be found in the 'rec.withdrawn' table.
         "#, summ.num_denom)
     };
     append_to_file(output_file_path, &withdrawn_text)?;

@@ -37,7 +37,7 @@ pub fn get_import_names_sql <'a>() -> &'a str {
         
         r#"insert into ppr.names(id, value, name_type, 
         is_ror_name, lang_code)
-        select id, value, 
+        select id, value,  
         case 
             when name_type = 'alias' then 7
             when name_type = 'acronym' then 10
@@ -146,7 +146,7 @@ pub fn get_domains_sql <'a>() -> &'a str {
 }
 
 pub fn get_withdrawn_sql <'a>() -> &'a str {
-        r#"insert into ppr.withdrawn(ror_id, ror_name, established,
+        r#"insert into rec.withdrawn(ror_id, ror_name, established,
            location, csubdiv_code, country_code,
            successor_id, succ_name, succ_status, 
            succ_established, succ_location, succ_csubdiv_code,

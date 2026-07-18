@@ -2,7 +2,6 @@ use chrono::NaiveDate;
 use sqlx::{postgres::PgQueryResult, Pool, Postgres};
 use crate::import::json_models::RorRecord;
 use crate::AppError;
-use log::info;
 
 // vectors to hold column values, 100 at a time
 
@@ -139,8 +138,6 @@ impl RequiredDataVecs{
                         self.name_types.push("label".to_string());
                         self.is_rors.push(true);
                         self.langs.push(name.lang.clone()); 
-
-                        info!("ror name found without name type for {}: {}", db_id.clone(), name.value.clone());
                         store_mising_type_ror_record(&db_id, &name.value, pool).await?;
                     }
                     else {
@@ -202,11 +199,11 @@ impl RequiredDataVecs{
         
         // Do the name data.
         
-        let sql = r#"INSERT INTO src.names (id, value, name_type, is_ror_name, lang) 
-        SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::bool[], $5::text[])"#;
+        let sql = r#"INSERT INTO src.names (id, orig_value, value, name_type, is_ror_name, lang) 
+        SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::text[], $5::bool[], $6::text[])"#;
 
         sqlx::query(sql)
-                .bind(&self.name_db_ids).bind(&self.names)
+                .bind(&self.name_db_ids).bind(&self.names).bind(&self.names)
                 .bind(&self.name_types).bind(&self.is_rors).bind(&self.langs)
                 .execute(pool)
                 .await.map_err(|e| AppError::SqlxError(e, "Storing src names".to_string()))?;
@@ -407,7 +404,7 @@ pub fn extract_id_from(full_id: &String) -> &str {
 
 pub async fn store_mising_type_ror_record(id: &str, name: &str, pool : &Pool<Postgres>) -> Result<PgQueryResult, AppError> {
 
-    let sql = r#"INSERT INTO src.bare_ror_names (id, value) values ($1, $2);"#;
+    let sql = r#"INSERT INTO rec.bare_ror_names (id, value) values ($1, $2);"#;
     sqlx::query(sql)
         .bind(id).bind(name).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))

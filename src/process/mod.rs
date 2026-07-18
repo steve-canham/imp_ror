@@ -1,4 +1,4 @@
-
+mod process_names;
 mod rmv_dup_names;
 mod script_coder;
 
@@ -26,6 +26,8 @@ pub async fn process_data(params: &InitParams, pool : &Pool<Postgres>) -> Result
     let sql = format!(r#"insert into ppr.version_details (version, data_date, data_days, inc_wd)
         select version, data_date, data_days, {} from src.version_details;"#, params.flags.inc_withdrawn);
     execute_sql(&sql, pool).await?;
+
+    process_names::clean_names1(pool).await?;  // before che3cking for duplicates so some basic tidying of names
        
     rmv_dup_names::remove_dups(pool).await?;  // done here to prevent PK errors in core_data
     
@@ -112,11 +114,11 @@ pub async fn process_data(params: &InitParams, pool : &Pool<Postgres>) -> Result
         // Then remove the corresponding records from all other tables
         
         execute_sql(get_withdrawn_sql(), pool).await?;
-        let sql = "select count(*) from ppr.withdrawn";
+        let sql = "select count(*) from rec.withdrawn";
         let wd: i64 = sqlx::query_scalar(sql)
             .fetch_one(pool).await
             .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-        info!("{wd} Withdrawn records table created, within ppr.withdrawn table");
+        info!("{wd} Withdrawn records table created, within rec.withdrawn table");
         
         delete_withdrawn("admin_data", pool).await?;
         delete_withdrawn("names", pool).await?;
@@ -134,9 +136,9 @@ pub async fn process_data(params: &InitParams, pool : &Pool<Postgres>) -> Result
     }
     else {    
         
-        // Withdrawn orgs are included. Delete any ppr.withdrawn table
+        // Withdrawn orgs are included. Delete any rec.withdrawn table
 
-        let sql = "drop table if exists ppr.withdrawn;";
+        let sql = "drop table if exists rec.withdrawn;";
         sqlx::raw_sql(sql).execute(pool)
             .await
             .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
@@ -154,7 +156,7 @@ pub async fn process_data(params: &InitParams, pool : &Pool<Postgres>) -> Result
 async fn delete_withdrawn(table_name: &str, pool: &Pool<Postgres>) -> Result<PgQueryResult, AppError> {
 
     let sql = format!(r#"delete from ppr.{table_name} a
-        using ppr.withdrawn w
+        using rec.withdrawn w
         where a.id = w.ror_id"#);
     execute_sql(&sql, pool).await
 }

@@ -32,7 +32,7 @@ The 'src' schema data can be processed to form a new set of tables within the 'p
 The processing is relatively limited but includes:
 
 a) By default, removal of withdrawn organisations from the main dataset. The withdrawn organisations
-are listed in the ppr.withdrawn table, along with an indication of any successor organisation(s). Their
+are listed in the rec.withdrawn table, along with an indication of any successor organisation(s). Their
 attributes are removed from the various attribute tables. The rationale for this is that ROR states that 
 withdrawn orgasnisation have been added in error, e.g. are duplicates or are out of scope. It therefore 
 makes little sense to retain them in the ROR dataset. Summary data relates only to the main dataset.  
