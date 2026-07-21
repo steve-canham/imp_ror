@@ -176,6 +176,20 @@ pub async fn clean_names1 (pool: &Pool<Postgres>) -> Result<(), AppError> {
     // ???? put left and right quote choices in the config file...
     // US pattern is the default but others can ber used...
     
+    Ensure quotes are 'tight' to the words
+
+    update src.names
+    set value = trim(replace(value, '“ ', ' “')) 
+    where value like '%“ %'
+    
+    update src.names
+    set value = trim(replace(value, ' ”', '” '))
+    where value like '% ”%'
+
+    // (after paired single quotes have been done)
+    // do a final replace with the user's selected qupte marks , if necessary
+
+    
     */
 
     
@@ -194,7 +208,76 @@ pub async fn clean_names1 (pool: &Pool<Postgres>) -> Result<(), AppError> {
     
     info!("{} names with apostrophes, to begin with", apos_num(pool).await?);
 
+    
+    /*
+     
+    -- 's
+    Much of this already sorted...
+    update src.names set value = replace(value, 'eople ''s', 'eople’s')
+    where value like '%eople ''s%'
+    --7
 
+    update src.names 
+    set value = regexp_replace(value, '([a-zA-Z0-9])''s ', '\1’s ') 
+    where value ~ '[a-zA-Z0-9]''s '
+    --2479
+    
+    update src.names 
+    set value = regexp_replace(value, '([a-zA-Z0-9])''s$', '\1’s') 
+    where value ~ '[a-zA-Z0-9]''s$'
+    --41
+
+    -- another odd one
+    update src.names 
+    set value = replace(value, 'Breeders''Association', 'Breeders’ Association')
+    where value ~ 'Breeders''Association'
+    --2
+
+    update src.names 
+    set value = regexp_replace(value, 's''', 's’')
+    where value ~ 's'' '
+    or value ~ 's''$'
+    --217
+    
+    -- d'
+    -- do some odd ones first
+    update src.names
+    set value = replace(value, ' d'' ', ' d’')
+    where value like '% d'' %' 
+    --5
+
+    update src.names
+    set value = regexp_replace(value, '([ eou-])d''([AÁEÉHIÎOUXY])', '\1d’\2', 'gi')
+    where value ~* '([ eou-])d''([AÁEÉHIÎOUXY])'
+    --1730
+
+    update src.names
+    set value = regexp_replace(value, '^D''([AEÉHIÎOUXY])', 'D’\1', 'i')
+    where value ~* '^d''([AEÉHIÎOUXY])'
+    --3
+
+    --l'
+    update src.names
+    set value = regexp_replace(value, '([ l])l'' ' , '\1l’')
+    where value ~ '[ l]l'' '  
+    --5
+
+    update src.names
+    set value = regexp_replace(value, '^L'' ' , 'L’')
+    where value ~ '^L'' '
+    --1
+    
+    update src.names
+    set value = regexp_replace(value, '([ l-])l''([AÁEÉèHIÎOlœUXY])', '\1l’\2', 'gi')
+    where value ~* '([ l-])l''([AÁEÉèHIÎOœUXY])'
+    --1291
+    
+    update src.names
+    set value = regexp_replace(value, '^l''([AÁEÉHIÎOUXY])', 'L’\1', 'gi')
+    where value ~* '^l''([AÁEÉHIÎOUXY])'
+    --84
+    
+     */
     
     
     // The Uzbek language includes a single left quote (though this seems to be being phased out now)
@@ -208,9 +291,14 @@ pub async fn clean_names1 (pool: &Pool<Postgres>) -> Result<(), AppError> {
     let n = execute_sql(&sql, pool).await?;
     info!("Uzbek apostrophe replaced by ‘ in {n} records");
 
+
+
+    
     // Consider names with both left and right limitinh apostrophes, usually quoting names
     // (May need a closer look!)
 
+
+    /* 
     let ch_type = format!("Left hand apostrophe of pair changed to left single quote");
     let sql  = format!(r#"update src.names
             set value = replace(value, ' ''', ' ‘'),
@@ -250,38 +338,39 @@ pub async fn clean_names1 (pool: &Pool<Postgres>) -> Result<(), AppError> {
     and orig_value like '%'''"#);
     let n = execute_sql(&sql, pool).await?;
     info!("Last apostrophe of pair at end of name changed to right hand quote in {n} records");
-
+    */
+    
     // Simple replacements
     
     let n = replace_chars("Hawai''i", "Hawai‘i", pool).await?;
     info!("(Hawai'i) replaced by (Hawai‘i) in {n} records");
         
-    let n = replace_chars("eople ''s", "eople’s", pool).await?;   // Odd Chinese names
-    info!("(eople 's) replaced by (eople’s) in {n} records");
+    //let n = replace_chars("eople ''s", "eople’s", pool).await?;   // Odd Chinese names
+    //info!("(eople 's) replaced by (eople’s) in {n} records");
 
-    let n = replace_chars("''s", "’s", pool).await?;    // Singular possessives
-    info!("('s) replaced by (’s) in {n} records");
+    //let n = replace_chars("''s", "’s", pool).await?;    // Singular possessives
+    //info!("('s) replaced by (’s) in {n} records");
 
-    let n = replace_chars("s'' ", "s’ ", pool).await?;   // Plural possessives
-    info!("(s' ) replaced by (s’ ) in {n} records");
+    //let n = replace_chars("s'' ", "s’ ", pool).await?;   // Plural possessives
+    //info!("(s' ) replaced by (s’ ) in {n} records");
 
-    let n = replace_chars(" l''", " l’", pool).await?;  // mostly French
-    info!("( l') replaced by ( l’) in {n} records");
+    //let n = replace_chars(" l''", " l’", pool).await?;  // mostly French
+    //info!("( l') replaced by ( l’) in {n} records");
 
-    let n = replace_chars("-l''", "-l’", pool).await?;
-    info!("(-l') replaced by (-l’) in {n} records");
+    //let n = replace_chars("-l''", "-l’", pool).await?;
+    //info!("(-l') replaced by (-l’) in {n} records");
     
-    let n = replace_chars("L''", "L’", pool).await?;
-    info!("(L') replaced by (L’) in {n} records");
+    //let n = replace_chars("L''", "L’", pool).await?;
+    //info!("(L') replaced by (L’) in {n} records");
 
-    let n = replace_chars("d''", "d’", pool).await?;
-    info!("(d') replaced by (d’) in {n} records");
+    //let n = replace_chars("d''", "d’", pool).await?;
+    //info!("(d') replaced by (d’) in {n} records");
 
-    let n = replace_chars("D''", "D’", pool).await?;
-    info!("(D') replaced by (D’) in {n} records");
+    //let n = replace_chars("D''", "D’", pool).await?;
+    //info!("(D') replaced by (D’) in {n} records");
     
-    let n = replace_chars("ell''", "ell’", pool).await?;    // ell, all, ull,
-    info!("(ll') replaced by (ll’) in {n} records");
+    //let n = replace_chars("ell''", "ell’", pool).await?;    // ell, all, ull,
+    //info!("(ll') replaced by (ll’) in {n} records");
 
     let n = replace_chars("ca'' ", "ca’ ", pool).await?;    // italian for Casa
     info!("(ca' ) replaced by (ca’ ) in {n} records");
