@@ -210,23 +210,54 @@ pub async fn clean_names1 (pool: &Pool<Postgres>) -> Result<(), AppError> {
 
     
     /*
-     
+
+    // The Uzbek language includes a single left quote (though this seems to be being phased out now)
+    
+    let ch_type = format!("Uzbek apostrophe replaced by ‘ left single quote (usually O‘)");
+    let sql  = format!(r#"update src.names
+            set value = replace(value, '''', '‘'),
+            changed = true,
+            change_type = '{ch_type}'
+            where value like '%''%'  and lang = 'uz'"#);
+    let n = execute_sql(&sql, pool).await?;
+    info!("Uzbek apostrophe replaced by ‘ in {n} records");
+
+    update src.names
+    set value = regexp_replace(value, 'O''', 'O‘', 'g')
+    where value ~ 'O'''  and lang = 'uz'
+    
+    update src.names
+    set value = regexp_replace(value, 'o''', 'o‘', 'g')
+    where value ~ 'o'''  and lang = 'uz'
+
+    --Hawaii -- left quote
+    
+    // let n = replace_chars("Hawai''i", "Hawai‘i", pool).await?;
+    update src.names set value = replace(value, 'awai''i', 'awai‘i')
+    where value like '%awai''i%'
+    
     -- 's
     Much of this already sorted...
     update src.names set value = replace(value, 'eople ''s', 'eople’s')
     where value like '%eople ''s%'
     --7
 
+    -- odd one
     update src.names 
-    set value = regexp_replace(value, '([a-zA-Z0-9])''s ', '\1’s ') 
-    where value ~ '[a-zA-Z0-9]''s '
+    set value = regexp_replace(value, 'Children''s''', 'Children''s') 
+    where value ~ 'Children''s’''
+
+    update src.names 
+    set value = regexp_replace(value, '([a-zA-Z0-9])''s([ ,-])', '\1’s\2' , 'g') 
+    where value ~ '[a-zA-Z0-9]''s[ ,-]'
     --2479
     
     update src.names 
     set value = regexp_replace(value, '([a-zA-Z0-9])''s$', '\1’s') 
     where value ~ '[a-zA-Z0-9]''s$'
     --41
-
+    
+ 
     -- another odd one
     update src.names 
     set value = replace(value, 'Breeders''Association', 'Breeders’ Association')
@@ -234,10 +265,31 @@ pub async fn clean_names1 (pool: &Pool<Postgres>) -> Result<(), AppError> {
     --2
 
     update src.names 
-    set value = regexp_replace(value, 's''', 's’')
+    set value = regexp_replace(value, 's''', 's’', 'g')
     where value ~ 's'' '
     or value ~ 's''$'
     --217
+
+    -- odd one
+    update src.names 
+    set value = regexp_replace(value, 'Genes''ink', 'Genes’ink') 
+    where value ~ 'Genes''ink'
+
+    -- odd dutch initial 's
+    update src.names 
+    set value = regexp_replace(value, '''s ', '’s ' ) 
+    where value ~ '^''s '
+    
+    -- odd dutch t
+    update src.names 
+    set value = regexp_replace(value, ' ''t ', ' ’t ' ) 
+    where value ~ ' ''t '
+
+    -- finish off the s
+    update src.names set value = replace(value, '''s', '^s')
+    where value ~ '''s'
+    update src.names set value =  replace(value, 's''', 's^') 
+    where value ~ 's'''
     
     -- d'
     -- do some odd ones first
@@ -276,22 +328,77 @@ pub async fn clean_names1 (pool: &Pool<Postgres>) -> Result<(), AppError> {
     set value = regexp_replace(value, '^l''([AÁEÉHIÎOUXY])', 'L’\1', 'gi')
     where value ~* '^l''([AÁEÉHIÎOUXY])'
     --84
+
+    -- odd one to preserve
+    update src.names 
+    set value = regexp_replace(value, 'Modal''X', 'Modal^X') 
+    where value ~ 'Modal''X'
+
+    -- remaining l
+    update src.names set value = replace(value, 'l''', 'l^')
+    where value ~ 'l'''
+    
+    select * from src.names
+    update src.names
+    set value = replace(value, 'ca'' ', 'ca’ ')
+    where value like '%ca'' %'
+    
+    select * from src.names
+    update src.names
+    set value = replace(value, 'Ca'' ', 'Ca’ ')
+    where value like '%Ca'' %'
+
+    update src.names
+    set value = replace(value, 'Bao''an', 'Bao^an')
+    where value like '%Bao''an%'
+    
+    update src.names
+    set value = replace(value, 'Xi''an', 'Xi^an')
+    where value like '%Xi''an%'
+    
+    update src.names
+    set value = replace(value, 'Ya''an', 'Ya^an')
+    where value like '%Ya''an%'
+
+    update src.names
+    set value = replace(value, 'Ho''an', 'Ho^an')
+    where value like '%Ho''an%'
+
+    update src.names
+    set value = replace(value, 'O''', 'O’')
+    where value like '%O''%'
+
+    update src.names
+    set value = replace(value, 'Sant''', 'Sant’')
+    where value like '%Sant''%'
+
+    update src.names
+    set value = replace(value, '''45', '’45')
+    where value like '%''45%'
+
+    -- three odd ones
+    update src.names
+    set value = replace(value, 'c''est', 'c’est')
+    where value like '%c''est%'
+    
+    update src.names
+    set value = replace(value, 'I''m', 'I’m')
+    where value like '%I''m%'
+    
+    update src.names
+    set value = replace(value, 'donn''ees', 'données')
+    where value like '%donn''ees%'
+
+    update src.names
+    set value = replace(value, 'Activ''Inside', 'Activ’Inside')
+    where value like '%Activ''Inside%'
+
+    update src.names
+    set value = replace(value, 'Unita''', 'Unità')
+    where value like '%Unita''%'
     
      */
     
-    
-    // The Uzbek language includes a single left quote (though this seems to be being phased out now)
-    
-    let ch_type = format!("Uzbek apostrophe replaced by ‘ left single quote (usually O‘)");
-    let sql  = format!(r#"update src.names
-            set value = replace(value, '''', '‘'),
-            changed = true,
-            change_type = '{ch_type}'
-            where value like '%''%'  and lang = 'uz'"#);
-    let n = execute_sql(&sql, pool).await?;
-    info!("Uzbek apostrophe replaced by ‘ in {n} records");
-
-
 
     
     // Consider names with both left and right limitinh apostrophes, usually quoting names
@@ -342,8 +449,8 @@ pub async fn clean_names1 (pool: &Pool<Postgres>) -> Result<(), AppError> {
     
     // Simple replacements
     
-    let n = replace_chars("Hawai''i", "Hawai‘i", pool).await?;
-    info!("(Hawai'i) replaced by (Hawai‘i) in {n} records");
+    //let n = replace_chars("Hawai''i", "Hawai‘i", pool).await?;
+    //info!("(Hawai'i) replaced by (Hawai‘i) in {n} records");
         
     //let n = replace_chars("eople ''s", "eople’s", pool).await?;   // Odd Chinese names
     //info!("(eople 's) replaced by (eople’s) in {n} records");
@@ -372,43 +479,43 @@ pub async fn clean_names1 (pool: &Pool<Postgres>) -> Result<(), AppError> {
     //let n = replace_chars("ell''", "ell’", pool).await?;    // ell, all, ull,
     //info!("(ll') replaced by (ll’) in {n} records");
 
-    let n = replace_chars("ca'' ", "ca’ ", pool).await?;    // italian for Casa
-    info!("(ca' ) replaced by (ca’ ) in {n} records");
+    //let n = replace_chars("ca'' ", "ca’ ", pool).await?;    // italian for Casa
+    //info!("(ca' ) replaced by (ca’ ) in {n} records");
 
-    let n = replace_chars("Ca'' ", "Ca’ ", pool).await?;
-    info!("(Ca' ) replaced by (Ca’ ) in {n} records");
+    //let n = replace_chars("Ca'' ", "Ca’ ", pool).await?;
+    //info!("(Ca' ) replaced by (Ca’ ) in {n} records");
 
-    let n = replace_chars(" ''t", " ’t", pool).await?;  // Used in Dutch for 'het'
-    info!("( 't) replaced by ( ’t) in {n} records");
+    //let n = replace_chars(" ''t", " ’t", pool).await?;  // Used in Dutch for 'het'
+    //info!("( 't) replaced by ( ’t) in {n} records");
     
-    let n = replace_chars("O''", "O’", pool).await?;    // Mostly Irish names
-    info!("(O') replaced by (O’) in {n} records");
+    //let n = replace_chars("O''", "O’", pool).await?;    // Mostly Irish names
+    //info!("(O') replaced by (O’) in {n} records");
 
-    let n = replace_chars("ant''", "ant’", pool).await?;   // as in Sant', in Italian, Portugese etc.
-    info!("(ant') replaced by (ant’) in {n} records");
+    //let n = replace_chars("ant''", "ant’", pool).await?;   // as in Sant', in Italian, Portugese etc.
+    //nfo!("(ant') replaced by (ant’) in {n} records");
 
-    let n = replace_chars("''45", "’45", pool).await?;
-    info!("('45) replaced by (’45) in {n} records");
+    //let n = replace_chars("''45", "’45", pool).await?;
+    //info!("('45) replaced by (’45) in {n} records");
 
-    let n = replace_chars("c''est", "c’est", pool).await?;
-    info!("(c'est) replaced by (c’est) in {n} records");
+    //let n = replace_chars("c''est", "c’est", pool).await?;
+    //info!("(c'est) replaced by (c’est) in {n} records");
 
-    let n = replace_chars("I''m", "I’m", pool).await?;
-    info!("(I'm) replaced by (I’m) in {n} records");
+    //let n = replace_chars("I''m", "I’m", pool).await?;
+    //info!("(I'm) replaced by (I’m) in {n} records");
 
-    let n = replace_chars("donn''ees", "données", pool).await?;
-    info!("(donn'ees) replaced by (données) in {n} records");
+    //let n = replace_chars("donn''ees", "données", pool).await?;
+    //info!("(donn'ees) replaced by (données) in {n} records");
 
     //ctive'inside
     
-    let n = replace_chars("Bao''an", "Bao^an", pool).await?;
-    info!("(Bao'an) temporarily replaced by (Bao^an) in {n} records");
+    //let n = replace_chars("Bao''an", "Bao^an", pool).await?;
+    //info!("(Bao'an) temporarily replaced by (Bao^an) in {n} records");
 
-    let n = replace_chars("Xi''an", "Xi^an", pool).await?;
-    info!("(Xi'an) temporarily replaced by (Xi^an) in {n} records");
+    //let n = replace_chars("Xi''an", "Xi^an", pool).await?;
+    //info!("(Xi'an) temporarily replaced by (Xi^an) in {n} records");
 
-    let n = replace_chars("Ya''an", "Ya^an", pool).await?;
-    info!("(Ya'an) temporarily replaced by (Ya^an) in {n} records");
+    //let n = replace_chars("Ya''an", "Ya^an", pool).await?;
+    //info!("(Ya'an) temporarily replaced by (Ya^an) in {n} records");
     
     
     info!("{} names with apostrophes after processing", apos_num(pool).await?);
