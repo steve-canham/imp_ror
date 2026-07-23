@@ -32,26 +32,46 @@ pub async fn clean_names1 (pool: &Pool<Postgres>) -> Result<(), AppError> {
     replace_unicode_char("2014", "m dash", "-", pool).await?;  
     replace_unicode_char("2015", "horizontal bar", "-", pool).await?;  
 
-    // consider square brackets
-    // ?? considr ampoersands
-    // 
-    // Do double spaces to single at end?
-    // info!("{} double spaces replaced by single in names to match", replace_in_names("  ", " ", pool).await?);
+    // First put all double quotes and equivalents as straight double quotes
+    // and all single quotes as apostrophes
+    // (necessary to correct pre-existing errors and inconsistencies)
+
     
+    /*
+     * -- do before above
+     * update src.names 
+     set value = replace(value, ',,', '„')
+     where value like '%,,%'
+     */
+     
+    replace_quotes("“", "\"", "", pool).await?;
+    replace_quotes("”", "\"", "", pool).await?;
+    replace_quotes("«", "\"", "", pool).await?;
+    replace_quotes("»", "\"", "", pool).await?;
+    replace_quotes("„", "\"", "", pool).await?;
+    replace_quotes("''''", "\"", "", pool).await?;
     
-    // repair or remove some very specific oddities
+    // replace double doubles with single "" -> " (2 recs)
+    
+    replace_quotes("‘", "''", "", pool).await?;
+    replace_quotes("’", "''", "", pool).await?;
+
+    
+    // deal with some very specific oddities
       
-    let n = replace_chars("[править | править вики-текст]", "", pool).await?;
-    info!("'[%править | править вики-текст]', translated as 'edit | edit wiki-text' removed in {n} records");
+    replace_chars("[править | править вики-текст]", "", "", pool).await?;
+    //info!("'[%править | править вики-текст]', translated as 'edit | edit wiki-text' removed in {n} records");
     
-    let n = replace_chars("[ Citation needed | edit wiki text ]", "", pool).await?;
-    info!("'[ Citation needed | edit wiki text ]', removed in {n} records");
+    replace_chars("[ Citation needed | edit wiki text ]", "", "", pool).await?;
+    //info!("'[ Citation needed | edit wiki text ]', removed in {n} records");
 
-    let n = replace_chars(" (Rybářství Litomyšl)", "", pool).await?;
-    info!("Spurious repeated text removed in {n} records");
+    replace_chars(" (Rybářství Litomyšl)", "", "", pool).await?;
+    //info!("Spurious repeated text removed in {n} records");
 
-    let n = replace_chars("?>", "->", pool).await?;
-    info!("Incorrect arrow formula replaced in {n} records");
+    replace_chars("?>", "->", "", pool).await?;
+    //info!("Incorrect arrow formula replaced in {n} records");
+
+    
 
     /* to add 
     update src.names set value = replace(value, '[', '') where value like '%['
@@ -71,28 +91,11 @@ pub async fn clean_names1 (pool: &Pool<Postgres>) -> Result<(), AppError> {
     */
     // Apostrophes
 
-    //  First put all double quotes and equivalents as straight double quotes
-    // (necessary to correct pre-existing errors)
-    
-    replace_quotes("“", "\"", pool).await?;
-    replace_quotes("”", "\"", pool).await?;
-    replace_quotes("«", "\"", pool).await?;
-    replace_quotes("»", "\"", pool).await?;
-    replace_quotes("„", "\"", pool).await?;
-    replace_quotes("''''", "\"", pool).await?;
-
-    /*
-     * -- do before above
-     * update src.names 
-     set value = replace(value, ',,', '„')
-     where value like '%,,%'
-     */
-
-    // need to add here repolapcing two commas by the low r quotes
+  
+ 
     
     info!("{} names with double quotes, to begin with", double_quotes_num(pool).await?);
 
-    // replace double doubles with single "" -> " (2 recs)
     // consider those records (2) with 5 "
     // In both cases drop the 5th " to make it records with 4 "
     // update src.names 
@@ -194,18 +197,8 @@ pub async fn clean_names1 (pool: &Pool<Postgres>) -> Result<(), AppError> {
     
     */
 
-
-
     
-
-
-    
-    //  Then put all single quotes and equivalents as straight apostrophes
-    // (necessary to correct pre-existing errors)
-    
-    replace_quotes("‘", "''", pool).await?;
-    replace_quotes("’", "''", pool).await?;
-    
+        
     info!("{} names with apostrophes, to begin with", apos_num(pool).await?);
 
     
@@ -554,6 +547,10 @@ pub async fn clean_names1 (pool: &Pool<Postgres>) -> Result<(), AppError> {
     set value = replace(value, 'T''Sou', 'T’Sou')
     where value like '%T''Sou%'
 
+
+    // Do double spaces to single at end?
+    // info!("{} double spaces replaced by single in names to match", replace_in_names("  ", " ", pool).await?);
+
      */
     
 
@@ -564,8 +561,8 @@ pub async fn clean_names1 (pool: &Pool<Postgres>) -> Result<(), AppError> {
     // in transliterated Chinese, Japanee, Arabic
     // Should be retained as apostrophes
 
-    let n = replace_chars("^", "''", pool).await?;
-    info!("(^) resored back to (') in {n} records");
+    replace_chars("^", "''", "", pool).await?;
+    //info!("(^) resored back to (') in {n} records");
     
     Ok(())
 }
@@ -600,6 +597,9 @@ async fn remove_unicode_char(unicode_char: &str, char_description: &str, pool: &
     let sql  = format!(r#"update src.names
             set value = trim(replace(value, U&'\{unicode_char}', '')),
             changed = true,
+            change_id = case when change_id is null then '1'
+                else change_type||', 1'
+            end,
             change_type = 
                 case when change_type is null then '{ch_type}'
                 else change_type||', '||'{ch_type}'
@@ -617,25 +617,70 @@ async fn remove_unicode_char(unicode_char: &str, char_description: &str, pool: &
 }
 
 
-async fn replace_quotes(chars: &str, replacement: &str, pool: &Pool<Postgres>) -> Result<u64, AppError> {
-   
+async fn replace_quotes(chars: &str, replacement: &str, char_description: &str, 
+           pool: &Pool<Postgres>) -> Result<(), AppError> {
+
+    let ch_type = format!("quotes change: ({chars}) replaced by ({replacement})");
     let sql  = format!(r#"update src.names
             set value = replace(value, '{chars}', '{replacement}'),
+            changed = true,
+            change_id = case when change_id is null then '2'
+                else change_type||', 2'
+            end,
+            change_type = 
+                case when change_type is null then '{ch_type}'
+                else change_type||', '||'{ch_type}'
+            end
             where value like '%{chars}%' "#);
 
     let n = sqlx::query(&sql).execute(pool).await
     .map_err(|e| AppError::SqlxError(e, sql))?.rows_affected();
 
-    Ok(n)
+    if n > 0 {
+        info!("{char_description} characters replaced by ({replacement}) in {n} records");
+    }
+
+
+    Ok(())
 }
 
 
-async fn replace_chars(chars: &str, replacement: &str, pool: &Pool<Postgres>) -> Result<u64, AppError> {
+async fn replace_unicode_char(unicode_char: &str, char_description: &str, 
+    replacement: &str, pool: &Pool<Postgres>) -> Result<(), AppError> {
 
+    let ch_type = format!("(\\u{unicode_char}, {char_description}) replaced by ({replacement})");
+    let sql  = format!(r#"update src.names
+            set value = replace(name, U&'\{unicode_char}', '{replacement}', 'g'),
+            changed = true,
+            change_id = case when change_id is null then '3'
+                else change_type||', 3'
+            end,
+            change_type = 
+                case when change_type is null then '{ch_type}'
+                else change_type||', '||'{ch_type}'
+            end
+            where value like U&'%\{unicode_char}%'; "#);
+
+    let n = sqlx::query(&sql).execute(pool).await
+    .map_err(|e| AppError::SqlxError(e, sql))?.rows_affected();
+
+    if n > 0 {
+        info!("{char_description} characters replaced by ({replacement}) in {n} records");
+    }
+
+    Ok(())
+}
+
+async fn apo_to_right_single_quote(chars: &str, pool: &Pool<Postgres>) -> Result<u64, AppError> {
+
+    let replacement = chars.replace("'", "’");
     let ch_type = format!("({chars}) replaced by ({replacement})");
     let sql  = format!(r#"update src.names
             set value = replace(value, '{chars}', '{replacement}'),
             changed = true,
+            change_id = case when change_id is null then '100'
+                else change_type||', 100'
+            end,
             change_type = 
                 case when change_type is null then '{ch_type}'
                 else change_type||', '||'{ch_type}'
@@ -648,19 +693,43 @@ async fn replace_chars(chars: &str, replacement: &str, pool: &Pool<Postgres>) ->
     Ok(res.rows_affected())
 }
 
+async fn apo_to_exponent_sign(chars: &str, pool: &Pool<Postgres>) -> Result<u64, AppError> {
 
-async fn replace_unicode_char(unicode_char: &str, char_description: &str, 
-    replacement: &str, pool: &Pool<Postgres>) -> Result<(), AppError> {
-
-    let ch_type = format!("(\\u{unicode_char}, {char_description}) replaced by ({replacement})");
+    let replacement = chars.replace("'", "^");
+    let ch_type = format!("({chars}) replaced by ({replacement})");
     let sql  = format!(r#"update src.names
-            set value = replace(name, U&'\{unicode_char}', '{replacement}', 'g'),
+            set value = replace(value, '{chars}', '{replacement}'),
             changed = true,
+            change_id = case when change_id is null then '102'
+                else change_type||', 102'
+            end,
             change_type = 
                 case when change_type is null then '{ch_type}'
                 else change_type||', '||'{ch_type}'
             end
-            where value like U&'%\{unicode_char}%'; "#);
+            where value like '%{chars}%' "#);
+
+    let res = sqlx::query(&sql).execute(pool).await
+    .map_err(|e| AppError::SqlxError(e, sql))?;
+
+    Ok(res.rows_affected())
+}
+
+async fn replace_chars(chars: &str, replacement: &str, char_description: &str, 
+              pool: &Pool<Postgres>) -> Result<(), AppError> {
+
+    let ch_type = format!("({chars}) replaced by ({replacement})");
+    let sql  = format!(r#"update src.names
+            set value = replace(value, '{chars}', '{replacement}'),
+            changed = true,
+            change_id = case when change_id is null then '5'
+                else change_type||', 5'
+            end,
+            change_type = 
+                case when change_type is null then '{ch_type}'
+                else change_type||', '||'{ch_type}'
+            end
+            where value like '%{chars}%' "#);
 
     let n = sqlx::query(&sql).execute(pool).await
     .map_err(|e| AppError::SqlxError(e, sql))?.rows_affected();

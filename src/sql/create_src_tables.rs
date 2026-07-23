@@ -47,6 +47,7 @@ pub fn get_sql<'a>() -> &'a str {
       , orig_value        varchar     not null 
       , value             varchar     not null  
       , changed           bool        not null  default false
+      , change_type_id    varchar     null
       , change_type       varchar     null
       , name_type         varchar     not null
       , is_ror_name       bool        null
