@@ -120,7 +120,7 @@ pub async fn clean_names1 (pool: &Pool<Postgres>) -> Result<(), AppError> {
     and lang <> 'he'
 
     change a double quote to gershayim (u05F4)
-    if it is the only doouble quoyte in the name
+    if it is the only double quoyte in the name
 
     update src.names
     set value = replace(value, '"', U&'\05F4')
@@ -187,14 +187,14 @@ pub async fn clean_names1 (pool: &Pool<Postgres>) -> Result<(), AppError> {
     where value like '% ”%'
 
     // (after paired single quotes have been done)
-    // do a final replace with the user's selected qupte marks , if necessary
+    // do a final replace with the user's selected quote marks , if necessary
+
+
 
     
     */
 
-    
-    // Consider names with paired double quotes
-    // The problem is that several have three double quotes, a pair and an 'odd' one
+
 
     
 
@@ -230,6 +230,24 @@ pub async fn clean_names1 (pool: &Pool<Postgres>) -> Result<(), AppError> {
     set value = regexp_replace(value, 'o''', 'o‘', 'g')
     where value ~ 'o'''  and lang = 'uz'
 
+    -- ukranian
+    
+    update src.names
+    set value = replace(value, '''я', '^я')
+    where value like '%''я%'
+
+    update src.names
+    set value = replace(value, '''є', '^є')
+    where value like '%''є%'
+
+    -- need to update before looking at pairs
+    
+    update src.names
+    set value = replace(value, '''М.Д. Інститут кардіології ім. Стражеска', '''М.Д. Інститут кардіології ім. Стражеска''')
+    where value like '%''М.Д. Інститут кардіології ім. Стражеска%'
+
+    
+    
     --Hawaii -- left quote
     
     // let n = replace_chars("Hawai''i", "Hawai‘i", pool).await?;
@@ -246,6 +264,21 @@ pub async fn clean_names1 (pool: &Pool<Postgres>) -> Result<(), AppError> {
     update src.names 
     set value = regexp_replace(value, 'Children''s''', 'Children''s') 
     where value ~ 'Children''s’''
+
+    -- and again
+    update src.names 
+    set value = replace(value, 'Women''S', 'Women''s')
+    where value like '%Women''S%'
+
+    -- and again
+    update src.names 
+    set value = replace(value, 'THE Japan WRITERS'' Association', 'The Japan Writers'' Association')
+    where value = 'THE Japan WRITERS'' Association'
+
+    -- and again
+    update src.names 
+    set value = replace(value, 'SEAMEN''S Employment Center Of Japan', 'Seamen''s Employment Center of Japan')
+    where value = 'SEAMEN''S Employment Center Of Japan'
 
     update src.names 
     set value = regexp_replace(value, '([a-zA-Z0-9])''s([ ,-])', '\1’s\2' , 'g') 
@@ -309,6 +342,22 @@ pub async fn clean_names1 (pool: &Pool<Postgres>) -> Result<(), AppError> {
     --3
 
     --l'
+
+    -- odd three need repariring first
+    update src.names
+    set value = replace(value, 'I''information', 'l''information')
+    where value like '%I''information%'
+
+    update src.names
+    set value = replace(value, 'I''industrie', 'l''industrie')
+    where value like '%I''industrie%'
+
+    update src.names
+    set value = replace(value, 'I''INSU', 'l''INSU')
+    where value like '%I''INSU%'
+   
+    
+    --modify spaced ones
     update src.names
     set value = regexp_replace(value, '([ l])l'' ' , '\1l’')
     where value ~ '[ l]l'' '  
@@ -396,128 +445,118 @@ pub async fn clean_names1 (pool: &Pool<Postgres>) -> Result<(), AppError> {
     update src.names
     set value = replace(value, 'Unita''', 'Unità')
     where value like '%Unita''%'
+
+    update src.names
+    set value = replace(value, 'Ex''pression', 'Ex’pression’')
+    where value like '%Ex''pression%'
+
+    update src.names
+    set value = replace(value, 'Int''l', 'Int’l')
+    where value like '%Int''l%'
+
+    update src.names
+    set value = replace(value, '3G''S', '3G’S')
+    where value like '%3G''S%'
+
+    update src.names
+    set value = replace(value, 'Qu''Appelle', 'Qu’Appelle')
+    where value like '%Qu''Appelle%'
+
+    update src.names
+    set value = regexp_replace(value, '([aeiou])''([aeiou])', '\1^\2', 'g')
+    where value ~* '[aeiou]''[aeiou]'
+    --57
+        
+    update src.names
+    set value = replace(value, 'Name''5', 'Name’5')
+    where value like '%Name''5%'
+
+    -- necessary before ones below
+    update src.names 
+    set value = replace(value, 'En''owkin', 'En’owkin')
+    where value like '%En''owkin%'
+
+    update src.names
+    set value = regexp_replace(value, 'n''([a-z])', 'n^\1', 'g')
+    where value ~ 'n''[a-z]'
+    --11
     
+    update src.names
+    set value = regexp_replace(value, 'N''([a-z])', 'N^\1', 'g')
+    where value ~ 'N''[a-z]'
+    --3
+
+    -- single hebrew apostrophe changed to a garesh symbol 
+    update src.names
+    set value = replace(value, '''', U&'\05F3')
+    where lang = 'he'
+    and length(value) - length(replace(value, '''', '')) = 1
+
+    update src.names
+    set value = replace(value, 'Institut P''', 'Institut P^')
+    where value like 'Institut P'''
+
+    update src.names 
+    set value = replace(value, 'VERN''', 'VERN^')
+    where value like '%VERN''%'
+
+    -- remve odd superflous apostrophes
+        update src.names
+    set value = trim(replace(value, '''', ''))
+    where (value like '''%' or value like '%''')
+    and length(value) - length(replace(value, '''', '')) = 1
+
+    -- some nother odd ones (before looking at pairs)
+    
+    update src.names
+    set value = replace(value, 'Maiz''Europ''', 'Maiz’Europ’')
+    where value like 'Maiz''Europ''' 
+
+    update src.names 
+    set value = replace(value, 'Area ''A'' Crab', 'Area A Crab')
+    where value like '%Area ''A'' Crab%'
+
+    update src.names
+    set value = replace(value, 'Nat''l', 'Nat’l')
+    where value like '%Nat''l%' 
+   --1  ? link to INat'l?
+
+    update src.names
+    set value = regexp_replace(value, 't''([a-z])', 't^\1', 'g')
+    where value ~ 't''[a-z]' 
+
+    update src.names
+    set value = replace(value, '''', '^')
+    where value = 'অসম ডনব''স্ক'' বিশ্ববিদ্যালয়' 
+
+    update src.names
+    set value = regexp_replace(value, 'a''([a-zA-Z])', 'a^\1', 'g') 
+    where value ~ 'a''[a-zA-Z]'
+    
+    update src.names
+    set value = regexp_replace(value, '([a-zA-Z])''a', '\1^a', 'g') 
+    where value ~ '[a-zA-Z]''a'
+
+    -- at this stage possible to safely do those names with paired apostrophes 
+    -- turning them into 66 99 quotes
+    
+    update src.names 
+    set value = regexp_replace(value, '''(.*)''', '“\1”') 
+    where length(value) - length(replace(value, '''', '')) = 2
+
+
+    -- link with other numbers
+    update src.names 
+    set value = replace(value, ' ''92', ' ’92')
+    where value like '% ''92%'
+
+    update src.names 
+    set value = replace(value, 'T''Sou', 'T’Sou')
+    where value like '%T''Sou%'
+
      */
     
 
-    
-    // Consider names with both left and right limitinh apostrophes, usually quoting names
-    // (May need a closer look!)
-
-
-    /* 
-    let ch_type = format!("Left hand apostrophe of pair changed to left single quote");
-    let sql  = format!(r#"update src.names
-            set value = replace(value, ' ''', ' ‘'),
-            changed = true,
-            change_type = '{ch_type}'
-    where orig_value like '% ''%' 
-    and (orig_value like '%'' %' or orig_value like '%''')"#);
-    let n = execute_sql(&sql, pool).await?;
-    info!("First apostrophe of pair changed to left hand quote in {n} records");
-    
-    let ch_type = format!("Left hand apostrophe of pair changed to left single quote");
-    let sql  = format!(r#"update src.names
-            set value = replace(value, '''', '‘'),
-            changed = true,
-            change_type = '{ch_type}'
-    where orig_value like '''%'
-    and (orig_value like '%'' %' or orig_value like '%''')"#);
-    let n = execute_sql(&sql, pool).await?;
-    info!("First apostrophe of pair at start of name changed to left hand quote in {n} records");
-    
-    let ch_type = format!("Right hand apostrophe of pair changed to right single quote");
-    let sql  = format!(r#"update src.names
-            set value = replace(value, '''', ''),
-            changed = true,
-            change_type = '{ch_type}'
-    where (orig_value like '% ''%' or orig_value like '''%')
-    and orig_value like '%'' %'"#); 
-    let n = execute_sql(&sql, pool).await?;
-    info!("Last apostrophe of pair changed to right hand quote in {n} records");
-    
-    let ch_type = format!("Right hand apostrophe of pair changed to right single quote");
-    let sql  = format!(r#"update src.names
-            set value = replace(value, '''', ''),
-            changed = true,
-            change_type = '{ch_type}'
-    where (orig_value like '% ''%' or orig_value like '''%')
-    and orig_value like '%'''"#);
-    let n = execute_sql(&sql, pool).await?;
-    info!("Last apostrophe of pair at end of name changed to right hand quote in {n} records");
-    */
-    
-    // Simple replacements
-    
-    //let n = replace_chars("Hawai''i", "Hawai‘i", pool).await?;
-    //info!("(Hawai'i) replaced by (Hawai‘i) in {n} records");
-        
-    //let n = replace_chars("eople ''s", "eople’s", pool).await?;   // Odd Chinese names
-    //info!("(eople 's) replaced by (eople’s) in {n} records");
-
-    //let n = replace_chars("''s", "’s", pool).await?;    // Singular possessives
-    //info!("('s) replaced by (’s) in {n} records");
-
-    //let n = replace_chars("s'' ", "s’ ", pool).await?;   // Plural possessives
-    //info!("(s' ) replaced by (s’ ) in {n} records");
-
-    //let n = replace_chars(" l''", " l’", pool).await?;  // mostly French
-    //info!("( l') replaced by ( l’) in {n} records");
-
-    //let n = replace_chars("-l''", "-l’", pool).await?;
-    //info!("(-l') replaced by (-l’) in {n} records");
-    
-    //let n = replace_chars("L''", "L’", pool).await?;
-    //info!("(L') replaced by (L’) in {n} records");
-
-    //let n = replace_chars("d''", "d’", pool).await?;
-    //info!("(d') replaced by (d’) in {n} records");
-
-    //let n = replace_chars("D''", "D’", pool).await?;
-    //info!("(D') replaced by (D’) in {n} records");
-    
-    //let n = replace_chars("ell''", "ell’", pool).await?;    // ell, all, ull,
-    //info!("(ll') replaced by (ll’) in {n} records");
-
-    //let n = replace_chars("ca'' ", "ca’ ", pool).await?;    // italian for Casa
-    //info!("(ca' ) replaced by (ca’ ) in {n} records");
-
-    //let n = replace_chars("Ca'' ", "Ca’ ", pool).await?;
-    //info!("(Ca' ) replaced by (Ca’ ) in {n} records");
-
-    //let n = replace_chars(" ''t", " ’t", pool).await?;  // Used in Dutch for 'het'
-    //info!("( 't) replaced by ( ’t) in {n} records");
-    
-    //let n = replace_chars("O''", "O’", pool).await?;    // Mostly Irish names
-    //info!("(O') replaced by (O’) in {n} records");
-
-    //let n = replace_chars("ant''", "ant’", pool).await?;   // as in Sant', in Italian, Portugese etc.
-    //nfo!("(ant') replaced by (ant’) in {n} records");
-
-    //let n = replace_chars("''45", "’45", pool).await?;
-    //info!("('45) replaced by (’45) in {n} records");
-
-    //let n = replace_chars("c''est", "c’est", pool).await?;
-    //info!("(c'est) replaced by (c’est) in {n} records");
-
-    //let n = replace_chars("I''m", "I’m", pool).await?;
-    //info!("(I'm) replaced by (I’m) in {n} records");
-
-    //let n = replace_chars("donn''ees", "données", pool).await?;
-    //info!("(donn'ees) replaced by (données) in {n} records");
-
-    //ctive'inside
-    
-    //let n = replace_chars("Bao''an", "Bao^an", pool).await?;
-    //info!("(Bao'an) temporarily replaced by (Bao^an) in {n} records");
-
-    //let n = replace_chars("Xi''an", "Xi^an", pool).await?;
-    //info!("(Xi'an) temporarily replaced by (Xi^an) in {n} records");
-
-    //let n = replace_chars("Ya''an", "Ya^an", pool).await?;
-    //info!("(Ya'an) temporarily replaced by (Ya^an) in {n} records");
-    
-    
     info!("{} names with apostrophes after processing", apos_num(pool).await?);
     info!("");
 
@@ -615,7 +654,7 @@ async fn replace_unicode_char(unicode_char: &str, char_description: &str,
 
     let ch_type = format!("(\\u{unicode_char}, {char_description}) replaced by ({replacement})");
     let sql  = format!(r#"update src.names
-            set value = replace(name, U&'\{unicode_char}', '{replacement}'),
+            set value = replace(name, U&'\{unicode_char}', '{replacement}', 'g'),
             changed = true,
             change_type = 
                 case when change_type is null then '{ch_type}'
