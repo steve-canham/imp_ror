@@ -40,7 +40,7 @@ async fn collect_singleton_values(vcode: &String, inc_withdrawn: bool, pool: &Po
     let sql = format!(r#"SELECT name, description, number, pc from smm.singletons 
               WHERE vcode = '{vcode}' and inc_wd = {inc_withdrawn};"#);
     let srows: Vec<SingletonRow> = sqlx::query_as(&sql).fetch_all(pool).await
-        .map_err(|e| AppError::SqlxError(e, sql))?;
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     
     for r in srows { 
         let s = Singleton {
@@ -65,7 +65,7 @@ async fn write_header(output_file_path: &PathBuf, vcode: &String,
     let sql = format!(r#"SELECT * from smm.version_summaries 
                       WHERE vcode = '{vcode}' and inc_wd = {inc_withdrawn};"#);
     let summ: VSummary = sqlx::query_as(&sql).fetch_one(pool).await
-           .map_err(|e| AppError::SqlxError(e, sql))?;
+           .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
     let mut header_txt = format!("{}\n\n\tVersion                  {vcode}\n\tDate                     {}",
         get_hdr_line("SUMMARY OF ROR DATASET"),summ.vdate);
@@ -106,7 +106,7 @@ async fn write_summary(output_file_path: &PathBuf, summ: &VSummary, inc_withdraw
         organisations where relevant, can be found in the 'rec.withdrawn' table.
         "#, summ.num_denom)
     };
-    append_to_file(output_file_path, &withdrawn_text)?;
+    append_to_file(output_file_path, &withdrawn_text.to_string())?;
     
     let entity_txt = format!("\n\n\tENTITY NUMBERS{}number\n\t{}\n{}{}{}{}{}{}{}{}\n", 
                      " ".repeat(51), "-".repeat(88),

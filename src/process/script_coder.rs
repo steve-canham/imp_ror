@@ -89,7 +89,7 @@ async fn remove_char(char: &str, pool: &Pool<Postgres>) -> Result<u64, AppError>
             where name like '%{}%'; "#, char, char);
 
     let res = sqlx::query(&sql).execute(pool).await
-    .map_err(|e| AppError::SqlxError(e, sql))?;
+    .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
     Ok(res.rows_affected())
 }
@@ -102,7 +102,7 @@ async fn remove_unicode_char(unicode: &str, pool: &Pool<Postgres>) -> Result<u64
             where name like U&'%\{}%'; "#, unicode, unicode);
 
     let res = sqlx::query(&sql).execute(pool).await
-    .map_err(|e| AppError::SqlxError(e, sql))?;
+    .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
     Ok(res.rows_affected())
 }
@@ -146,7 +146,7 @@ async fn add_script_codes (pool: &Pool<Postgres>) -> Result<(), AppError> {
                     where name ~ '[\u{:0>4}-\u{:0>4}]'"#, r.code, r.hex_start, r.hex_end);
 
             sqlx::query(&sql).execute(pool).await
-                .map_err(|e| AppError::SqlxError(e, sql))?;
+                .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
         }
         else {
             
@@ -159,7 +159,7 @@ async fn add_script_codes (pool: &Pool<Postgres>) -> Result<(), AppError> {
             and ascii(substr(name, 1, 1)) <= {}"#, r.code, r.ascii_start, r.ascii_end);
     
             sqlx::query(&sql).execute(pool).await
-                .map_err(|e| AppError::SqlxError(e, sql))?;
+                .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
         }
 
         n +=1;
