@@ -158,6 +158,7 @@ pub async fn derive_lang_codes (pool: &Pool<Postgres>) -> Result<(), AppError> {
     update_portuguese_names(pool).await?;
     update_italian_names(pool).await?;
     update_dutch_names(pool).await?;
+    update_danish_names(pool).await?;
     update_swedish_names(pool).await?;
     update_finnish_names(pool).await?;
     update_norwegian_names(pool).await?;
@@ -562,15 +563,7 @@ pub async fn update_chinese_names(pool: &Pool<Postgres>) -> Result<(), AppError>
 }
 
 /*
-  
- 
- für und klinische klinik  klinikum bundesamt fachhochschule fraunhofer zentrum
- akademie allgemeine deutsche gesellschaft krankenhaus hochschule wissenschaft
- arbeitsgemeinschaft  zentrum bundesverband europäische forschungsinstitut
- 'institut für ' kantonsschule kantonsspital katholische forschung österreichische schweizerische
-  stiftung technische universitaet universität vereinigung wasser
- 
- --es
+    --es
  academia** agencia asociación ayuntamiento banco
  benemérita biblioteca centro** científico clínica clínico colegio comisión 
  consejo consorcio corporación departamento**  dirección 
@@ -744,7 +737,7 @@ pub async fn update_french_names(pool: &Pool<Postgres>) -> Result<(), AppError> 
     Ok(())
 }
 
-
+ 
 pub async fn update_german_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
     let mut total_records_affected = 0;
@@ -754,26 +747,50 @@ pub async fn update_german_names(pool: &Pool<Postgres>) -> Result<(), AppError> 
             where der_lang is null and n.name_type <> 10
             and country_code in ('DE', 'AT', 'CH')
             and 
-            (lc_value ilike '%%'
-            or lc_value like '%%' 
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%' 
-            or lc_value like '%%' 
-            or lc_value like '%%' 
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%' 
-            or lc_value like '%%' 
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%');"#;
+            (lc_value ilike '% für %'
+            or lc_value like '% und %' 
+            or lc_value like '%klinische%'
+            or lc_value like '%klinik%'
+            or lc_value like '%bundesamt%' 
+            or lc_value like '%hochschule%' 
+            or lc_value like '%fraunhofer%' 
+            or lc_value like '%zentrum%'
+            or lc_value like '%akademie%'
+            or lc_value like '%allgemeine%'
+            or lc_value like '%deutsche%' 
+            or lc_value like '%gesellschaft%' 
+            or lc_value like 'krankenhaus%'
+            or lc_value like '%wissenschaft%'
+            or lc_value like '%arbeit%'
+            or lc_value like '%gemeinschaft%');"#;
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     total_records_affected += res.rows_affected();
 
+    let sql = r#"update rec.names n
+                set der_lang = 'de'
+            where der_lang is null and n.name_type <> 10
+            and country_code in ('DE', 'AT', 'CH')
+            and 
+            (lc_value ilike '%bundesverband%'
+            or lc_value like '%europäische%' 
+            or lc_value like '%forschung%'
+            or lc_value like '%kantonsschule%'
+            or lc_value like '%kantonsspital%' 
+            or lc_value like '%katholische%' 
+            or lc_value like '%österreichische%' 
+            or lc_value like '%schweizerische%'
+            or lc_value like '%stiftung%'
+            or lc_value like '%technische%'
+            or lc_value like '%universitaet%' 
+            or lc_value like '%universität%' 
+            or lc_value like '%vereinigung%'
+            or lc_value like '%wasser%');"#;
+    let res = sqlx::raw_sql(sql).execute(pool)
+        .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    total_records_affected += res.rows_affected();
+
+    /* 
     let sql = r#"update rec.names n
                 set der_lang = 'de'
             where der_lang is null and n.name_type <> 10
@@ -798,32 +815,7 @@ pub async fn update_german_names(pool: &Pool<Postgres>) -> Result<(), AppError> 
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     total_records_affected += res.rows_affected();
-
-    let sql = r#"update rec.names n
-                set der_lang = 'de'
-            where der_lang is null and n.name_type <> 10
-            and country_code in ('DE', 'AT', 'CH')
-            and 
-            (lc_value ilike '%%'
-            or lc_value like '%%' 
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%' 
-            or lc_value like '%%' 
-            or lc_value like '%%' 
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%' 
-            or lc_value like '%%' 
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%');"#;
-    let res = sqlx::raw_sql(sql).execute(pool)
-        .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
-
+    */
     info!("{} language codes added to german records", total_records_affected);
     
     Ok(())
@@ -837,59 +829,160 @@ pub async fn update_spanish_names(pool: &Pool<Postgres>) -> Result<(), AppError>
     let sql = r#"update rec.names n
                 set der_lang = 'es'
             where der_lang is null and n.name_type <> 10
-            and country_code in ('DE', 'AT', 'CH')
+            and country_code in ('AR', 'BO', 'CL', 'CO', 'CR', 'CU', 'DO', 'EC', 'ES', 'GQ', 'GT', 'HN', 'MX', 'NI', 'PE', 'PY', 'UY', 'VE')
             and 
-            (lc_value ilike '%%'
-            or lc_value like '%%' 
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%' 
-            or lc_value like '%%' 
-            or lc_value like '%%' 
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%' 
-            or lc_value like '%%' 
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%');"#;
+            (lc_value ilike '%academia%'
+            or lc_value like '%unidad%' 
+            or lc_value like '%universitari%'
+            or lc_value like '%universidad%'
+            or lc_value like '%agencia%' 
+            or lc_value like '%asociación%'
+            or lc_value like '%ayuntamiento%'
+            or lc_value like '%banco%' 
+            or lc_value like '%benemérita%' 
+            or lc_value like '%biblioteca%' 
+            or lc_value like '%centro%'
+            or lc_value like '%ciencia%'
+            or lc_value like '%científico%'
+            or lc_value like 'clínica%' 
+            or lc_value like '%clínico%' 
+            or lc_value like '%colegio%'
+            or lc_value like '%comisión%'
+            or lc_value like '%consejo%'
+            or lc_value like '%consorcio%');"#;
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     total_records_affected += res.rows_affected();
 
+     let sql = r#"update rec.names n
+                 set der_lang = 'es'
+             where der_lang is null and n.name_type <> 10
+             and country_code in ('AR', 'BO', 'CL', 'CO', 'CR', 'CU', 'DO', 'EC', 'ES', 'GQ', 'GT', 'HN', 'MX', 'NI', 'PE', 'PY', 'UY', 'VE')
+             and 
+             (lc_value ilike '%corporación%'
+             or lc_value like '%departamento%' 
+             or lc_value like '%dirección%'
+             or lc_value like '%escuela%'
+             or lc_value like '%esperança%' 
+             or lc_value like '%española%' 
+             or lc_value like '%estación%' 
+             or lc_value like '%facultad%'
+             or lc_value like '%fundación%'
+             or lc_value like '%gobierno%'
+             or lc_value like '%grupo%' 
+             or lc_value like '%hospitalario%' 
+             or lc_value like '%hospital%'
+             or lc_value like '%institución%'
+             or lc_value like '%instituto%'
+             or lc_value like '%laboratorio%');"#;
+     let res = sqlx::raw_sql(sql).execute(pool)
+         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+     total_records_affected += res.rows_affected();
+
+     let sql = r#"update rec.names n
+                 set der_lang = 'es'
+             where der_lang is null and n.name_type <> 10
+             and country_code in ('AR', 'BO', 'CL', 'CO', 'CR', 'CU', 'DO', 'EC', 'ES', 'GQ', 'GT', 'HN', 'MX', 'NI', 'PE', 'PY', 'UY', 'VE')
+             and 
+             (lc_value ilike '%médico%'
+             or lc_value like '%milenium%' 
+             or lc_value like '%ministerio%'
+             or lc_value like '%museo%'
+             or lc_value like '%nacional%' 
+             or lc_value like '%observatorio%' 
+             or lc_value like '%organización%' 
+             or lc_value like '%parque%'
+             or lc_value like '%pontificia%'
+             or lc_value like '%salud%'
+             or lc_value like '%sanitas%' 
+             or lc_value like '%secretaría%' 
+             or lc_value like '%servicio%' 
+             or lc_value like '%sistema%'
+             or lc_value like '%sociedad%'
+             or lc_value like '%tecnológico%'
+             or lc_value like '%tecnm%');"#;
+     let res = sqlx::raw_sql(sql).execute(pool)
+         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+     total_records_affected += res.rows_affected();
+
+     
     info!("{} language codes added to spanish records", total_records_affected);
     
     Ok(())
 }
 
-
+ 
 pub async fn update_portuguese_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
-
+     
     let mut total_records_affected = 0;
 
     let sql = r#"update rec.names n
-                set der_lang = 'es'
+                set der_lang = 'pt'
             where der_lang is null and n.name_type <> 10
-            and country_code in ('DE', 'AT', 'CH')
+            and country_code in ('PT', 'BR', 'CV', 'AO', 'MZ', 'GW', 'ST', 'TL')
             and 
-            (lc_value ilike '%%'
-            or lc_value like '%%' 
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%' 
-            or lc_value like '%%' 
-            or lc_value like '%%' 
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%' 
-            or lc_value like '%%' 
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%');"#;
+            (lc_value ilike '%agência'
+            or lc_value like '%associação%' 
+            or lc_value like '%autoridade%'
+            or lc_value like '%biblioteca%'
+            or lc_value like '%comissão%' 
+            or lc_value like '%ciência%' 
+            or lc_value like '%conselho%' 
+            or lc_value like '%departamento%'
+            or lc_value like '%direção%'
+            or lc_value like '%escola%'
+            or lc_value like '%estudos%' 
+            or lc_value like '%faculdade%' 
+            or lc_value like '%federação%'
+            or lc_value like '%fundação%'
+            or lc_value like '%gabinete%'
+            or lc_value like '%grupo%');"#;
+    let res = sqlx::raw_sql(sql).execute(pool)
+        .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    total_records_affected += res.rows_affected();
+
+    let sql = r#"update rec.names n
+                set der_lang = 'pt'
+            where der_lang is null and n.name_type <> 10
+            and country_code in ('PT', 'BR', 'CV', 'AO', 'MZ', 'GW', 'ST', 'TL')
+            and 
+            (lc_value ilike '%hospitalar%'
+            or lc_value like '%hospital%' 
+            or lc_value like '%investigação%'
+            or lc_value like '%instituto%'
+            or lc_value like '%laboratório%' 
+            or lc_value like '%ministério%' 
+            or lc_value like '%museu%' 
+            or lc_value like '%observatório%'
+            or lc_value like '%ordem%'
+            or lc_value like '%parque%'
+            or lc_value like '%pesquisa%' 
+            or lc_value like '%sociedade%' 
+            or lc_value like '%tecnologia%'
+            or lc_value like '%tecnológico%'
+            or lc_value like '%unidade%'
+            or lc_value like '%universitário%'
+            or lc_value like '%universidade%');"#;
+    let res = sqlx::raw_sql(sql).execute(pool)
+        .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    total_records_affected += res.rows_affected();
+
+    let sql = r#"update rec.names n
+                set der_lang = 'pt'
+            where der_lang is null and n.name_type <> 10
+            and country_code in ('PT', 'BR', 'CV', 'AO', 'MZ', 'GW', 'ST', 'TL')
+            and 
+            (value ilike 'INCT de%' 
+             or lc_value like  '%centro%'
+             or lc_value like  '%nacional%'   
+             or lc_value like  '%esperança%' 
+             or lc_value like  '%ciencia%' 
+             or lc_value like  '%academia%'
+             or lc_value like  '%secretaria%' 
+             or lc_value like  '%governo%'
+             or lc_value like  '%prefeitura%'   
+             or lc_value like  '%companhia%' 
+            );"#;
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     total_records_affected += res.rows_affected();
@@ -903,11 +996,59 @@ pub async fn update_portuguese_names(pool: &Pool<Postgres>) -> Result<(), AppErr
 pub async fn update_italian_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
     let mut total_records_affected = 0;
+       
+    let sql = r#"update rec.names n
+                set der_lang = 'it'
+            where der_lang is null and n.name_type <> 10
+            and country_code in ('IT', 'CH')
+            and 
+            (lc_value ilike '%accademia%'
+            or lc_value like '%agenzia%' 
+            or lc_value like '%archivio%'
+            or lc_value like '%associazione%'
+            or lc_value like '%azienda%' 
+            or lc_value like '%centro di %' 
+            or lc_value like '%conservatorio%' 
+            or lc_value like '%consorzio%'
+            or lc_value like '%dipartimento%'
+            or lc_value like '%federazione%'
+            or lc_value like '%fondazione%' 
+            or lc_value like '%gruppo%' 
+            or lc_value like '%istituto%'
+            or lc_value like '%liceo%'
+            or lc_value like '%ministero%'
+            or lc_value like '%museo%');"#;
+    let res = sqlx::raw_sql(sql).execute(pool)
+        .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    total_records_affected += res.rows_affected();
+
 
     let sql = r#"update rec.names n
-                set der_lang = 'es'
+                set der_lang = 'it'
             where der_lang is null and n.name_type <> 10
-            and country_code in ('DE', 'AT', 'CH')
+            and country_code in ('IT', 'CH')
+            and 
+            (lc_value ilike '%organizzazione%'
+            or lc_value like '%ospedale%' 
+            or lc_value like '%osservatorio%'
+            or lc_value like '%pontificia%'
+            or lc_value like '%regione%' 
+            or lc_value like '%scuola%' 
+            or lc_value like '%sistema%' 
+            or lc_value like '%societa%'
+            or lc_value like '%ufficio%'
+            or lc_value like '%università%'
+            or lc_value like '%unità%' 
+            );"#;
+    let res = sqlx::raw_sql(sql).execute(pool)
+        .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    total_records_affected += res.rows_affected();
+
+    /* 
+    let sql = r#"update rec.names n
+                set der_lang = 'it'
+            where der_lang is null and n.name_type <> 10
+            and country_code in ('IT', 'CH')
             and 
             (lc_value ilike '%%'
             or lc_value like '%%' 
@@ -928,77 +1069,206 @@ pub async fn update_italian_names(pool: &Pool<Postgres>) -> Result<(), AppError>
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     total_records_affected += res.rows_affected();
+    */
 
-    info!("{} language codes added to spanish records", total_records_affected);
+    info!("{} language codes added to italian records", total_records_affected);
     
     Ok(())
 }
 
 
 pub async fn update_dutch_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
-
+ 
     let mut total_records_affected = 0;
 
     let sql = r#"update rec.names n
-                set der_lang = 'es'
+                set der_lang = 'nl'
             where der_lang is null and n.name_type <> 10
-            and country_code in ('DE', 'AT', 'CH')
+            and country_code in ('NL', 'BE')
             and 
-            (lc_value ilike '%%'
-            or lc_value like '%%' 
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%' 
-            or lc_value like '%%' 
-            or lc_value like '%%' 
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%' 
-            or lc_value like '%%' 
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%');"#;
+            (lc_value ilike '%academisch%'
+            or lc_value like '%gemeentelijke%' 
+            or lc_value like '%gezondheidsdienst%'
+            or lc_value like '%koninklijke%'
+            or lc_value like '% voor %' 
+            or lc_value like '%ziekenhuis%' 
+            or lc_value like '%ziekenhuizen%' 
+            or lc_value like '%ministerie%' 
+            or lc_value like '%nationaal%'
+            or lc_value like '%nederlandse%'
+            or lc_value like '%instituut%'
+            or lc_value like '%stichting%' 
+            or lc_value like '%universiteit%' 
+            or lc_value like '%vereniging%'
+            or lc_value like '%zorg%'
+            );"#;
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     total_records_affected += res.rows_affected();
 
-    info!("{} language codes added to spanish records", total_records_affected);
+    let sql = r#"update rec.names n
+                set der_lang = 'nl'
+            where der_lang is null and n.name_type <> 10
+            and country_code in ('NL', 'BE')
+            and 
+            (lc_value ilike '%kliniek%'
+            or lc_value like '%medisch%'
+            or lc_value like '%meenschap%'
+            or lc_value like '%centrum%' 
+            or lc_value like '%groep%'
+            or lc_value like '%nederlandsche%'
+            or lc_value like '%specialisten%' 
+            or lc_value like '%fonds%' 
+            or lc_value like '%gemeente%' 
+            or lc_value like '%kundige%' 
+            or lc_value like '%hogeschool%'
+            or lc_value like '%huisarts%'
+            or lc_value like '%maatschap%'
+            or lc_value like '%gasthuis%' 
+            or lc_value like '%gezondheid%' 
+            or lc_value like '%groot%'
+            or lc_value like '%stedelijk%'
+            );"#;
+    let res = sqlx::raw_sql(sql).execute(pool)
+        .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    total_records_affected += res.rows_affected();
+  
+    info!("{} language codes added to dutch records", total_records_affected);
     
     Ok(())
 }
 
-pub async fn update_swedish_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
+pub async fn update_danish_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
+ 
     let mut total_records_affected = 0;
 
     let sql = r#"update rec.names n
-                set der_lang = 'es'
+                set der_lang = 'da'
             where der_lang is null and n.name_type <> 10
-            and country_code in ('DE', 'AT', 'CH')
+            and country_code in ('DK')
             and 
-            (lc_value ilike '%%'
-            or lc_value like '%%' 
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%' 
-            or lc_value like '%%' 
-            or lc_value like '%%' 
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%' 
-            or lc_value like '%%' 
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%');"#;
+            (lc_value ilike '% fonde%'
+            or lc_value like '%fonden%' 
+            or lc_value like '%fondet%' 
+            or lc_value like '%kommune%'
+            or lc_value like '%sygehus%'
+            or lc_value like '%dansk%' 
+            or lc_value like '%foreningen%' 
+            or lc_value like '%danmarks%' 
+            or lc_value like '%klinik%'
+            or lc_value like '% og %'
+            or lc_value like '%skole%'
+            or lc_value like '%regionshospita%' 
+            or lc_value like '%rigshospitalet%' 
+            or lc_value like '%universitet%'
+            );"#;
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     total_records_affected += res.rows_affected();
 
-    info!("{} language codes added to spanish records", total_records_affected);
+    let sql = r#"update rec.names n
+                set der_lang = 'da'
+            where der_lang is null and n.name_type <> 10
+            and country_code in ('DK')
+            and 
+            (lc_value ilike '%teknolog%'
+            or lc_value like '%arkiv%' 
+            or lc_value like '%hospitaler%' 
+            or lc_value like '%tekniske%'
+            or lc_value like '%privathospital%'
+            or lc_value like '%midt%' 
+            or lc_value like '%nordvest%' 
+            or lc_value like '%biblioteket%' 
+            or lc_value like '%gigthospital%'
+            or lc_value like '%hospitalsenheden%'
+            or lc_value like '%styrelsen%'
+            or lc_value like '%nationalbanken%' 
+            or lc_value like '%kræftens%' 
+            or lc_value like '%vaern%'
+            );"#;
+    let res = sqlx::raw_sql(sql).execute(pool)
+        .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    total_records_affected += res.rows_affected();
+    
+    info!("{} language codes added to dutch records", total_records_affected);
+    
+    Ok(())
+}
+
+ 
+pub async fn update_swedish_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
+
+    
+/*
+ -- ALSO
+ --Aleris Hälsocentral Bollnäs, --Avfallshantering Östra Skaraborg
+ --Centrallasarettet Växjö, --Göteborgs Tandläkare Sällskap
+ --Hälsans Nya Verktyg, --Industriella UtvecklingsCentra
+ --Länsstyrelsen Västra Götalands län, --Praktikertjänst
+ --Rinkebyakademien, --Skandinaviska Kiropraktorhögskolan
+ --Skånes Livsmedelsakademi, --Specialpedagogiska Skolmyndigheten
+ --TransportForsK, --Tunga Fordon, 
+ --Wienerbageriet
+*/
+
+    
+    let mut total_records_affected = 0;
+
+    let sql = r#"update rec.names n
+                set der_lang = 'sv'
+            where der_lang is null and n.name_type <> 10
+            and country_code in ('SE', 'FI')
+            and 
+            (lc_value ilike '%konstmuseum%'
+            or lc_value like '%institutet%' 
+            or lc_value like '%ningen%'
+            or lc_value like '%huset%' 
+            or lc_value like '%ringen%'
+            or lc_value like '%universitetet%'
+            or lc_value like '%förbundet%' 
+            or lc_value like '%telsern%' 
+            or lc_value like '%landsting%'
+            or lc_value like '%lasarett%'
+            or lc_value like '%minnesfond%'
+            or lc_value like '%stiftelse%' 
+            or lc_value like '%kliniken%' 
+            or lc_value like '%fonden%'
+            or lc_value like '%forskning%'
+            or lc_value like '%centrum%'
+            or lc_value like '%vägen%');"#;
+    let res = sqlx::raw_sql(sql).execute(pool)
+        .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    total_records_affected += res.rows_affected();
+    
+    let sql = r#"update rec.names n
+                set der_lang = 'sv'
+            where der_lang is null and n.name_type <> 10
+            and country_code in ('SE', 'FI')
+            and 
+            (lc_value ilike '% för %'
+            or lc_value like '%sjukhus%' 
+            or lc_value like '%västra%'
+            or lc_value like '%akademin%' 
+            or lc_value like '%finlands%'
+            or lc_value like '%finska%'
+            or lc_value like '%folktandvården%' 
+            or lc_value like '%göteborgs%' 
+            or lc_value like '%högskolan%'
+            or lc_value like '% i %'
+            or lc_value like '%kungliga%'
+            or lc_value like '%landstinget%' 
+            or lc_value like '%länsstyrelsen%' 
+            or lc_value like '%stiftelsen%'
+            or lc_value like '%svenska%'
+            or lc_value like '%sverige%'
+            or lc_value like '%trafikverket%'
+            or lc_value like '%kommun%' );"#;
+    let res = sqlx::raw_sql(sql).execute(pool)
+        .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    total_records_affected += res.rows_affected();
+
+    info!("{} language codes added to swedish records", total_records_affected);
     
     Ok(())
 }
@@ -1006,37 +1276,161 @@ pub async fn update_swedish_names(pool: &Pool<Postgres>) -> Result<(), AppError>
 
 pub async fn update_finnish_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
+    
+    /*
+     -- ALSO
+     --Ab Lukko Oy, --Amer-Yhtymä, --Keski-Satakunnan Terveydenhuollon kuntayhtymä
+     --Lounais-Suomen Syöpäyhdistys, --Osakeyhtiö Kone Aktiebolag
+     --Pellervo Taloustutkimus, --Puolustusvoimat, --Satakunnan Sairaanhoitopiirin
+     --Suomalainen Tiedeakatemia, --Tekonivelsairaala Coxa, --Trafikverket
+     --Työsuojelurahasto, --Ymparistoministerio Milijoministeriet
+     */
+     
     let mut total_records_affected = 0;
-
+    
     let sql = r#"update rec.names n
-                set der_lang = 'es'
+                set der_lang = 'fi'
             where der_lang is null and n.name_type <> 10
-            and country_code in ('DE', 'AT', 'CH')
+            and country_code in ('SE', 'FI')
             and 
-            (lc_value ilike '%%'
-            or lc_value like '%%' 
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%' 
-            or lc_value like '%%' 
-            or lc_value like '%%' 
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%' 
-            or lc_value like '%%' 
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%'
-            or lc_value like '%%');"#;
+            (lc_value ilike '%yliopisto%'
+            or lc_value like '%säätiö%' 
+            or lc_value like '%suomi%'
+            or lc_value like '%etelä%'
+            or lc_value like '%helsingin%' 
+            or lc_value like '%juhani%' 
+            or lc_value like '%kansainvälisen%'
+            or lc_value like '%instituutti%'
+            or lc_value like '%korkeakoulu%'
+            or lc_value like '%lääketieteellisen%' 
+            or lc_value like '% ja %' 
+            or lc_value like '%norjan%'
+            or lc_value like '%pohjois%'
+            or lc_value like '%ruotsin%'
+            or lc_value like 'satakunnan%');"#;
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     total_records_affected += res.rows_affected();
 
-    info!("{} language codes added to spanish records", total_records_affected);
+    let sql = r#"update rec.names n
+                set der_lang = 'fi'
+            where der_lang is null and n.name_type <> 10
+            and country_code in ('SE', 'FI')
+            and 
+            (lc_value ilike '%suomalainen%'
+            or lc_value like '%suomen%' 
+            or lc_value like '%tampereen%'
+            or lc_value like '%turun%'
+            or lc_value like '%vaasan%' 
+            or lc_value like '%yhteis%' 
+            or lc_value like '%sairaala%' 
+            or lc_value like '%liitto%'
+            or lc_value like '% och %'
+            or lc_value like '%laitos%' 
+            or lc_value like '%musseura%' 
+            );"#;
+    let res = sqlx::raw_sql(sql).execute(pool)
+        .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    total_records_affected += res.rows_affected();
+    
+    let sql = r#"update rec.names n
+                set der_lang = 'fi'
+            where der_lang is null and n.name_type <> 10
+            and country_code in ('SE', 'FI')
+            and 
+            (lc_value like '%institutet%'  
+            or lc_value like '%akademi%'
+            or lc_value like '%säätiö%'
+            or lc_value like '%sjukhus%'
+            or lc_value like '%forsknings%'
+            or lc_value like '%stiftelsen%'
+            or lc_value like '%centrum%'
+            or lc_value like '%keskus%'
+            or lc_value like '%centralen%'
+            or lc_value like '%räjät%'
+            or lc_value like '%topiiri%'
+            or lc_value like '%korkeakoul%'
+            );"#;
+    let res = sqlx::raw_sql(sql).execute(pool)
+        .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    total_records_affected += res.rows_affected();
+    
+    info!("{} language codes added to finnish records", total_records_affected);
     
     Ok(())
 }
+
+
+pub async fn update_norwegian_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
+
+    let mut total_records_affected = 0;
+
+    let sql = r#"update rec.names n
+                set der_lang = 'no'
+            where der_lang is null and n.name_type <> 10
+            and country_code = 'NO'
+            and (lc_value like '%ø%' 
+            or lc_value like '%sykehus%' 
+            or lc_value like '%skole%' 
+            or lc_value like '%skule%' 
+            or lc_value like '%universitet%' 
+            or lc_value like '% i %'
+            or lc_value like '%ø%'
+            or lc_value like '%direktoratet%'
+            or lc_value like '%registeret%'
+            or lc_value like '%kommun%'
+            or lc_value like '%instituut%');"#;
+ 
+    let res = sqlx::raw_sql(sql).execute(pool)
+            .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    total_records_affected += res.rows_affected();
+
+    let sql = r#"update rec.names n
+                set der_lang = 'no'
+            where der_lang is null and n.name_type <> 10
+            and country_code = 'NO'
+            and (lc_value like '%kunnskaps%' 
+            or lc_value like '%bibliotek%' 
+            or lc_value like '%musea%' 
+            or lc_value like '%havn%' 
+            or lc_value like '%regionen%'
+            or lc_value like '%teknolog%'
+            or lc_value like '%svaret%'
+            or lc_value like '%klinikken%'
+            or lc_value like '%dyrehospital%'
+            or lc_value like '%sverk%'
+            or lc_value like '%sijte%');"#;
+ 
+    let res = sqlx::raw_sql(sql).execute(pool)
+            .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    total_records_affected += res.rows_affected();
+
+
+    let sql = r#"update rec.names n
+                set der_lang = 'no'
+            where der_lang is null and n.name_type <> 10
+            and country_code = 'NO'
+            and (lc_value like '%norge%' 
+            or lc_value like '%det %' 
+            or lc_value like '%forskning%' 
+            or lc_value like '%institutt%' 
+            or lc_value like '%heise %'
+            or lc_value like '%senter%'
+            or lc_value like '%forening%'
+            or lc_value like '%kunnskaps%'
+            or lc_value like '%råd%'
+            or lc_value like '%departementet%');"#;
+ 
+    let res = sqlx::raw_sql(sql).execute(pool)
+            .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    total_records_affected += res.rows_affected();
+    
+    
+    info!("{} language codes added to norwegian records", total_records_affected);
+    
+    Ok(())
+}
+
 
 pub async fn update_indian_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
@@ -1202,35 +1596,6 @@ pub async fn update_ukrainian_names(pool: &Pool<Postgres>) -> Result<(), AppErro
     total_records_affected += res.rows_affected();
 
     info!("{} language codes added to ukranian records", total_records_affected);
-    
-    Ok(())
-}
-
-
-pub async fn update_norwegian_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
-
-    let mut total_records_affected = 0;
-
-    let sql = r#"update rec.names n
-                set der_lang = 'no'
-            where der_lang is null and n.name_type <> 10
-            and country_code = 'NO'
-            and (lc_value like '%sykehus%' 
-            or lc_value like '%skole%' 
-            or lc_value like '%skule%' 
-            or lc_value like '%universitet%' 
-            or lc_value like '% i %'
-            or lc_value like '%ø%'
-            or lc_value like '%direktoratet%'
-            or lc_value like '%registeret%'
-            or lc_value like '%kommune%'
-            or lc_value like '%instituut%');"#;
- 
-    let res = sqlx::raw_sql(sql).execute(pool)
-            .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
-
-    info!("{} language codes added to norwegian records", total_records_affected);
     
     Ok(())
 }
