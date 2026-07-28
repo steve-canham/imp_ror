@@ -34,26 +34,43 @@ pub fn get_sql<'a>() -> &'a str {
     
     -- ror names has an identity column to help resolve ambiguities 
     -- The column does not appear in the derived ppr.names table
-    -- It also has an orig_value and value columns, as some 
+    -- rec.names also has an orig_value and value columns, as some 
     -- original values are changed (to correct errors, make them more consistent) 
     -- before further processing. The change_hist and change_type
     -- columns are used to record the nature of any changes
-    
+
     drop table if exists src.names;
     create table src.names
     (  
         ident             int         GENERATED ALWAYS AS IDENTITY
       , id                varchar     not null
-      , orig_value        varchar     not null 
       , value             varchar     not null  
-      , changed           bool        not null  default false
-      , change_type_id    varchar     null
-      , change_type       varchar     null
       , name_type         varchar     not null
       , is_ror_name       bool        null
       , lang              varchar     null
     );
-    create index ppr_names_idx on src.names(id);
+    create index src_names_idx on src.names(id);
+    
+    drop table if exists rec.names;
+    create table rec.names
+    (  
+        ident             int         not null
+      , id                varchar     not null
+      , orig_value        varchar     not null 
+      , name_type         int         not null
+      , is_ror_name       bool        not null
+      , value             varchar     not null  
+      , lc_value          varchar     null
+      , lang              varchar     null
+      , der_lang          varchar     null
+      , der_script        varchar     null
+      , num_countries     int         null
+      , country_code      varchar     null
+      , changed           bool        not null  default false
+      , change_type_id    varchar     null
+      , change_type       varchar     null
+    );
+    create index rec_names_idx on src.names(id);
     
     drop table if exists src.locations;
     create table src.locations
@@ -70,7 +87,16 @@ pub fn get_sql<'a>() -> &'a str {
       , country_subdivision_code      varchar     null
       , country_subdivision_name      varchar     null	
     );
-    create index ppr_locations_idx on src.locations(id);
+    create index src_locations_idx on src.locations(id);
+    
+    drop table if exists src.countries;
+    create table src.countries
+    (
+          id                varchar     not null
+        , country_code      varchar     null
+    );
+    create index src_countries_idx on src.countries(id);
+
     
     drop table if exists src.external_ids;
     create table src.external_ids
@@ -80,7 +106,7 @@ pub fn get_sql<'a>() -> &'a str {
       , id_value          varchar     not null
       , is_preferred      bool        null
     );
-    create index ppr_external_ids_idx on src.external_ids(id);
+    create index src_external_ids_idx on src.external_ids(id);
     
     drop table if exists src.links;
     create table src.links
@@ -89,15 +115,15 @@ pub fn get_sql<'a>() -> &'a str {
       , link_type         varchar     not null
       , value             varchar     not null
     );
-    create index ppr_links_idx on src.links(id);
+    create index src_links_idx on src.links(id);
     
     drop table if exists src.type;
     create table src.type
     (  
         id                varchar	    not null
-      , org_type          varchar     not null
+      , org_type          varchar       not null
     ); 
-    create index ppr_type_idx on src.type(id);
+    create index src_type_idx on src.type(id);
     
     drop table if exists src.relationships;
     create table src.relationships
@@ -107,7 +133,7 @@ pub fn get_sql<'a>() -> &'a str {
       , related_id        varchar     not null
       , related_label     varchar     not null
     ); 
-    create index ppr_relationships_idx on src.relationships(id);
+    create index src_relationships_idx on src.relationships(id);
     
     drop table if exists src.domains;
     create table src.domains
@@ -115,7 +141,7 @@ pub fn get_sql<'a>() -> &'a str {
         id                varchar     not null
       , value             varchar     not null
     );
-    create index ppr_domains_idx on src.domains(id);
+    create index src_domains_idx on src.domains(id);
     
     drop table if exists rec.bare_ror_names;
     create table rec.bare_ror_names
@@ -123,7 +149,7 @@ pub fn get_sql<'a>() -> &'a str {
         id                varchar     not null
       , value             varchar     not null
     );
-    create index ppr_bare_ror_names_idx on rec.bare_ror_names(id);
+    create index rec_bare_ror_names_idx on rec.bare_ror_names(id);
         
     drop table if exists rec.dup_names;
     create table rec.dup_names

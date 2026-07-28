@@ -120,6 +120,14 @@ pub fn get_locations_sql <'a>() -> &'a str  {
         on a.id = c.id;"#
 }
 
+/* 
+pub fn get_countries_sql <'a>() -> &'a str {
+    r#"insert into src.countries(id, country_code)
+        select distinct id, country_code
+        from src.locations;"#
+}
+*/
+
 pub fn get_relationships_sql <'a>() -> &'a str {
         r#"insert into ppr.relationships(id, ror_name, rel_type, related_id, related_name)
         select a.id, c.ror_name, 

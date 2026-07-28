@@ -199,11 +199,11 @@ impl RequiredDataVecs{
         
         // Do the name data.
         
-        let sql = r#"INSERT INTO src.names (id, orig_value, value, name_type, is_ror_name, lang) 
-        SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::text[], $5::bool[], $6::text[])"#;
+        let sql = r#"INSERT INTO src.names (id, value, name_type, is_ror_name, lang) 
+        SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::bool[], $5::text[])"#;
 
         sqlx::query(sql)
-                .bind(&self.name_db_ids).bind(&self.names).bind(&self.names)
+                .bind(&self.name_db_ids).bind(&self.names)
                 .bind(&self.name_types).bind(&self.is_rors).bind(&self.langs)
                 .execute(pool)
                 .await.map_err(|e| AppError::SqlxError(e, "Storing src names".to_string()))?;

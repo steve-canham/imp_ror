@@ -27,47 +27,44 @@ async fn prepare_names_for_script_codes(pool: &Pool<Postgres>) -> Result<(), App
             .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     info!("Names copied for processing prior to script coding");
 
-    // Scripts are mainbly applied by examining the unicode of name characters
+    // Scripts are mainly applied by examining the unicode of name characters
     // and matching them against the different unicode pages for different scripts.
 
     // First remove characters classed as 'latin' that could be in non latin names, 
     // that would otherwise give a 'false-latin' result.
-    
-    let mut punctuation = 0;                        // commas, semi-colons and full stops
-    punctuation += remove_char(".", pool).await?;
+                           
+    let mut punctuation = remove_char(".", pool).await?;    // commas, semi-colons and full stops
     punctuation += remove_char(",", pool).await?;
     punctuation += remove_char(";", pool).await?;
     punctuation += remove_char(":", pool).await?;
     info!("{} commas, full stops, colons and semi-colons removed from name copies", punctuation);
-
-    let mut brackets = 0;                           // parentheses and brackets
-    brackets += remove_char("(", pool).await?;
+                        
+    let mut brackets = remove_char("(", pool).await?;   // parentheses and brackets
     brackets += remove_char(")", pool).await?;
     info!("{} parantheses characters removed from name copies", brackets);
 
-    let mut brackets = 0;
-    brackets += remove_char("[", pool).await?;
+    let mut brackets = remove_char("[", pool).await?;
     brackets += remove_char("]", pool).await?;
     info!("{} bracket characters removed from name copies", brackets);
 
-    let res = remove_char("\"", pool).await?;        // double quotes, apostrophes, guillemets
-    info!("{} double quotes removed from name copies", res);
+    let mut smart_single_quotes = remove_char("‘", pool).await?;
+    smart_single_quotes += remove_char("’", pool).await?;
+    info!("{} smart quote characters removed from name copies", smart_single_quotes);
+
+    let mut smart_double_quotes = remove_char("“", pool).await?;
+    smart_double_quotes += remove_char("”", pool).await?;
+    info!("{} smart quote characters removed from name copies", smart_double_quotes);
+
     let res  = remove_char("''", pool).await?;
     info!("{} apostrophes removed from name copies", res);
-    let mut guillemets = 0;
-    guillemets += remove_unicode_char("00AB", pool).await?;
-    guillemets += remove_unicode_char("00BB", pool).await?;
-    info!("{} guillemets characters removed from name copies", guillemets);
 
-    let mut punctuation = 0;                       // Hyphens, ampersands, slashes
-    punctuation += remove_char("-", pool).await?;
+    let mut punctuation = remove_char("-", pool).await?;  // Hyphens, ampersands, slashes
     punctuation += remove_char("&", pool).await?;
     punctuation += remove_char("/", pool).await?;
     punctuation += remove_char("|", pool).await?;
     info!("{} sundry punctuation removed from name copies", punctuation);
    
-    let mut bullets = 0;                            // Bullets
-    bullets += remove_char("·", pool).await?;       // middle dot, U+00b7
+    let mut bullets = remove_char("·", pool).await?;       // middle dot, U+00b7
     bullets += remove_char("・", pool).await?;      // katakana middle dot, U+30fb
     info!("{} Bullets removed from name copies", bullets);
   
@@ -87,19 +84,6 @@ async fn remove_char(char: &str, pool: &Pool<Postgres>) -> Result<u64, AppError>
     let sql  = format!(r#"update ppr.names_pad
             set name = replace(name, '{}', '')
             where name like '%{}%'; "#, char, char);
-
-    let res = sqlx::query(&sql).execute(pool).await
-    .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-
-    Ok(res.rows_affected())
-}
-
-
-async fn remove_unicode_char(unicode: &str, pool: &Pool<Postgres>) -> Result<u64, AppError> {
-
-    let sql  = format!(r#"update ppr.names_pad
-            set name = replace(name, U&'\{}', '')
-            where name like U&'%\{}%'; "#, unicode, unicode);
 
     let res = sqlx::query(&sql).execute(pool).await
     .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;

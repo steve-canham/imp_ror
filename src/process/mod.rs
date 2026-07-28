@@ -1,4 +1,5 @@
-mod process_names;
+mod names_clean;
+mod names_langs;
 mod rmv_dup_names;
 mod script_coder;
 
@@ -27,8 +28,14 @@ pub async fn process_data(params: &InitParams, pool : &Pool<Postgres>) -> Result
         select version, data_date, data_days, {} from src.version_details;"#, params.flags.inc_withdrawn);
     execute_sql(&sql, pool).await?;
 
-    process_names::clean_names1(pool).await?;  // before che3cking for duplicates so some basic tidying of names
-       
+    names_langs::create_rec_names(pool).await?;
+    names_langs::create_countries(pool).await?;
+    names_langs::update_rec_names_with_country_data(pool).await?;
+    
+    names_clean::basic_clean(pool).await?;  // do some very basic tidying of names
+    names_langs::create_lc_names(pool).await?; 
+    names_langs::derive_lang_codes(pool).await?;  // try and obtain lang codes 
+    names_clean::clean_names2(pool).await?;  // before che3cking for duplicates so some basic tidying of names
     rmv_dup_names::remove_dups(pool).await?;  // done here to prevent PK errors in core_data
     
     execute_sql(get_core_data_sql(), pool).await?;
