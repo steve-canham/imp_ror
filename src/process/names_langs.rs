@@ -262,6 +262,7 @@ pub async fn assign_lang(names: Vec<&str>, lang_code: &str, countries: &str, poo
     Ok(res.rows_affected())
 }
 
+
 /* 
 pub async fn update_english_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
