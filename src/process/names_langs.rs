@@ -214,151 +214,191 @@ pub async fn update_university_names_1(pool: &Pool<Postgres>) -> Result<(), AppE
 
     /* 
      * 
-     univ fr, FR			
      
-     universidad    es, AR, BO, BR, BY, BZ, CL, CO, CR, CU, DO, EC, ES, GT, HN
-     universidades  es, ES
-     universidade   pt, AO, AR, BR, CV, GW
+     iunivesite  sm, WS
+     iyunivesithi  xh , ZA
+     
+     univ fr, FR			
+     univ en, JP, SG
+     univeristy  en, NE
+     
+     universidad    es, AR, BO, BR, BY, BZ, CL, CO, CR, CU, DO, EC, ES, GT, HN, MX, NI, PA, PE, PH, PR, PY, QA, SV, TT, US, UY, VE
+     universidades  es, ES, MX, UY
+     universidade   pt, AO, AR, BR, CV, GW, MO, MZ, ST, TL
+     universidades  pt, PT
      universidade   gl, ES
      
-     università  it, AL, AR, BR, CH
+     universit   en, JP
+     universita  he  Il
+     università  it, AL, AR, BR, CH, IT, SI, SM, SO
+     università  mt, MT
      
      universitaet  de, DE
      
-     universitaire  fr, BE, BJ, CA, CD, CF, CG, CH, CI, CM, DE, DZ, FR, GN, GQ, HT
+     universitaire  fr, BE, BJ, CA, CD, CF, CG, CH, CI, CM, DE, DZ, FR, GN, GQ, HT, LB, LU, NG, TD, TN, YT
      universitaires   fr, BE
      
-     universitaria   it, CH
-     universitaria   es, CL, CO, DO, EC, ES
+     universitare  ?? sq, XK
+     
+     universitare  ro, RO
+     universitară   ro, RO
+     universitar   ro, RO
+     
+     universitaria   it, CH, IT
+     universitaria   es, AR, CL, CO, DO, EC, ES, GT ,MX, PE, PR, UY, VE
      
      universitària   ca, ES
      
-     universitario   es, AR, CL, CO, EC, ES, GT
+     universitario   es, AR, CL, CO, DO, EC, ES, GT, MX, PE, PR, UY, VE
      universitario   pt, BR
+     universitario   it, IT
+     
      universitaris   ca, ES
      
-     universitária   pt, BR
-     universitário  pt, BR
+     universitária   pt, BR, PT
+     universitário   pt, BR, MZ, PT
      
      universitari    ca?, ES
      
-     universitas    la, FR, GB, HR, HU
+     universitas    la, FR, GB, HR, HU, NI, NO, PH, PL
      universitas    id, ID
      
-     universitat(s)  ca, AD, ES, FR
+     universitatis  ?, US
+     
+     Universitat     he, IL
+     universitat(s)  ca, AD, ES, FR, IT
      
      universitäre  de, CH
      universitäres de, DE
-     universität  de, AL, AT, BE, BG, BR, BY, CH, CN, CZ, DE, DK, HU
+     universität  de, AL, AT, BE, BG, BR, BY, CH, CN, CZ, DE, DK, HU, IT, KZ, LI, LU, NA, PL, RO, SI, SK, UA
      universitäten  de, CH,
      
-     universite   fr, FR, HT
-     université  fr, AL, AM, AR, BE, BF, BI, BJ, BY, CA, CD, CF, CG, CI, CM, DJ, DZ, EG, ES, FR, GA, GF, GN, GP, GR, HT
-     universités   fr, CA
-     universiteit   nl, AL, AW, BE, CW
+     universitatea  ro, MD
      
-     universitesi  tr, CY
+     universite   fr, FR, HT, RW, UA
+     université  fr, AL, AM, AR, BE, BF, BI, BJ, BY, CA, CD, CF, CG, CI, CM, DJ, DZ, EG, ES, FR, GA, GF, GN, GP, GR, HT, IT, KH, KM, LA, LB, LU, LY, MA, MG, ML, MR, MU, NC, NE, RE, RW, SN, SY, TD, TG, TN, TT, UA, US, VN, YT
+     universités   fr, CA
+     universitét  ?? sk, UA 
+     
+     universiteit   nl, AL, AW, BE, CW, NL, SR
+     universiteit   af, ZA
+     
+     universitesi  tr, CY, TR
      
      universitet  bg, BG?
      universitet  be, BY?
-     universitet  dk, DK
+     
      universitet  sv, FI
-     universitet  da, FO, GL
+     universitet  da, FO, GL, DK
+     universitet  kk, KZ
+     universitet  no, NO
+     universitet  sv, SE
+     universitet  ru, RU
      
      universitet(i)  pinyin, CN
      
-     universiteti  uz,AF
-     universiteti  sq, AL
+     universitetas   lt, LT, LV
+     universitāte(s) lv, LV
+     
+     universitehta   se, NO
+     
+     universiteti  uz, AF, KG, SY, UZ
+     universiteti  sq, AL, MK, XK
      universiteti  az, AZ, ?GE
      universiteti  ? gn, GE
      
-     universities  en, AT, AU, CA
-     universiti    ms, BN
+     universities  en, AT, AU, CA, IN, IQ
+     universiti    ms, BN, MY, SG
      
-     univerza  sl, AT
+     universytet   uk, UA
      
-     univerzita  cs, CZ
+     univesity    en, IN
      
-     univerzitet   bs, BA
-     univerzitet   sr, BA
+     univerza  sl, AT, IT, SI
+     
+     univerzita  cs, CZ, PL
+     univerzita  sk, SK
+     
+     univerzitet   bs, BA, ME
+     univerzitet   sr, BA, RS
+     univerzitet   bg, MK
+     
+     
      univerziteta   bs, BA
      univerzitetska  bs, BA
      univerzitetski   bs, BA
      
+     univerziteta   sr,RS
+     univerzitetska  sr,RS
+     univerzitetski  sr,RS
+     
+     univesity  en RO
+     
      yunivarsiitii  om, ET
+     yunivesithi  st, ZA
+     
+     
+     
+     universality  en, FR
+     universalité  fr, FR
+     universale  it, IT
+     universalmuseum de, AT
+     conselleria de sanitat universal i salut pública ca, ES
+     universitas universal     la, en
+     %universal %  en
+     %lunivers %   fr
+     %lunivers$   fr
+     %universe sciences observatory%  en
+     %the universe%   en
+     %universe and %  en
+
+          
      
      fundação centro de estudos do universo
-     univerzitet sarajevo school of science and technology
      univesp
-     gaborone universal college of law
      univalor
      union postale universelle
-     universal postal union
-     universal rights group
      excellence cluster universe
      exzellenzcluster universe
      univation institut für evaluation dr beywl  associates
-     universal management services
      universum bremen
      universum science center
      walter brendel centre of experimental medicine wbex at the ludwig-maximilians-universität münchen
      univ mohamed boudiaf msila
      biodiversity research institute of the universiy of barcelona
-     conselleria de sanitat universal i salut pública
      iese business school universidad de navarra
      universia foundation
      astronomical universe sciences observatory of strasbourg
-     bien-être organisations numérique habitabilité éducation universalité relations savoirs
-     bien-être organisations numérique habitabilité éducation universalité relations savoirs - bonheurs
      cnrs earth  universe
      cnrs terre et univers
-     grenoble universe sciences observatory
      inria centre at université côte dazur
      inria centre at université de lorraine
      inria centre at université grenoble alpes
      inria saclay centre at université paris-saclay
-     institut de recherche sur les lois fondamentales de lunivers
-     institute of research into the fundamental laws of the universe
-     institut national des sciences de lunivers
-     institut pythéas observatoire des sciences de lunivers
      labex univearths
-     laboratory for the study of the universe and extreme phenomena
-     laboratory universe and theories
-     lux - laboratory for the study of the universe and extreme phenomena
-     montpellier universe and particles laboratory
-     observatoire aquitain des sciences de lunivers
-     observatoire des sciences de lunivers de besançon
-     observatoire des sciences de lunivers de grenoble
-     observatoire des sciences de lunivers de luniversité paris-saclay
-     observatoire des sciences de lunivers de luniversité paris-saclay
-     observatoire des sciences de lunivers de luniversité versailles saint-quentin
-     observatoire des sciences de lunivers de lyon
-     observatoire des sciences de lunivers de rennes
-     observatoire des sciences de lunivers en région centre val de loire
-     observatoire des sciences de lunivers iuem
-     observatoire des sciences de lunivers nantes atlantique
-     observatoire des sciences de lunivers oreme
-     observatoire des sciences de lunivers paris-centre ecce terra
-     observatoire des sciences de lunivers paris-saclay
-     observatoire des sciences de lunivers pytheas
-     observatoire des sciences de lunivers terre homme environnement temps astronomie
      observatory for universe sciences of franche-comté burgundy
      terres univia
      univearths
      typologie et universaux linguistiques
      universcience
-     universe sciences observatory efluve
-     universe sciences observatory eost
-     universe sciences observatory of clermont-ferrand
-     universe sciences observatory of nantes atlantique
-     universe sciences observatory of rennes
-     universe sciences observatory of the centre val de loire region
-     universe sciences observatory otelo
-     universe sciences observatory theta
      univers transport interfaces nanostructures atmosphère et environnement molécules
      well-being organizations digital habitability education universality relations knowledge
-     
-     
+     univrab
+     univtrinita
+     kanchi mamunivar centre for post graduate studies
+     centro universale del bel canto
+     univers foundation
+     the univers foundation
+     kuniv (kuwait uni)
+     american universal college
+     univotec
+     univers moldova
+     universitam
+     construction research center universiti teknologi malaysia
+     observatoire des sciences de lunivers de la réunion
+     bryansk regional scientific universal library f i tyutchev
+     universeum
+         
 
      */
    
@@ -457,26 +497,7 @@ pub async fn update_hospital_names_2(pool: &Pool<Postgres>) -> Result<(), AppErr
     // All the rest of the 'hospital's default to english
     
     records_affected += assign_lang(vec!["hospital"], "en", "", pool).await?;
-
-    /* 
-    records_affected += assign_lang(vec!["hospital"], "en", 
-                  "'AR', 'BO', 'CL', 'CO', 'CR', 'CU', 'DO', 'EC', 'ES', 'IT', 'GI', 'GQ', 'GT', 'HN', 'MX', 'MW', 'NI', 'PA', 'PE', 
-                  'PR', 'PY', 'SV', 'TT', 'UY', 'VE'", pool).await?;
-    records_affected += assign_lang(vec!["hospital"], "en", "'PT', 'BR', 'CV', 'AO', 'MZ', 'GW', 'ST', 'TL'", pool).await?;
-    
-    records_affected += assign_lang(vec!["hospital"], "en", "'MY', 'SG'", pool).await?;
-    records_affected += assign_lang(vec!["hospital"], "en", "'GB', 'AU', 'NZ', 'CA', 'US'", pool).await?;
-    records_affected += assign_lang(vec!["hospital"], "en", "'IT', 'DE', 'DK', 'GR', 'BE', 'CH', 'RO', 'SK', 'MO', 'RE'", pool).await?;
-    
-    records_affected += assign_lang(vec!["hospital"], "en", "'CN', 'HK', 'TW', 'JP', 'KR', 'KP', 'KH', 'LA', 'VN'", pool).await?;
-    records_affected += assign_lang(vec!["hospital"], "en", "'IN', 'PK', 'BD', 'NP','LK', 'TH', 'ID', 'MM'", pool).await?;
-    records_affected += assign_lang(vec!["hospital"], "en", "'AE', 'AT', 'BA', 'BB', 'BG', 'BH', 'BI', 'BN', 'BW', 'BY', 'CD', 'CM', 'CV', 'CW', 'CY', 'CZ', 'ET', 'FI', 'GA', 'EE'", pool).await?;
-    records_affected += assign_lang(vec!["hospital"], "en", "'DZ', 'FR', 'GH', 'GN', 'GL', 'GT', 'GY', 'HK', 'HR', 'HU', 'IE', 'IL', 'IM', 'IS', 'KE', 'KH', 'MC', 'LR', 'LT', 'MK', 'ML', 'MT'", pool).await?;
-    records_affected += assign_lang(vec!["hospital"], "en", "'MA', 'MV', 'NC', 'NE', 'NG', 'NL', 'NO', 'PG', 'PH', 'PL', 'PS', 'RS', 'RU', 'RW', 'SA', 'SE', 'SI', 'SL', 'SO', 'TV', 'TZ'", pool).await?;
-    records_affected += assign_lang(vec!["hospital"], "en", "'SR', 'SY', 'TR', 'UA', 'UG', 'UZ', 'VI', 'XK', 'ZA', 'ZM', 'ZW'", pool).await?;
-    records_affected += assign_lang(vec!["hospital"], "en", "'AL', 'IR', 'EG', 'JO', 'KW', 'LB', 'OM', 'TN', 'QA'", pool).await?;
-    */
-
+   
     records_affected += assign_lang(vec!["hospitaal"], "nl", "'NL', 'BE'", pool).await?; 
     records_affected += assign_lang(vec!["hospitaal"], "af", "'ZA'", pool).await?; 
     records_affected += assign_lang(vec!["spitalor"], "sq", "'AL'", pool).await?; 
