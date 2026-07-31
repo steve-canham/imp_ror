@@ -206,12 +206,37 @@ pub async fn update_university_names_1(pool: &Pool<Postgres>) -> Result<(), AppE
 
     records_affected += assign_lang(vec!["yliopisto"], "fi", "", pool).await?; 
 
+    records_affected += assign_lang(vec!["università"], "mt", "'MT'", pool).await?; 
     records_affected += assign_lang(vec!["università"], "it", "", pool).await?; 
-    records_affected += assign_lang(vec!["yliopisto"], "fi", "", pool).await?; 
-    records_affected += assign_lang(vec!["yliopisto"], "fi", "", pool).await?; 
-    records_affected += assign_lang(vec!["yliopisto"], "fi", "", pool).await?; 
 
+    records_affected += assign_lang(vec!["universitét"], "uk", "'UA'", pool).await?; 
+    records_affected += assign_lang(vec!["université"], "fr", "", pool).await?; 
 
+    records_affected += assign_lang(vec!["universiteit"], "nl", "'AL', 'AW', 'BE', 'CW', 'NL', 'SR'", pool).await?; 
+    records_affected += assign_lang(vec!["universiteit"], "af", "'ZA'", pool).await?; 
+
+    records_affected += assign_lang(vec!["universität"], "de", "", pool).await?; 
+    records_affected += assign_lang(vec!["universitaet"], "de", "", pool).await?; 
+
+    records_affected += assign_lang(vec!["universitesi"], "tr", "'CY', 'TR'", pool).await?; 
+
+    records_affected += assign_lang(vec!["universitetas"], "lt", "'LT'", pool).await?; 
+    records_affected += assign_lang(vec!["universitāte"], "lv", "'LV', 'LT'", pool).await?; 
+    
+    records_affected += assign_lang(vec!["universiteti"], "uz", "'AF', 'KG', 'SY', 'UZ'", pool).await?; 
+    records_affected += assign_lang(vec!["universiteti"], "sq", "'AL', 'MK', 'XK'", pool).await?; 
+    records_affected += assign_lang(vec!["universiteti"], "az", "'AZ', 'TR', 'GE'", pool).await?; 
+            
+    records_affected += assign_lang(vec!["universitet"], "sv", "'SE', 'FI'", pool).await?;
+    records_affected += assign_lang(vec!["universitet"], "da", "'FO', 'GL', 'DK'", pool).await?;
+    records_affected += assign_lang(vec!["universitet"], "no", "'NO'", pool).await?;
+    records_affected += assign_lang(vec!["universitet"], "kk", "'KZ'", pool).await?;
+    records_affected += assign_lang(vec!["universitet"], "ru", "'RU'", pool).await?;
+    records_affected += assign_lang(vec!["universitet"], "zh", "'CN'", pool).await?;
+
+    records_affected += assign_lang(vec!["universitehta"], "se", "'NO'", pool).await?;
+
+        
     /* 
      * 
      
