@@ -148,8 +148,12 @@ pub async fn derive_lang_codes (pool: &Pool<Postgres>) -> Result<(), AppError> {
     add_cm_lang_code_to_comm_orgs(pool).await?;
     
     // Add languages if possible, using location of org and key words or word parts
+
+    update_university_names_1(pool).await?;
     
-    update_hospital_names(pool).await?;
+    update_hospital_names_1(pool).await?;
+    update_hospital_names_2(pool).await?;
+    
     /* 
     update_spanish_names(pool).await?;
     update_portuguese_names(pool).await?;
@@ -196,13 +200,209 @@ pub async fn add_cm_lang_code_to_comm_orgs(pool: &Pool<Postgres>) -> Result<(), 
     Ok(())
 }
 
-
-pub async fn update_hospital_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
+pub async fn update_university_names_1(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
     let mut records_affected = 0;
 
-    records_affected += assign_lang(vec!["university hospital", "general hospital", "childrens hospital",
+    records_affected += assign_lang(vec!["yliopisto"], "fi", "", pool).await?; 
+
+    records_affected += assign_lang(vec!["università"], "it", "", pool).await?; 
+    records_affected += assign_lang(vec!["yliopisto"], "fi", "", pool).await?; 
+    records_affected += assign_lang(vec!["yliopisto"], "fi", "", pool).await?; 
+    records_affected += assign_lang(vec!["yliopisto"], "fi", "", pool).await?; 
+
+
+    /* 
+     * 
+     univ fr, FR			
+     
+     universidad    es, AR, BO, BR, BY, BZ, CL, CO, CR, CU, DO, EC, ES, GT, HN
+     universidades  es, ES
+     universidade   pt, AO, AR, BR, CV, GW
+     universidade   gl, ES
+     
+     università  it, AL, AR, BR, CH
+     
+     universitaet  de, DE
+     
+     universitaire  fr, BE, BJ, CA, CD, CF, CG, CH, CI, CM, DE, DZ, FR, GN, GQ, HT
+     universitaires   fr, BE
+     
+     universitaria   it, CH
+     universitaria   es, CL, CO, DO, EC, ES
+     
+     universitària   ca, ES
+     
+     universitario   es, AR, CL, CO, EC, ES, GT
+     universitario   pt, BR
+     universitaris   ca, ES
+     
+     universitária   pt, BR
+     universitário  pt, BR
+     
+     universitari    ca?, ES
+     
+     universitas    la, FR, GB, HR, HU
+     universitas    id, ID
+     
+     universitat(s)  ca, AD, ES, FR
+     
+     universitäre  de, CH
+     universitäres de, DE
+     universität  de, AL, AT, BE, BG, BR, BY, CH, CN, CZ, DE, DK, HU
+     universitäten  de, CH,
+     
+     universite   fr, FR, HT
+     université  fr, AL, AM, AR, BE, BF, BI, BJ, BY, CA, CD, CF, CG, CI, CM, DJ, DZ, EG, ES, FR, GA, GF, GN, GP, GR, HT
+     universités   fr, CA
+     universiteit   nl, AL, AW, BE, CW
+     
+     universitesi  tr, CY
+     
+     universitet  bg, BG?
+     universitet  be, BY?
+     universitet  dk, DK
+     universitet  sv, FI
+     universitet  da, FO, GL
+     
+     universitet(i)  pinyin, CN
+     
+     universiteti  uz,AF
+     universiteti  sq, AL
+     universiteti  az, AZ, ?GE
+     universiteti  ? gn, GE
+     
+     universities  en, AT, AU, CA
+     universiti    ms, BN
+     
+     univerza  sl, AT
+     
+     univerzita  cs, CZ
+     
+     univerzitet   bs, BA
+     univerzitet   sr, BA
+     univerziteta   bs, BA
+     univerzitetska  bs, BA
+     univerzitetski   bs, BA
+     
+     yunivarsiitii  om, ET
+     
+     fundação centro de estudos do universo
+     univerzitet sarajevo school of science and technology
+     univesp
+     gaborone universal college of law
+     univalor
+     union postale universelle
+     universal postal union
+     universal rights group
+     excellence cluster universe
+     exzellenzcluster universe
+     univation institut für evaluation dr beywl  associates
+     universal management services
+     universum bremen
+     universum science center
+     walter brendel centre of experimental medicine wbex at the ludwig-maximilians-universität münchen
+     univ mohamed boudiaf msila
+     biodiversity research institute of the universiy of barcelona
+     conselleria de sanitat universal i salut pública
+     iese business school universidad de navarra
+     universia foundation
+     astronomical universe sciences observatory of strasbourg
+     bien-être organisations numérique habitabilité éducation universalité relations savoirs
+     bien-être organisations numérique habitabilité éducation universalité relations savoirs - bonheurs
+     cnrs earth  universe
+     cnrs terre et univers
+     grenoble universe sciences observatory
+     inria centre at université côte dazur
+     inria centre at université de lorraine
+     inria centre at université grenoble alpes
+     inria saclay centre at université paris-saclay
+     institut de recherche sur les lois fondamentales de lunivers
+     institute of research into the fundamental laws of the universe
+     institut national des sciences de lunivers
+     institut pythéas observatoire des sciences de lunivers
+     labex univearths
+     laboratory for the study of the universe and extreme phenomena
+     laboratory universe and theories
+     lux - laboratory for the study of the universe and extreme phenomena
+     montpellier universe and particles laboratory
+     observatoire aquitain des sciences de lunivers
+     observatoire des sciences de lunivers de besançon
+     observatoire des sciences de lunivers de grenoble
+     observatoire des sciences de lunivers de luniversité paris-saclay
+     observatoire des sciences de lunivers de luniversité paris-saclay
+     observatoire des sciences de lunivers de luniversité versailles saint-quentin
+     observatoire des sciences de lunivers de lyon
+     observatoire des sciences de lunivers de rennes
+     observatoire des sciences de lunivers en région centre val de loire
+     observatoire des sciences de lunivers iuem
+     observatoire des sciences de lunivers nantes atlantique
+     observatoire des sciences de lunivers oreme
+     observatoire des sciences de lunivers paris-centre ecce terra
+     observatoire des sciences de lunivers paris-saclay
+     observatoire des sciences de lunivers pytheas
+     observatoire des sciences de lunivers terre homme environnement temps astronomie
+     observatory for universe sciences of franche-comté burgundy
+     terres univia
+     univearths
+     typologie et universaux linguistiques
+     universcience
+     universe sciences observatory efluve
+     universe sciences observatory eost
+     universe sciences observatory of clermont-ferrand
+     universe sciences observatory of nantes atlantique
+     universe sciences observatory of rennes
+     universe sciences observatory of the centre val de loire region
+     universe sciences observatory otelo
+     universe sciences observatory theta
+     univers transport interfaces nanostructures atmosphère et environnement molécules
+     well-being organizations digital habitability education universality relations knowledge
+     
+     
+
+     */
+   
+    info!("{} language codes added to university names", records_affected);
+    
+    Ok(())
+}
+
+
+pub async fn update_hospital_names_1(pool: &Pool<Postgres>) -> Result<(), AppError> {
+
+    let mut records_affected = 0;
+
+    records_affected += assign_lang(vec!["ospedale"], "it", "", pool).await?; 
+    records_affected += assign_lang(vec!["ziekenhuis"], "nl", "", pool).await?; 
+    records_affected += assign_lang(vec!["sykehus"], "no", "", pool).await?; 
+    records_affected += assign_lang(vec!["sjukhus"], "sv", "", pool).await?; 
+    records_affected += assign_lang(vec!["sairaala"], "fi", "", pool).await?; 
+
+    records_affected += assign_lang(vec!["spitalzentrum centre hospitalier"], "de, fr", "", pool).await?;
+    records_affected += assign_lang(vec!["hôpita", "hospitalo-universitaire", "hospitalier", "hospitalière"], "fr", "", pool).await?;
+    
+    records_affected += assign_lang(vec!["krankenhaus", "klinikum", "klinische"], "de", "", pool).await?; 
+    records_affected += assign_lang(vec!["hospitalorden", "konventhospital", "bürgerhospital", "clemenshospital", "franziskushospital", 
+                    "franziskus hospital", "katharinenhospital", "luisenhospital"], "de", "'DE', 'AT', 'CH', 'LI', 'LU'", pool).await?;
+    records_affected += assign_lang(vec!["hospital zum", "marienhospital", "marien-hospital", "marien hospital", "antonius-hospital", 
+                    "$hospital "], "de", "'DE', 'AT', 'CH', 'LI', 'LU'", pool).await?;
+    records_affected += assign_lang(vec!["elisabeth-hospital", "johannes-hospital", "josef-hospital", "josefs-hospital", "josefs hospital", 
+                    "westfalen-lippe hospital"], "de", "'DE', 'AT', 'CH', 'LI', 'LU'", pool).await?;
+
+    records_affected += assign_lang(vec!["hospitalet", "hospitalernes", "universitetshospital", "hospitaler", "hospitalsenhed", 
+                     "kommunehospital", "gigthospital", "privathospital", "regionshospital", "psykiatriske hospital",
+                     "midt- og vestsjællands hospital"], "da", "'DK'", pool).await?;
+    
+    records_affected += assign_lang(vec!["nemocnice"], "cs", "", pool).await?; 
+    records_affected += assign_lang(vec!["nemocnica"], "sk", "'SK'", pool).await?; 
+    records_affected += assign_lang(vec!["bolnica"], "hr", "'HR'", pool).await?; 
+    records_affected += assign_lang(vec!["bolnica"], "bs", "'BA'", pool).await?; 
+    records_affected += assign_lang(vec!["bolnišnica"], "sl", "'SL'", pool).await?; 
+    records_affected += assign_lang(vec!["hospitalarius"], "la", "", pool).await?;
+    
+    records_affected += assign_lang(vec!["$hospital of ", "university hospital", "general hospital", "childrens hospital",
                         "maternity hospital", "womens hospital", "dental hospital", "eye hospital"], "en", "", pool).await?;
+    /*
     records_affected += assign_lang(vec!["teaching hospital", "central hospital", "state hospital", "provincial hospital",
                         "regional hospital", "community hospital", "orthopaedic hospital", "mental hospital" ], "en", "", pool).await?;
     records_affected += assign_lang(vec!["psychiatric hospital", "psychiatry hospital", "rehabilitation hospital", 
@@ -211,66 +411,77 @@ pub async fn update_hospital_names(pool: &Pool<Postgres>) -> Result<(), AppError
                         "college hospital", "city hospital", "and hospital", "british hospital"], "en", "", pool).await?;
     records_affected += assign_lang(vec!["emergency hospital", "center hospital", "diseases hospital", "heart hospital", 
                                          "army hospital", "county hospital"], "en", "", pool).await?;
+    */
     
     records_affected += assign_lang(vec!["hospitality", "hospitalist"], "en", "", pool).await?;
 
-    records_affected += assign_lang(vec!["hospitalorden", "konventhospital", "bürgerhospital", "clemenshospital", "franziskushospital", 
-                    "franziskus hospital", "katharinenhospital", "luisenhospital"], "de", "'DE', 'AT', 'CH', 'LI', 'LU'", pool).await?;
-    records_affected += assign_lang(vec!["hospital zum", "marienhospital", "marien-hospital", "marien hospital", "antonius-hospital", 
-                    "$hospital "], "de", "'DE', 'AT', 'CH', 'LI', 'LU'", pool).await?;
-    records_affected += assign_lang(vec!["elisabeth-hospital", "johannes-hospital", "josef-hospital", "josefs-hospital", "josefs hospital", 
-                    "westfalen-lippe hospital"], "de", "'DE', 'AT', 'CH', 'LI', 'LU'", pool).await?;
+    info!("{} language codes added to hospital names", records_affected);
+    
+    Ok(())
+}
 
-    records_affected += assign_lang(vec!["hospitalarius"], "la", "", pool).await?;
-    records_affected += assign_lang(vec!["spitalzentrum centre hospitalier"], "de, fr", "", pool).await?;
-    records_affected += assign_lang(vec!["hospitalo-universitaire", "hospitalier", "hospitalière"], "fr", "", pool).await?;
-    records_affected += assign_lang(vec!["hospitali"], "sw", "", pool).await?;
-    records_affected += assign_lang(vec!["hospitalet", "hospitalernes", "universitetshospital", "hospitaler", "hospitalsenhed", 
-                     "kommunehospital", "gigthospital", "privathospital", "regionshospital", "psykiatriske hospital",
-                     "midt- og vestsjællands hospital"], "da", "'DK'", pool).await?;
+pub async fn update_hospital_names_2(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
-    records_affected += assign_lang(vec!["hospitalari", "hospital universitari", "hospital comarcal", "hospital verge", "hospital sant",
-                                         "hospitalàries", "hospital de sant", "hospital mare de déu", "hospital dolot i comarcal",
-                                         "hospital de la santa creu", "hospital del mar dinvestigacions mèdiques", "hospital de tortosa verge",
-                                         "ajuntament", "fundació ", "pius hospital"], "ca", "'ES'", pool).await?;
+    let mut records_affected = 0;
 
     records_affected += assign_lang(vec!["hospitalet", "hospitales", "hospitalario", "hospitalaria", "hospital universitario",  
                      "hospital infantil", "hospital nacional", "del hospital", "hospital general"], "es",
-                     "'AR', 'BO', 'CL', 'CO', 'CR', 'CU', 'DO', 'EC', 'ES', 'IT', 'GI', 'GQ', 'GT', 'HN', 'MX', 'NI', 'PE', 
-                     'PY', 'SV', 'TT', 'UY', 'VE', 'PR'", pool).await?;
-    records_affected += assign_lang(vec!["hospital universitario", "hospital infantil", "hospital nacional", "del hospital", 
-                   "hospital del", "fundación", "$hospital ", "especializado hospital"], "es", "'AR', 'BO', 'CL', 'CO', 'CR', 'CU', 'DO', 'EC', 'ES', 'GI', 'GQ', 'GT', 'HN', 'MX', 'NI', 'PE', 'PY', 'UY', 'VE', 'SV', 'TT', 'PR'", pool).await?;
+                     "'AR', 'BO', 'CL', 'CO', 'CR', 'CU', 'DO', 'EC', 'ES', 'IT', 'GI', 'GQ', 'GT', 'HN', 'MX', 'MW', 'NI', 'PA', 'PE', 
+                     'PR', 'PY', 'SV', 'TT', 'UY', 'VE'", pool).await?;
+    
+    records_affected += assign_lang(vec!["hospitalari", "hospital universitari", "hospital comarcal", "hospital verge", "hospital sant",
+                     "hospitalàries", "hospital de sant", "hospital mare de déu", "hospital dolot i comarcal",
+                     "hospital de la santa creu", "hospital del mar dinvestigacions mèdiques", "hospital de tortosa verge",
+                     "pius hospital", "ajuntament"], "ca", "'ES'", pool).await?;
+    
+    records_affected += assign_lang(vec!["hospital infantil", "hospital nacional", "del hospital", 
+                    "hospital del", "$hospital ", "especializado hospital"], "es", 
+                    "'AR', 'BO', 'CL', 'CO', 'CR', 'CU', 'DO', 'EC', 'ES', 'IT', 'GI', 'GQ', 'GT', 'HN', 'MX', 'MW', 'NI', 'PA', 'PE', 
+                    'PR', 'PY', 'SV', 'TT', 'UY', 'VE'", pool).await?;
     records_affected += assign_lang(vec!["en méxico hospital", "hospital zonal", "el hospital", "investigación hospital", 
-                   "hospital italiano", "hospital evangélico", "diabetología hospital"], "es", "'AR', 'BO', 'CL', 'CO', 'CR', 'CU', 'DO', 'EC', 'ES', 'GQ', 'GT', 
-                   'GI', 'HN', 'MX', 'NI', 'PE', 'PY', 'UY', 'VE', 'SV', 'TT', 'PR'", pool).await?;
+                    "hospital italiano", "hospital evangélico", "diabetología hospital"], "es", 
+                    "'AR', 'BO', 'CL', 'CO', 'CR', 'CU', 'DO', 'EC', 'ES', 'IT', 'GI', 'GQ', 'GT', 'HN', 'MX', 'MW', 'NI', 'PA', 'PE', 
+                    'PR', 'PY', 'SV', 'TT', 'UY', 'VE'", pool).await?;
     
-    records_affected += assign_lang(vec!["hospitaleira", "hospitalar", "$hospital "], "pt", "'PT', 'BR', 'CV', 'AO', 'MZ', 'GW', 'ST', 'TL'", pool).await?;
+    records_affected += assign_lang(vec!["hospitaleira", "hospitalar", "$hospital "], "pt", 
+                   "'PT', 'BR', 'CV', 'AO', 'MO', 'MZ', 'GW', 'ST', 'TL'", pool).await?;
     records_affected += assign_lang(vec!["real hospital", "hospital das ", "hospital da ","hospital de ",
-                   "hospital-escola", "cuf infante santo hospital", "cuf porto hospital", "clinicas hospital"], 
-                   "pt", "'PT', 'BR', 'CV', 'AO', 'MZ', 'GW', 'ST', 'TL'", pool).await?;
-    
-    records_affected += assign_lang(vec!["hospital"], "en", "'AR', 'BO', 'CL', 'CO', 'CR', 'CU', 'DO', 'EC', 'ES', 'GI', 'GQ', 'GT', 
-                   'HN', 'MX', 'NI', 'PE', 'PY', 'UY', 'VE', 'PR'", pool).await?;
-    records_affected += assign_lang(vec!["hospital"], "en", "'PT', 'BR', 'CV', 'AO', 'MZ', 'GW', 'ST', 'TL'", pool).await?;
-    
-    records_affected += assign_lang(vec!["$hospital"], "ms", "'MY', 'SG'", pool).await?;
-    records_affected += assign_lang(vec![" hospital"], "en", "'MY', 'SG'", pool).await?;
-    records_affected += assign_lang(vec!["hospital ya "], "sw", "", pool).await?;
-    records_affected += assign_lang(vec!["hospital geniko"], "el", "'GR'", pool).await?;
+                   "hospital-escola", "cuf infante santo hospital", "cuf porto hospital", "clinicas hospital"], "pt", 
+                   "'PT', 'BR', 'CV', 'AO', 'MO', 'MZ', 'GW', 'ST', 'TL'", pool).await?;
 
     records_affected += assign_lang(vec!["hospital de la", "hospital del", "$hospital general", "$hospital monte"], "es", "'US'", pool).await?;
+    records_affected += assign_lang(vec!["$hospital"], "ms", "'MY', 'SG'", pool).await?;
+    records_affected += assign_lang(vec!["hospital ya ", "hospitali"], "sw", "", pool).await?;
+    records_affected += assign_lang(vec!["hospital geniko"], "el", "'GR'", pool).await?;
+
+    // All the rest of the 'hospital's default to english
+    
+    records_affected += assign_lang(vec!["hospital"], "en", "", pool).await?;
+
+    /* 
+    records_affected += assign_lang(vec!["hospital"], "en", 
+                  "'AR', 'BO', 'CL', 'CO', 'CR', 'CU', 'DO', 'EC', 'ES', 'IT', 'GI', 'GQ', 'GT', 'HN', 'MX', 'MW', 'NI', 'PA', 'PE', 
+                  'PR', 'PY', 'SV', 'TT', 'UY', 'VE'", pool).await?;
+    records_affected += assign_lang(vec!["hospital"], "en", "'PT', 'BR', 'CV', 'AO', 'MZ', 'GW', 'ST', 'TL'", pool).await?;
+    
+    records_affected += assign_lang(vec!["hospital"], "en", "'MY', 'SG'", pool).await?;
     records_affected += assign_lang(vec!["hospital"], "en", "'GB', 'AU', 'NZ', 'CA', 'US'", pool).await?;
-    records_affected += assign_lang(vec!["hospital"], "en", "'IT', 'DE', 'DK', 'GR'", pool).await?;
+    records_affected += assign_lang(vec!["hospital"], "en", "'IT', 'DE', 'DK', 'GR', 'BE', 'CH', 'RO', 'SK', 'MO', 'RE'", pool).await?;
     
     records_affected += assign_lang(vec!["hospital"], "en", "'CN', 'HK', 'TW', 'JP', 'KR', 'KP', 'KH', 'LA', 'VN'", pool).await?;
     records_affected += assign_lang(vec!["hospital"], "en", "'IN', 'PK', 'BD', 'NP','LK', 'TH', 'ID', 'MM'", pool).await?;
-    records_affected += assign_lang(vec!["hospital"], "en", "'AE', 'AT', 'BB', 'BG', 'BH', 'BI', 'CD', 'CM', 'CV', 'CY', 'CZ', 'ET', 'FI', 'GA', 'EE'", pool).await?;
-    records_affected += assign_lang(vec!["hospital"], "en", "'FR', 'GH', 'GN', 'GT', 'GY', 'HK', 'HR', 'HU', 'IE', 'IL', 'IM', 'IS', 'KE', 'KH', 'MC', 'LR', 'MK', 'ML', 'MT'", pool).await?;
-    records_affected += assign_lang(vec!["hospital"], "en", "'MV', 'NC', 'NE', 'NG', 'NL', 'NO', 'PG', 'PH', 'PL', 'PS', 'RS', 'RU', 'RW', 'SA', 'SE', 'SI', 'SL', 'SO', 'TZ'", pool).await?;
+    records_affected += assign_lang(vec!["hospital"], "en", "'AE', 'AT', 'BA', 'BB', 'BG', 'BH', 'BI', 'BN', 'BW', 'BY', 'CD', 'CM', 'CV', 'CW', 'CY', 'CZ', 'ET', 'FI', 'GA', 'EE'", pool).await?;
+    records_affected += assign_lang(vec!["hospital"], "en", "'DZ', 'FR', 'GH', 'GN', 'GL', 'GT', 'GY', 'HK', 'HR', 'HU', 'IE', 'IL', 'IM', 'IS', 'KE', 'KH', 'MC', 'LR', 'LT', 'MK', 'ML', 'MT'", pool).await?;
+    records_affected += assign_lang(vec!["hospital"], "en", "'MA', 'MV', 'NC', 'NE', 'NG', 'NL', 'NO', 'PG', 'PH', 'PL', 'PS', 'RS', 'RU', 'RW', 'SA', 'SE', 'SI', 'SL', 'SO', 'TV', 'TZ'", pool).await?;
     records_affected += assign_lang(vec!["hospital"], "en", "'SR', 'SY', 'TR', 'UA', 'UG', 'UZ', 'VI', 'XK', 'ZA', 'ZM', 'ZW'", pool).await?;
     records_affected += assign_lang(vec!["hospital"], "en", "'AL', 'IR', 'EG', 'JO', 'KW', 'LB', 'OM', 'TN', 'QA'", pool).await?;
-    
-    records_affected += assign_lang(vec!["nemocnice"], "cs", "", pool).await?; 
+    */
+
+    records_affected += assign_lang(vec!["hospitaal"], "nl", "'NL', 'BE'", pool).await?; 
+    records_affected += assign_lang(vec!["hospitaal"], "af", "'ZA'", pool).await?; 
+    records_affected += assign_lang(vec!["spitalor"], "sq", "'AL'", pool).await?; 
+    records_affected += assign_lang(vec!["spitalul"], "ro", "'RO'", pool).await?;
+    records_affected += assign_lang(vec!["$spital", " spital"], "de", "'DE', 'CH', 'AT'", pool).await?;
     
     info!("{} language codes added to hospital names", records_affected);
     
