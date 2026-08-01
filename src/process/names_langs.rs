@@ -153,7 +153,11 @@ pub async fn derive_lang_codes (pool: &Pool<Postgres>) -> Result<(), AppError> {
     update_hospital_names_2(pool).await?;
 
     update_university_names_1(pool).await?;
-    /* 
+    update_university_names_2(pool).await?;
+
+    update_institute_names_1(pool).await?;
+    update_institute_names_2(pool).await?;
+
     update_spanish_names(pool).await?;
     update_portuguese_names(pool).await?;
     update_japanese_names(pool).await?;
@@ -175,8 +179,8 @@ pub async fn derive_lang_codes (pool: &Pool<Postgres>) -> Result<(), AppError> {
     update_israeli_names(pool).await?;
     update_korean_names(pool).await?;
     update_greek_names(pool).await?;
-    update_english_names(pool).await?;
-    */
+    update_english_names_1(pool).await?;
+    update_english_names_2(pool).await?;
     
     // Do language of acronyms where all other names have the same language
     // See what are left
@@ -308,14 +312,13 @@ pub async fn update_university_names_1(pool: &Pool<Postgres>) -> Result<(), AppE
     records_affected += assign_lang(vec!["iunivesite"], "sm", "'WS'", pool).await?; 
     records_affected += assign_lang(vec!["iyunivesithi"], "xh", "'ZA'", pool).await?; 
 
-    
-    
     records_affected += assign_lang(vec!["universidades"], "es", 
         "'AR', 'BO', 'BY', 'BZ', 'CL', 'CO', 'CR', 'CU', 'DO', 'EC', 'ES', 'GT', 'HN', 'MX', 
         'NI', 'PA', 'PE', 'PH', 'PR', 'PY', 'QA', 'SV', 'TT', 'US', 'UY', 'VE'", pool).await?; 
     records_affected += assign_lang(vec!["universidade"], "pt", 
         "'AO', 'BR', 'CV', 'GW', 'MO', 'MZ', 'PT', 'ST', 'TL'", pool).await?; 
     records_affected += assign_lang(vec!["universidade"], "gl", "'ES'", pool).await?; 
+    records_affected += assign_lang(vec!["iese business school universidad de navarra"], "es, en", "", pool).await?;
     records_affected += assign_lang(vec!["universidad"], "es", "", pool).await?; 
     
     records_affected += assign_lang(vec!["universitaire"], "fr", "", pool).await?; 
@@ -380,39 +383,8 @@ pub async fn update_university_names_1(pool: &Pool<Postgres>) -> Result<(), AppE
 
     records_affected += assign_lang(vec!["universities"], "en", "", pool).await?;
 
+    records_affected += assign_lang(vec!["construction research center universiti teknologi"], "ms, en", "", pool).await?;
     records_affected += assign_lang(vec!["universiti"], "ms", "'BN', 'MY', 'SG'", pool).await?;
-
-    records_affected += assign_lang(vec!["hochschule münchen university of"], "de, en", "", pool).await?;
-    records_affected += assign_lang(vec!["university of coimbra centro de estudos"], "pt, en", "", pool).await?;
-    records_affected += assign_lang(vec!["vysoká škola manažmentu city university of"], "sk, en", "", pool).await?;
-
-    records_affected += assign_lang(vec!["university of"], "en", "", pool).await?;
-
-    records_affected += assign_lang(vec!["корпоративный фонд university medical center"], "ru, en", "", pool).await?;
-    records_affected += assign_lang(vec!["professionshøjskolen university college nordjylland"], "da, en", "", pool).await?;
-    records_affected += assign_lang(vec!["university frères mentouri"], "fr, en", "", pool).await?;
-    records_affected += assign_lang(vec!["científica del sur university"], "es, en", "", pool).await?;
-
-    records_affected += assign_lang(vec!["university"], "en", "", pool).await?;
-    
-    records_affected += assign_lang(vec!["univerza"], "sl", "'AT', 'IT', 'SI'", pool).await?;
-    records_affected += assign_lang(vec!["univerzita"], "cs", "'CZ', 'PL'", pool).await?;
-    records_affected += assign_lang(vec!["univerzita"], "sk", "'SK'", pool).await?;
-
-    records_affected += assign_lang(vec!["univerzitet"], "bs", "'BA', 'ME'", pool).await?;
-    records_affected += assign_lang(vec!["univerzitet"], "sr", "'RS'", pool).await?;
-    records_affected += assign_lang(vec!["univerzitet"], "bg", "'MK'", pool).await?;
-   
-    records_affected += assign_lang(vec!["univerziteta", "univerzitetska", "univerzitetski"], "bs", "'BA'", pool).await?;
-    records_affected += assign_lang(vec!["univerziteta", "univerzitetska", "univerzitetski"], "sr", "'RS'", pool).await?;
-    
-    records_affected += assign_lang(vec!["universytet"], "uk", "'UA'", pool).await?;
-    
-    records_affected += assign_lang(vec!["yunivarsiitii"], "om", "'ET'", pool).await?;  
-    records_affected += assign_lang(vec!["yunivesithi"], "st", "'ZA'", pool).await?;  
-    
-    records_affected += assign_lang(vec!["yliopisto"], "fi", "", pool).await?;     
-
 
     /* 
      * 
@@ -423,10 +395,8 @@ pub async fn update_university_names_1(pool: &Pool<Postgres>) -> Result<(), AppE
      univeristy  en, NE
      universit   en, JP
      univesity   en, IN, RO
-               
-'univeristy', 'universit$', 'univesity'
-   
-     
+     'univeristy', 'universit$', 'univesity'
+        
      universality  en, FR
      universalité  fr, FR
      universale  it, IT
@@ -448,7 +418,7 @@ pub async fn update_university_names_1(pool: &Pool<Postgres>) -> Result<(), AppE
      union postale universelle
      excellence cluster universe
      exzellenzcluster universe
-     univation institut für evaluation dr beywl  associates
+     univation institut für evaluation dr beywl associates
      universum bremen
      universum science center
      walter brendel centre of experimental medicine wbex at the ludwig-maximilians-universität münchen
@@ -469,7 +439,6 @@ pub async fn update_university_names_1(pool: &Pool<Postgres>) -> Result<(), AppE
      typologie et universaux linguistiques
      universcience
      univers transport interfaces nanostructures atmosphère et environnement molécules
-     well-being organizations digital habitability education universality relations knowledge
      univrab
      univtrinita
      kanchi mamunivar centre for post graduate studies
@@ -481,11 +450,8 @@ pub async fn update_university_names_1(pool: &Pool<Postgres>) -> Result<(), AppE
      univotec
      univers moldova
      universitam
-     construction research center universiti teknologi malaysia
      observatoire des sciences de lunivers de la réunion
-     bryansk regional scientific universal library f i tyutchev
      universeum
-         
 
      */
    
@@ -494,6 +460,78 @@ pub async fn update_university_names_1(pool: &Pool<Postgres>) -> Result<(), AppE
     Ok(())
 }
 
+pub async fn update_university_names_2(pool: &Pool<Postgres>) -> Result<(), AppError> {
+
+    let mut records_affected = 0;
+    
+    records_affected += assign_lang(vec!["hochschule münchen university of"], "de, en", "", pool).await?;
+    records_affected += assign_lang(vec!["university of coimbra centro de estudos"], "pt, en", "", pool).await?;
+    records_affected += assign_lang(vec!["vysoká škola manažmentu city university of"], "sk, en", "", pool).await?;
+
+    records_affected += assign_lang(vec!["university of"], "en", "", pool).await?;
+
+    records_affected += assign_lang(vec!["корпоративный фонд university medical center"], "ru, en", "", pool).await?;
+    records_affected += assign_lang(vec!["professionshøjskolen university college nordjylland"], "da, en", "", pool).await?;
+    records_affected += assign_lang(vec!["university frères mentouri"], "fr, en", "", pool).await?;
+    records_affected += assign_lang(vec!["científica del sur university"], "es, en", "", pool).await?;
+
+    records_affected += assign_lang(vec!["university"], "en", "", pool).await?;
+    
+    records_affected += assign_lang(vec!["univerza"], "sl", "'AT', 'IT', 'SI'", pool).await?;
+    records_affected += assign_lang(vec!["univerzita"], "cs", "'CZ', 'PL'", pool).await?;
+    records_affected += assign_lang(vec!["univerzita"], "sk", "'SK'", pool).await?;
+
+    records_affected += assign_lang(vec!["univerzitet sarajevo school of"], "en, bs", "", pool).await?;
+    records_affected += assign_lang(vec!["univerzitet"], "bs", "'BA', 'ME'", pool).await?;
+    records_affected += assign_lang(vec!["univerzitet"], "sr", "'RS'", pool).await?;
+    records_affected += assign_lang(vec!["univerzitet"], "bg", "'MK'", pool).await?;
+   
+    records_affected += assign_lang(vec!["univerziteta", "univerzitetska", "univerzitetski"], "bs", "'BA'", pool).await?;
+    records_affected += assign_lang(vec!["univerziteta", "univerzitetska", "univerzitetski"], "sr", "'RS'", pool).await?;
+    
+    records_affected += assign_lang(vec!["universytet"], "uk", "'UA'", pool).await?;
+    
+    records_affected += assign_lang(vec!["yunivarsiitii"], "om", "'ET'", pool).await?;  
+    records_affected += assign_lang(vec!["yunivesithi"], "st", "'ZA'", pool).await?;  
+
+    records_affected += assign_lang(vec!["daigaku", "daigakkō"], "ja", "'JP'", pool).await?; 
+    records_affected += assign_lang(vec!["dàxué", "dàxúe", "daxue"], "zh", "'CN', 'TW', 'HK'", pool).await?;   
+    records_affected += assign_lang(vec!["panepistim", "panepistímio"], "el", "'GR'", pool).await?;   
+
+    records_affected += assign_lang(vec!["yliopisto"], "fi", "", pool).await?;     
+    
+    info!("{} language codes added to university names", records_affected);
+
+    Ok(())
+}
+
+
+pub async fn update_institute_names_1(pool: &Pool<Postgres>) -> Result<(), AppError> {
+
+    let mut records_affected = 0;
+
+    records_affected += assign_lang(vec!["laboratory of the istituto nazionale"], "it, en", "", pool).await?;   
+    records_affected += assign_lang(vec!["istituto"], "it", "", pool).await?;   
+    
+    info!("{} language codes added to institute names", records_affected);
+
+    Ok(())
+}
+
+
+pub async fn update_institute_names_2(pool: &Pool<Postgres>) -> Result<(), AppError> {
+
+    let mut records_affected = 0;
+
+    records_affected += assign_lang(vec!["institute of"], "en", "", pool).await?;   
+    records_affected += assign_lang(vec!["institute for"], "en", "", pool).await?;   
+    
+    info!("{} language codes added to institute names", records_affected);
+
+    Ok(())
+}
+
+    
 
 pub async fn assign_lang(names: Vec<&str>, lang_code: &str, countries: &str, pool: &Pool<Postgres>) -> Result<u64, AppError> {
 
@@ -529,29 +567,18 @@ pub async fn assign_lang(names: Vec<&str>, lang_code: &str, countries: &str, poo
 }
 
 
-/* 
-pub async fn update_english_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
+ 
+pub async fn update_english_names_1(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
-    let mut total_records_affected = 0;
-    
+    let mut records_affected = 0;
+
+    records_affected += assign_lang(vec![" and ", " of ", " at ", " the ", "$the ", " by ",
+        " to "," under "," over "," after "," on "," all ",], "en", "", pool).await?;
+       
     let sql = r#"update rec.names n
                 set der_lang = 'en'
         where der_lang is null and n.name_type <> 10
-        and (lc_value like '% and %' 
-        or lc_value like '% of %'
-        or lc_value like '% the %'
-        or lc_value like 'the %'
-        );"#;
-   
-    let res = sqlx::raw_sql(sql).execute(pool)
-        .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
-    
-    let sql = r#"update rec.names n
-                set der_lang = 'en'
-        where der_lang is null and n.name_type <> 10
-        and (lc_value like '%university%' 
-        or lc_value like '%college%'
+        and (lc_value like '%college%'
         or lc_value like '%polytechnic%'
         or lc_value like '%museum%'
         or lc_value like '%institute%'
@@ -562,7 +589,7 @@ pub async fn update_english_names(pool: &Pool<Postgres>) -> Result<(), AppError>
 
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
     
     let sql = r#"update rec.names n
@@ -584,8 +611,18 @@ pub async fn update_english_names(pool: &Pool<Postgres>) -> Result<(), AppError>
 
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
-    
+    records_affected += res.rows_affected();
+    info!("{} language codes added to english names", records_affected);
+
+    Ok(())
+
+    // institite and centre??? - soplit between anglophone and francophone...
+}
+
+pub async fn update_english_names_2(pool: &Pool<Postgres>) -> Result<(), AppError> {
+
+    let mut records_affected = 0;
+
     let sql = r#"update rec.names n
                 set der_lang = 'en'
                 where der_lang is null and n.name_type <> 10
@@ -602,7 +639,7 @@ pub async fn update_english_names(pool: &Pool<Postgres>) -> Result<(), AppError>
 
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
     let sql = r#"update rec.names n
                 set der_lang = 'en'
@@ -621,7 +658,7 @@ pub async fn update_english_names(pool: &Pool<Postgres>) -> Result<(), AppError>
 
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
     let sql = r#"update rec.names n
                     set der_lang = 'en'
@@ -641,7 +678,7 @@ pub async fn update_english_names(pool: &Pool<Postgres>) -> Result<(), AppError>
     
         let res = sqlx::raw_sql(sql).execute(pool)
             .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-        total_records_affected += res.rows_affected();
+        records_affected += res.rows_affected();
 
         let sql = r#"update rec.names n
                         set der_lang = 'en'
@@ -655,7 +692,7 @@ pub async fn update_english_names(pool: &Pool<Postgres>) -> Result<(), AppError>
         
             let res = sqlx::raw_sql(sql).execute(pool)
                 .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-            total_records_affected += res.rows_affected();
+            records_affected += res.rows_affected();
 
     
     let sql = r#"update rec.names n
@@ -668,7 +705,7 @@ pub async fn update_english_names(pool: &Pool<Postgres>) -> Result<(), AppError>
 
     let res = sqlx::raw_sql(sql).execute(pool)
     .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
    
     let sql = r#"update rec.names n
                 set der_lang = 'en'
@@ -678,9 +715,12 @@ pub async fn update_english_names(pool: &Pool<Postgres>) -> Result<(), AppError>
     
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
-    info!("{} language codes added to english names", total_records_affected);
+    records_affected += assign_lang(vec!["people", "women", "kids", "mother", "father", 
+        "boys", "girls", "black", "white", "yellow", "blue"], "en", "", pool).await?;   
+
+    info!("{} language codes added to english names", records_affected);
 
     Ok(())
 
@@ -690,22 +730,18 @@ pub async fn update_english_names(pool: &Pool<Postgres>) -> Result<(), AppError>
 
 pub async fn update_japanese_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
-    let mut total_records_affected = 0;
+    let mut records_affected = 0;
 
     let sql = r#"update rec.names n
                 set der_lang = 'ja'
             where der_lang is null and n.name_type <> 10
             and country_code = 'JP'
             and 
-            (lc_value like '%daigaku%'
-            or lc_value like '%daigakkō%'
-            or lc_value like '%kabushiki%'
+            (lc_value like '%kabushiki%'
             or lc_value like '%nippon%' 
             or lc_value like '%kaihatsu%' 
             or lc_value like '%bijutsukan%');"#;   
             
-            // university
-            // college
             // corporation
             // Japan
             // development
@@ -713,7 +749,7 @@ pub async fn update_japanese_names(pool: &Pool<Postgres>) -> Result<(), AppError
                         
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
     
     let sql = r#"update rec.names n
                 set der_lang = 'ja'
@@ -753,7 +789,7 @@ pub async fn update_japanese_names(pool: &Pool<Postgres>) -> Result<(), AppError
 
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
     let sql = r#"update rec.names n
                 set der_lang = 'ja'
@@ -775,7 +811,7 @@ pub async fn update_japanese_names(pool: &Pool<Postgres>) -> Result<(), AppError
             
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
     let sql = r#"update rec.names n
                 set der_lang = 'ja'
@@ -800,7 +836,7 @@ pub async fn update_japanese_names(pool: &Pool<Postgres>) -> Result<(), AppError
         
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
     let sql = r#"update rec.names n
                 set der_lang = 'ja'
@@ -833,9 +869,9 @@ pub async fn update_japanese_names(pool: &Pool<Postgres>) -> Result<(), AppError
 
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
-    info!("{} language codes added to japanese records", total_records_affected);
+    info!("{} language codes added to japanese records", records_affected);
 
     Ok(())
 
@@ -844,16 +880,13 @@ pub async fn update_japanese_names(pool: &Pool<Postgres>) -> Result<(), AppError
 
 pub async fn update_chinese_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
-    let mut total_records_affected = 0;
+    let mut records_affected = 0;
 
     let sql = r#"update rec.names n
                 set der_lang = 'zh'
                 where der_lang is null and n.name_type <> 10
                 and country_code in ('CN', 'TW', 'HK')
-                and (lc_value like '%dàxué%'
-                or lc_value like '%daxue%'
-                or lc_value like '%dàxúe%'
-                or lc_value like '%zhōngyī%'
+                and (lc_value like '%zhōngyī%'
                 or lc_value like '%xuéyuàn%'
                 or lc_value like '%yīyuàn%'
                 or lc_value like '%jīgòu%'
@@ -861,8 +894,6 @@ pub async fn update_chinese_names(pool: &Pool<Postgres>) -> Result<(), AppError>
                 or lc_value like '%mínguó%'
                 or lc_value like '%yínháng%');"#;
                  
-
-        // dàxué, dàxúe, daxue   University
         // zhōngyī     (traditional) Chinese medicine
         // xuéyuàn     Educational institute (school - conservatory - academy)
         // yīyuàn      hospital
@@ -873,7 +904,7 @@ pub async fn update_chinese_names(pool: &Pool<Postgres>) -> Result<(), AppError>
 
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
 
     let sql = r#"update rec.names n
@@ -904,9 +935,9 @@ pub async fn update_chinese_names(pool: &Pool<Postgres>) -> Result<(), AppError>
 
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
-    info!("{} language codes added to chinese records", total_records_affected);
+    info!("{} language codes added to chinese records", records_affected);
 
     Ok(())
 }
@@ -914,7 +945,7 @@ pub async fn update_chinese_names(pool: &Pool<Postgres>) -> Result<(), AppError>
 
 pub async fn update_french_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
-    let mut total_records_affected = 0;
+    let mut records_affected = 0;
 
     // initial group seen as French whatever the country
     
@@ -923,7 +954,6 @@ pub async fn update_french_names(pool: &Pool<Postgres>) -> Result<(), AppError> 
             where der_lang is null and n.name_type <> 10
             and 
             (lc_value like '%école%'
-            or lc_value like '%université%' 
             or lc_value like '%laboratoire%' 
             or lc_value like '%réseau%' 
             or lc_value like '%société%'
@@ -935,7 +965,7 @@ pub async fn update_french_names(pool: &Pool<Postgres>) -> Result<(), AppError> 
             or lc_value like '%bibliothèque%');"#;
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
     
     let sql = r#"update rec.names n
                 set der_lang = 'fr'
@@ -952,7 +982,7 @@ pub async fn update_french_names(pool: &Pool<Postgres>) -> Result<(), AppError> 
             or lc_value like '% et %');"#;
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
 
     let sql = r#"update rec.names n
@@ -973,12 +1003,11 @@ pub async fn update_french_names(pool: &Pool<Postgres>) -> Result<(), AppError> 
             or lc_value like '%génétique%' 
             or lc_value like '%observatoire%' 
             or lc_value like '%centre de%'
-            or lc_value like '%centre universitaire%'
             or lc_value like 'centre %'
             or lc_value like '%fédération%');"#;
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
     
     let sql = r#"update rec.names n
@@ -1001,7 +1030,7 @@ pub async fn update_french_names(pool: &Pool<Postgres>) -> Result<(), AppError> 
             or lc_value like '%plateforme%');"#;
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
     
     let sql = r#"update rec.names n
                 set der_lang = 'fr'
@@ -1023,7 +1052,7 @@ pub async fn update_french_names(pool: &Pool<Postgres>) -> Result<(), AppError> 
             or lc_value like '%plateforme%');"#;
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
     
     let sql = r#"update rec.names n
                 set der_lang = 'fr'
@@ -1043,7 +1072,7 @@ pub async fn update_french_names(pool: &Pool<Postgres>) -> Result<(), AppError> 
             or lc_value like '%région%');"#;
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
     
     let sql = r#"update rec.names n
                 set der_lang = 'fr'
@@ -1087,7 +1116,7 @@ pub async fn update_french_names(pool: &Pool<Postgres>) -> Result<(), AppError> 
 
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
     let sql = r#"update rec.names n
                 set der_lang = 'fr'
@@ -1116,9 +1145,9 @@ pub async fn update_french_names(pool: &Pool<Postgres>) -> Result<(), AppError> 
             );"#;
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
-    info!("{} language codes added to french records", total_records_affected);
+    info!("{} language codes added to french records", records_affected);
     
     Ok(())
 
@@ -1127,7 +1156,7 @@ pub async fn update_french_names(pool: &Pool<Postgres>) -> Result<(), AppError> 
  
 pub async fn update_german_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
-    let mut total_records_affected = 0;
+    let mut records_affected = 0;
 
     let sql = r#"update rec.names n
                 set der_lang = 'de'
@@ -1136,7 +1165,6 @@ pub async fn update_german_names(pool: &Pool<Postgres>) -> Result<(), AppError> 
             and 
             (lc_value ilike '% für %'
             or lc_value like '% und %' 
-            or lc_value like '%klinische%'
             or lc_value like '%klinik%'
             or lc_value like '%bundesamt%' 
             or lc_value like '%hochschule%' 
@@ -1152,7 +1180,7 @@ pub async fn update_german_names(pool: &Pool<Postgres>) -> Result<(), AppError> 
             or lc_value like '%gemeinschaft%');"#;
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
     let sql = r#"update rec.names n
                 set der_lang = 'de'
@@ -1169,13 +1197,11 @@ pub async fn update_german_names(pool: &Pool<Postgres>) -> Result<(), AppError> 
             or lc_value like '%schweizerische%'
             or lc_value like '%stiftung%'
             or lc_value like '%technische%'
-            or lc_value like '%universitaet%' 
-            or lc_value like '%universität%' 
             or lc_value like '%vereinigung%'
             or lc_value like '%wasser%');"#;
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
     /* 
     let sql = r#"update rec.names n
@@ -1201,9 +1227,9 @@ pub async fn update_german_names(pool: &Pool<Postgres>) -> Result<(), AppError> 
             or lc_value like '%%');"#;
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
     */
-    info!("{} language codes added to german records", total_records_affected);
+    info!("{} language codes added to german records", records_affected);
     
     Ok(())
 }
@@ -1211,7 +1237,7 @@ pub async fn update_german_names(pool: &Pool<Postgres>) -> Result<(), AppError> 
 
 pub async fn update_spanish_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
-    let mut total_records_affected = 0;
+    let mut records_affected = 0;
 
     let sql = r#"update rec.names n
                 set der_lang = 'es'
@@ -1221,8 +1247,6 @@ pub async fn update_spanish_names(pool: &Pool<Postgres>) -> Result<(), AppError>
             and 
             (lc_value ilike '%academia%'
             or lc_value like '%unidad%' 
-            or lc_value like '%universitari%'
-            or lc_value like '%universidad%'
             or lc_value like '%agencia%' 
             or lc_value like '%asociación%'
             or lc_value like '%ayuntamiento%'
@@ -1240,7 +1264,7 @@ pub async fn update_spanish_names(pool: &Pool<Postgres>) -> Result<(), AppError>
             or lc_value like '%consorcio%');"#;
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
      let sql = r#"update rec.names n
                  set der_lang = 'es'
@@ -1264,7 +1288,7 @@ pub async fn update_spanish_names(pool: &Pool<Postgres>) -> Result<(), AppError>
              or lc_value like '%laboratorio%');"#;
      let res = sqlx::raw_sql(sql).execute(pool)
          .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-     total_records_affected += res.rows_affected();
+     records_affected += res.rows_affected();
 
      let sql = r#"update rec.names n
                  set der_lang = 'es'
@@ -1291,10 +1315,10 @@ pub async fn update_spanish_names(pool: &Pool<Postgres>) -> Result<(), AppError>
              or lc_value like '%tecnm%');"#;
      let res = sqlx::raw_sql(sql).execute(pool)
          .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-     total_records_affected += res.rows_affected();
+     records_affected += res.rows_affected();
 
      
-    info!("{} language codes added to spanish records", total_records_affected);
+    info!("{} language codes added to spanish records", records_affected);
     
     Ok(())
 }
@@ -1302,7 +1326,7 @@ pub async fn update_spanish_names(pool: &Pool<Postgres>) -> Result<(), AppError>
  
 pub async fn update_portuguese_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
      
-    let mut total_records_affected = 0;
+    let mut records_affected = 0;
 
     let sql = r#"update rec.names n
                 set der_lang = 'pt'
@@ -1327,7 +1351,7 @@ pub async fn update_portuguese_names(pool: &Pool<Postgres>) -> Result<(), AppErr
             or lc_value like '%grupo%');"#;
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
     let sql = r#"update rec.names n
                 set der_lang = 'pt'
@@ -1347,11 +1371,10 @@ pub async fn update_portuguese_names(pool: &Pool<Postgres>) -> Result<(), AppErr
             or lc_value like '%tecnologia%'
             or lc_value like '%tecnológico%'
             or lc_value like '%unidade%'
-            or lc_value like '%universitário%'
-            or lc_value like '%universidade%');"#;
+             );"#;
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
     let sql = r#"update rec.names n
                 set der_lang = 'pt'
@@ -1371,9 +1394,9 @@ pub async fn update_portuguese_names(pool: &Pool<Postgres>) -> Result<(), AppErr
             );"#;
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
-    info!("{} language codes added to portuguese records", total_records_affected);
+    info!("{} language codes added to portuguese records", records_affected);
     
     Ok(())
 }
@@ -1381,7 +1404,7 @@ pub async fn update_portuguese_names(pool: &Pool<Postgres>) -> Result<(), AppErr
 
 pub async fn update_italian_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
-    let mut total_records_affected = 0;
+    let mut records_affected = 0;
        
     let sql = r#"update rec.names n
                 set der_lang = 'it'
@@ -1406,7 +1429,7 @@ pub async fn update_italian_names(pool: &Pool<Postgres>) -> Result<(), AppError>
             or lc_value like '%museo%');"#;
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
 
     let sql = r#"update rec.names n
@@ -1415,7 +1438,6 @@ pub async fn update_italian_names(pool: &Pool<Postgres>) -> Result<(), AppError>
             and country_code in ('IT', 'CH')
             and 
             (lc_value ilike '%organizzazione%'
-            or lc_value like '%ospedale%' 
             or lc_value like '%osservatorio%'
             or lc_value like '%pontificia%'
             or lc_value like '%regione%' 
@@ -1423,12 +1445,11 @@ pub async fn update_italian_names(pool: &Pool<Postgres>) -> Result<(), AppError>
             or lc_value like '%sistema%' 
             or lc_value like '%societa%'
             or lc_value like '%ufficio%'
-            or lc_value like '%università%'
             or lc_value like '%unità%' 
             );"#;
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
     /* 
     let sql = r#"update rec.names n
@@ -1454,10 +1475,10 @@ pub async fn update_italian_names(pool: &Pool<Postgres>) -> Result<(), AppError>
             or lc_value like '%%');"#;
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
     */
 
-    info!("{} language codes added to italian records", total_records_affected);
+    info!("{} language codes added to italian records", records_affected);
     
     Ok(())
 }
@@ -1465,7 +1486,7 @@ pub async fn update_italian_names(pool: &Pool<Postgres>) -> Result<(), AppError>
 
 pub async fn update_dutch_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
  
-    let mut total_records_affected = 0;
+    let mut records_affected = 0;
 
     let sql = r#"update rec.names n
                 set der_lang = 'nl'
@@ -1490,7 +1511,7 @@ pub async fn update_dutch_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
             );"#;
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
     let sql = r#"update rec.names n
                 set der_lang = 'nl'
@@ -1517,9 +1538,9 @@ pub async fn update_dutch_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
             );"#;
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
   
-    info!("{} language codes added to dutch records", total_records_affected);
+    info!("{} language codes added to dutch records", records_affected);
     
     Ok(())
 }
@@ -1527,7 +1548,7 @@ pub async fn update_dutch_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
 pub async fn update_danish_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
  
-    let mut total_records_affected = 0;
+    let mut records_affected = 0;
 
     let sql = r#"update rec.names n
                 set der_lang = 'da'
@@ -1551,7 +1572,7 @@ pub async fn update_danish_names(pool: &Pool<Postgres>) -> Result<(), AppError> 
             );"#;
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
     let sql = r#"update rec.names n
                 set der_lang = 'da'
@@ -1575,9 +1596,9 @@ pub async fn update_danish_names(pool: &Pool<Postgres>) -> Result<(), AppError> 
             );"#;
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
     
-    info!("{} language codes added to danish records", total_records_affected);
+    info!("{} language codes added to danish records", records_affected);
     
     Ok(())
 }
@@ -1599,7 +1620,7 @@ pub async fn update_swedish_names(pool: &Pool<Postgres>) -> Result<(), AppError>
 */
 
     
-    let mut total_records_affected = 0;
+    let mut records_affected = 0;
 
     let sql = r#"update rec.names n
                 set der_lang = 'sv'
@@ -1625,7 +1646,7 @@ pub async fn update_swedish_names(pool: &Pool<Postgres>) -> Result<(), AppError>
             or lc_value like '%vägen%');"#;
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
     
     let sql = r#"update rec.names n
                 set der_lang = 'sv'
@@ -1633,7 +1654,6 @@ pub async fn update_swedish_names(pool: &Pool<Postgres>) -> Result<(), AppError>
             and country_code in ('SE', 'FI')
             and 
             (lc_value ilike '% för %'
-            or lc_value like '%sjukhus%' 
             or lc_value like '%västra%'
             or lc_value like '%akademin%' 
             or lc_value like '%finlands%'
@@ -1652,9 +1672,9 @@ pub async fn update_swedish_names(pool: &Pool<Postgres>) -> Result<(), AppError>
             or lc_value like '%kommun%' );"#;
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
-    info!("{} language codes added to swedish records", total_records_affected);
+    info!("{} language codes added to swedish records", records_affected);
     
     Ok(())
 }
@@ -1672,15 +1692,14 @@ pub async fn update_finnish_names(pool: &Pool<Postgres>) -> Result<(), AppError>
      --Työsuojelurahasto, --Ymparistoministerio Milijoministeriet
      */
      
-    let mut total_records_affected = 0;
+    let mut records_affected = 0;
     
     let sql = r#"update rec.names n
                 set der_lang = 'fi'
             where der_lang is null and n.name_type <> 10
             and country_code in ('SE', 'FI')
             and 
-            (lc_value ilike '%yliopisto%'
-            or lc_value like '%säätiö%' 
+            (lc_value like '%säätiö%' 
             or lc_value like '%suomi%'
             or lc_value like '%etelä%'
             or lc_value like '%helsingin%' 
@@ -1696,7 +1715,7 @@ pub async fn update_finnish_names(pool: &Pool<Postgres>) -> Result<(), AppError>
             or lc_value like 'satakunnan%');"#;
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
     let sql = r#"update rec.names n
                 set der_lang = 'fi'
@@ -1717,7 +1736,7 @@ pub async fn update_finnish_names(pool: &Pool<Postgres>) -> Result<(), AppError>
             );"#;
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
     
     let sql = r#"update rec.names n
                 set der_lang = 'fi'
@@ -1739,9 +1758,9 @@ pub async fn update_finnish_names(pool: &Pool<Postgres>) -> Result<(), AppError>
             );"#;
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
     
-    info!("{} language codes added to finnish records", total_records_affected);
+    info!("{} language codes added to finnish records", records_affected);
     
     Ok(())
 }
@@ -1749,17 +1768,15 @@ pub async fn update_finnish_names(pool: &Pool<Postgres>) -> Result<(), AppError>
 
 pub async fn update_norwegian_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
-    let mut total_records_affected = 0;
+    let mut records_affected = 0;
 
     let sql = r#"update rec.names n
                 set der_lang = 'no'
             where der_lang is null and n.name_type <> 10
             and country_code = 'NO'
             and (lc_value like '%ø%' 
-            or lc_value like '%sykehus%' 
             or lc_value like '%skole%' 
             or lc_value like '%skule%' 
-            or lc_value like '%universitet%' 
             or lc_value like '% i %'
             or lc_value like '%ø%'
             or lc_value like '%direktoratet%'
@@ -1769,7 +1786,7 @@ pub async fn update_norwegian_names(pool: &Pool<Postgres>) -> Result<(), AppErro
  
     let res = sqlx::raw_sql(sql).execute(pool)
             .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
     let sql = r#"update rec.names n
                 set der_lang = 'no'
@@ -1789,7 +1806,7 @@ pub async fn update_norwegian_names(pool: &Pool<Postgres>) -> Result<(), AppErro
  
     let res = sqlx::raw_sql(sql).execute(pool)
             .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
 
     let sql = r#"update rec.names n
@@ -1809,10 +1826,10 @@ pub async fn update_norwegian_names(pool: &Pool<Postgres>) -> Result<(), AppErro
  
     let res = sqlx::raw_sql(sql).execute(pool)
             .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
     
     
-    info!("{} language codes added to norwegian records", total_records_affected);
+    info!("{} language codes added to norwegian records", records_affected);
     
     Ok(())
 }
@@ -1820,7 +1837,7 @@ pub async fn update_norwegian_names(pool: &Pool<Postgres>) -> Result<(), AppErro
 
 pub async fn update_indian_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
-    let mut total_records_affected = 0;
+    let mut records_affected = 0;
 
     let sql = r#"update rec.names n
                 set der_lang = 'en'
@@ -1860,7 +1877,7 @@ pub async fn update_indian_names(pool: &Pool<Postgres>) -> Result<(), AppError> 
 
     let res = sqlx::raw_sql(sql).execute(pool)
        .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
 
     let sql = r#"update rec.names n
@@ -1889,9 +1906,9 @@ pub async fn update_indian_names(pool: &Pool<Postgres>) -> Result<(), AppError> 
        
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
-    info!("{} language codes added to indian records", total_records_affected);
+    info!("{} language codes added to indian records", records_affected);
     
     Ok(())
 }
@@ -1899,7 +1916,7 @@ pub async fn update_indian_names(pool: &Pool<Postgres>) -> Result<(), AppError> 
 
 pub async fn update_iranian_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
-    let mut total_records_affected = 0;
+    let mut records_affected = 0;
 
     let sql = r#"update rec.names n
                 set der_lang = 'fa'
@@ -1911,9 +1928,9 @@ pub async fn update_iranian_names(pool: &Pool<Postgres>) -> Result<(), AppError>
 
     let res = sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
-    info!("{} language codes added to iranian records", total_records_affected);
+    info!("{} language codes added to iranian records", records_affected);
     
     Ok(())
 }
@@ -1921,7 +1938,7 @@ pub async fn update_iranian_names(pool: &Pool<Postgres>) -> Result<(), AppError>
 
 pub async fn update_russian_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
-    let mut total_records_affected = 0;
+    let mut records_affected = 0;
     
 
     let sql = r#"update rec.names n
@@ -1929,7 +1946,6 @@ pub async fn update_russian_names(pool: &Pool<Postgres>) -> Result<(), AppError>
             where der_lang is null and n.name_type <> 10
             and country_code = 'RU'
             and (lc_value like '%institut %'
-            or lc_value like '%universitet%'
             or lc_value like '%akademiya%'
             or lc_value like '%akadémiya%'
             or lc_value like '%oblastnoy%'
@@ -1939,7 +1955,7 @@ pub async fn update_russian_names(pool: &Pool<Postgres>) -> Result<(), AppError>
 
     let res = sqlx::raw_sql(sql).execute(pool)
             .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
 
     let sql = r#"update rec.names n
@@ -1955,9 +1971,9 @@ pub async fn update_russian_names(pool: &Pool<Postgres>) -> Result<(), AppError>
 
      let res = sqlx::raw_sql(sql).execute(pool)
             .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
-    info!("{} language codes added to russian records", total_records_affected);
+    info!("{} language codes added to russian records", records_affected);
     
     Ok(())
 }
@@ -1965,23 +1981,21 @@ pub async fn update_russian_names(pool: &Pool<Postgres>) -> Result<(), AppError>
 
 pub async fn update_ukrainian_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
-    let mut total_records_affected = 0;
+    let mut records_affected = 0;
    
     let sql = r#"update rec.names n
                 set der_lang = 'uk'
             where der_lang is null and n.name_type <> 10
             and country_code = 'UA'
-            and (lc_value like '%universitét %'
-            or lc_value like '%universytet%'
-            or lc_value like '%ukrainsky%'
+            and (lc_value like '%ukrainsky%'
             or lc_value like '%ukrayinska%'
             or lc_value like '%ukrayiny%');"#;
  
     let res = sqlx::raw_sql(sql).execute(pool)
             .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
-    info!("{} language codes added to ukranian records", total_records_affected);
+    info!("{} language codes added to ukranian records", records_affected);
     
     Ok(())
 }
@@ -1989,21 +2003,20 @@ pub async fn update_ukrainian_names(pool: &Pool<Postgres>) -> Result<(), AppErro
 
 pub async fn update_serbian_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
-    let mut total_records_affected = 0;
+    let mut records_affected = 0;
 
     let sql = r#"update rec.names n
                 set der_lang = 'sr'
             where der_lang is null and n.name_type <> 10
             and country_code = 'RS'
             and (lc_value like '%institut%' 
-            or lc_value like '%univerzitet%' 
             or lc_value like '%zvezdara%');"#;
  
     let res = sqlx::raw_sql(sql).execute(pool)
             .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
-    info!("{} language codes added to serbian records", total_records_affected);
+    info!("{} language codes added to serbian records", records_affected);
     
     Ok(())
 }
@@ -2011,7 +2024,7 @@ pub async fn update_serbian_names(pool: &Pool<Postgres>) -> Result<(), AppError>
 
 pub async fn update_bulgarian_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
-    let mut total_records_affected = 0;
+    let mut records_affected = 0;
 
     let sql = r#"update rec.names n
                 set der_lang = 'bg'
@@ -2019,7 +2032,6 @@ pub async fn update_bulgarian_names(pool: &Pool<Postgres>) -> Result<(), AppErro
             and country_code = 'BG'
             and (lc_value like '%institut%' 
             or lc_value like '%akademiya%' 
-            or lc_value like '%universitet%'
             or lc_value like '%ministerstvo%' 
             or lc_value like '%obshtina%'
             or lc_value like '%muzei%'
@@ -2027,9 +2039,9 @@ pub async fn update_bulgarian_names(pool: &Pool<Postgres>) -> Result<(), AppErro
  
     let res = sqlx::raw_sql(sql).execute(pool)
             .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
-    info!("{} language codes added to bulgarian records", total_records_affected);
+    info!("{} language codes added to bulgarian records", records_affected);
     
     Ok(())
 }
@@ -2037,15 +2049,13 @@ pub async fn update_bulgarian_names(pool: &Pool<Postgres>) -> Result<(), AppErro
 
 pub async fn update_israeli_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
-    let mut total_records_affected = 0;
+    let mut records_affected = 0;
 
     let sql = r#"update rec.names n
                 set der_lang = 'he'
             where der_lang is null and n.name_type <> 10
             and country_code = 'IL'
-            and (lc_value like '%ha-universita%' 
-            or lc_value like '%hauniversita%' 
-            or lc_value like '%machon %'
+            and (lc_value like '%machon %'
             or lc_value like '%merkaz %' 
             or lc_value like '%misrad %'
             or lc_value like '%misgav %'
@@ -2061,9 +2071,9 @@ pub async fn update_israeli_names(pool: &Pool<Postgres>) -> Result<(), AppError>
  
     let res = sqlx::raw_sql(sql).execute(pool)
             .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
-    info!("{} language codes added to israeli records", total_records_affected);
+    info!("{} language codes added to israeli records", records_affected);
     
     Ok(())
 }
@@ -2071,7 +2081,7 @@ pub async fn update_israeli_names(pool: &Pool<Postgres>) -> Result<(), AppError>
 
 pub async fn update_korean_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
-    let mut total_records_affected = 0;
+    let mut records_affected = 0;
 
     let sql = r#"update rec.names n
                 set der_lang = 'ko'
@@ -2085,9 +2095,9 @@ pub async fn update_korean_names(pool: &Pool<Postgres>) -> Result<(), AppError> 
  
     let res = sqlx::raw_sql(sql).execute(pool)
             .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
-    info!("{} language codes added to korean records", total_records_affected);
+    info!("{} language codes added to korean records", records_affected);
     
     Ok(())
 }
@@ -2095,7 +2105,7 @@ pub async fn update_korean_names(pool: &Pool<Postgres>) -> Result<(), AppError> 
 
 pub async fn update_greek_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
-    let mut total_records_affected = 0;
+    let mut records_affected = 0;
 
     let sql = r#"update rec.names n
                 set der_lang = 'el'
@@ -2107,7 +2117,7 @@ pub async fn update_greek_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
  
     let res = sqlx::raw_sql(sql).execute(pool)
             .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
     let sql = r#"update rec.names n
                 set der_lang = 'el'
@@ -2125,14 +2135,14 @@ pub async fn update_greek_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
  
     let res = sqlx::raw_sql(sql).execute(pool)
             .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    total_records_affected += res.rows_affected();
+    records_affected += res.rows_affected();
 
 
-    info!("{} language codes added to greek records", total_records_affected);
+    info!("{} language codes added to greek records", records_affected);
     
     Ok(())
 }
-*/
+
 
 /* 
 pub async fn obtain_manual_coding_list(pool: &Pool<Postgres>) -> Result<(), AppError> {
