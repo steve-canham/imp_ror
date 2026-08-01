@@ -148,12 +148,11 @@ pub async fn derive_lang_codes (pool: &Pool<Postgres>) -> Result<(), AppError> {
     add_cm_lang_code_to_comm_orgs(pool).await?;
     
     // Add languages if possible, using location of org and key words or word parts
-
-    update_university_names_1(pool).await?;
     
     update_hospital_names_1(pool).await?;
     update_hospital_names_2(pool).await?;
-    
+
+    update_university_names_1(pool).await?;
     /* 
     update_spanish_names(pool).await?;
     update_portuguese_names(pool).await?;
@@ -197,238 +196,6 @@ pub async fn add_cm_lang_code_to_comm_orgs(pool: &Pool<Postgres>) -> Result<(), 
             .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     info!("{} names of commercial organisations given 'bd' language code", res.rows_affected());
   
-    Ok(())
-}
-
-pub async fn update_university_names_1(pool: &Pool<Postgres>) -> Result<(), AppError> {
-
-    let mut records_affected = 0;
-
-    records_affected += assign_lang(vec!["yliopisto"], "fi", "", pool).await?; 
-
-    records_affected += assign_lang(vec!["università"], "mt", "'MT'", pool).await?; 
-    records_affected += assign_lang(vec!["università"], "it", "", pool).await?; 
-
-    records_affected += assign_lang(vec!["universitét"], "uk", "'UA'", pool).await?; 
-    records_affected += assign_lang(vec!["université"], "fr", "", pool).await?; 
-
-    records_affected += assign_lang(vec!["universiteit"], "nl", "'AL', 'AW', 'BE', 'CW', 'NL', 'SR'", pool).await?; 
-    records_affected += assign_lang(vec!["universiteit"], "af", "'ZA'", pool).await?; 
-
-    records_affected += assign_lang(vec!["universität"], "de", "", pool).await?; 
-    records_affected += assign_lang(vec!["universitaet"], "de", "", pool).await?; 
-
-    records_affected += assign_lang(vec!["universitesi"], "tr", "'CY', 'TR'", pool).await?; 
-
-    records_affected += assign_lang(vec!["universitetas"], "lt", "'LT'", pool).await?; 
-    records_affected += assign_lang(vec!["universitāte"], "lv", "'LV', 'LT'", pool).await?; 
-    
-    records_affected += assign_lang(vec!["universiteti"], "uz", "'AF', 'KG', 'SY', 'UZ'", pool).await?; 
-    records_affected += assign_lang(vec!["universiteti"], "sq", "'AL', 'MK', 'XK'", pool).await?; 
-    records_affected += assign_lang(vec!["universiteti"], "az", "'AZ', 'TR', 'GE'", pool).await?; 
-            
-    records_affected += assign_lang(vec!["universitet"], "sv", "'SE', 'FI'", pool).await?;
-    records_affected += assign_lang(vec!["universitet"], "da", "'FO', 'GL', 'DK'", pool).await?;
-    records_affected += assign_lang(vec!["universitet"], "no", "'NO'", pool).await?;
-    records_affected += assign_lang(vec!["universitet"], "kk", "'KZ'", pool).await?;
-    records_affected += assign_lang(vec!["universitet"], "ru", "'RU'", pool).await?;
-    records_affected += assign_lang(vec!["universitet"], "zh", "'CN'", pool).await?;
-
-    records_affected += assign_lang(vec!["universitehta"], "se", "'NO'", pool).await?;
-
-        
-    /* 
-     * 
-     
-     iunivesite  sm, WS
-     iyunivesithi  xh , ZA
-     
-     univ fr, FR			
-     univ en, JP, SG
-     univeristy  en, NE
-     
-     universidad    es, AR, BO, BR, BY, BZ, CL, CO, CR, CU, DO, EC, ES, GT, HN, MX, NI, PA, PE, PH, PR, PY, QA, SV, TT, US, UY, VE
-     universidades  es, ES, MX, UY
-     universidade   pt, AO, AR, BR, CV, GW, MO, MZ, ST, TL
-     universidades  pt, PT
-     universidade   gl, ES
-     
-     universit   en, JP
-     universita  he  Il
-     università  it, AL, AR, BR, CH, IT, SI, SM, SO
-     università  mt, MT
-     
-     universitaet  de, DE
-     
-     universitaire  fr, BE, BJ, CA, CD, CF, CG, CH, CI, CM, DE, DZ, FR, GN, GQ, HT, LB, LU, NG, TD, TN, YT
-     universitaires   fr, BE
-     
-     universitare  ?? sq, XK
-     
-     universitare  ro, RO
-     universitară   ro, RO
-     universitar   ro, RO
-     
-     universitaria   it, CH, IT
-     universitaria   es, AR, CL, CO, DO, EC, ES, GT ,MX, PE, PR, UY, VE
-     
-     universitària   ca, ES
-     
-     universitario   es, AR, CL, CO, DO, EC, ES, GT, MX, PE, PR, UY, VE
-     universitario   pt, BR
-     universitario   it, IT
-     
-     universitaris   ca, ES
-     
-     universitária   pt, BR, PT
-     universitário   pt, BR, MZ, PT
-     
-     universitari    ca?, ES
-     
-     universitas    la, FR, GB, HR, HU, NI, NO, PH, PL
-     universitas    id, ID
-     
-     universitatis  ?, US
-     
-     Universitat     he, IL
-     universitat(s)  ca, AD, ES, FR, IT
-     
-     universitäre  de, CH
-     universitäres de, DE
-     universität  de, AL, AT, BE, BG, BR, BY, CH, CN, CZ, DE, DK, HU, IT, KZ, LI, LU, NA, PL, RO, SI, SK, UA
-     universitäten  de, CH,
-     
-     universitatea  ro, MD
-     
-     universite   fr, FR, HT, RW, UA
-     université  fr, AL, AM, AR, BE, BF, BI, BJ, BY, CA, CD, CF, CG, CI, CM, DJ, DZ, EG, ES, FR, GA, GF, GN, GP, GR, HT, IT, KH, KM, LA, LB, LU, LY, MA, MG, ML, MR, MU, NC, NE, RE, RW, SN, SY, TD, TG, TN, TT, UA, US, VN, YT
-     universités   fr, CA
-     universitét  ?? sk, UA 
-     
-     universiteit   nl, AL, AW, BE, CW, NL, SR
-     universiteit   af, ZA
-     
-     universitesi  tr, CY, TR
-     
-     universitet  bg, BG?
-     universitet  be, BY?
-     
-     universitet  sv, FI
-     universitet  da, FO, GL, DK
-     universitet  kk, KZ
-     universitet  no, NO
-     universitet  sv, SE
-     universitet  ru, RU
-     
-     universitet(i)  pinyin, CN
-     
-     universitetas   lt, LT, LV
-     universitāte(s) lv, LV
-     
-     universitehta   se, NO
-     
-     universiteti  uz, AF, KG, SY, UZ
-     universiteti  sq, AL, MK, XK
-     universiteti  az, AZ, ?GE
-     universiteti  ? gn, GE
-     
-     universities  en, AT, AU, CA, IN, IQ
-     universiti    ms, BN, MY, SG
-     
-     universytet   uk, UA
-     
-     univesity    en, IN
-     
-     univerza  sl, AT, IT, SI
-     
-     univerzita  cs, CZ, PL
-     univerzita  sk, SK
-     
-     univerzitet   bs, BA, ME
-     univerzitet   sr, BA, RS
-     univerzitet   bg, MK
-     
-     
-     univerziteta   bs, BA
-     univerzitetska  bs, BA
-     univerzitetski   bs, BA
-     
-     univerziteta   sr,RS
-     univerzitetska  sr,RS
-     univerzitetski  sr,RS
-     
-     univesity  en RO
-     
-     yunivarsiitii  om, ET
-     yunivesithi  st, ZA
-     
-     
-     
-     universality  en, FR
-     universalité  fr, FR
-     universale  it, IT
-     universalmuseum de, AT
-     conselleria de sanitat universal i salut pública ca, ES
-     universitas universal     la, en
-     %universal %  en
-     %lunivers %   fr
-     %lunivers$   fr
-     %universe sciences observatory%  en
-     %the universe%   en
-     %universe and %  en
-
-          
-     
-     fundação centro de estudos do universo
-     univesp
-     univalor
-     union postale universelle
-     excellence cluster universe
-     exzellenzcluster universe
-     univation institut für evaluation dr beywl  associates
-     universum bremen
-     universum science center
-     walter brendel centre of experimental medicine wbex at the ludwig-maximilians-universität münchen
-     univ mohamed boudiaf msila
-     biodiversity research institute of the universiy of barcelona
-     iese business school universidad de navarra
-     universia foundation
-     astronomical universe sciences observatory of strasbourg
-     cnrs earth  universe
-     cnrs terre et univers
-     inria centre at université côte dazur
-     inria centre at université de lorraine
-     inria centre at université grenoble alpes
-     inria saclay centre at université paris-saclay
-     labex univearths
-     observatory for universe sciences of franche-comté burgundy
-     terres univia
-     univearths
-     typologie et universaux linguistiques
-     universcience
-     univers transport interfaces nanostructures atmosphère et environnement molécules
-     well-being organizations digital habitability education universality relations knowledge
-     univrab
-     univtrinita
-     kanchi mamunivar centre for post graduate studies
-     centro universale del bel canto
-     univers foundation
-     the univers foundation
-     kuniv (kuwait uni)
-     american universal college
-     univotec
-     univers moldova
-     universitam
-     construction research center universiti teknologi malaysia
-     observatoire des sciences de lunivers de la réunion
-     bryansk regional scientific universal library f i tyutchev
-     universeum
-         
-
-     */
-   
-    info!("{} language codes added to university names", records_affected);
-    
     Ok(())
 }
 
@@ -533,6 +300,200 @@ pub async fn update_hospital_names_2(pool: &Pool<Postgres>) -> Result<(), AppErr
     
     Ok(())
 }
+
+pub async fn update_university_names_1(pool: &Pool<Postgres>) -> Result<(), AppError> {
+
+    let mut records_affected = 0;
+
+    records_affected += assign_lang(vec!["iunivesite"], "sm", "'WS'", pool).await?; 
+    records_affected += assign_lang(vec!["iyunivesithi"], "xh", "'ZA'", pool).await?; 
+
+    
+    
+    records_affected += assign_lang(vec!["universidades"], "es", 
+        "'AR', 'BO', 'BY', 'BZ', 'CL', 'CO', 'CR', 'CU', 'DO', 'EC', 'ES', 'GT', 'HN', 'MX', 
+        'NI', 'PA', 'PE', 'PH', 'PR', 'PY', 'QA', 'SV', 'TT', 'US', 'UY', 'VE'", pool).await?; 
+    records_affected += assign_lang(vec!["universidade"], "pt", 
+        "'AO', 'BR', 'CV', 'GW', 'MO', 'MZ', 'PT', 'ST', 'TL'", pool).await?; 
+    records_affected += assign_lang(vec!["universidade"], "gl", "'ES'", pool).await?; 
+    records_affected += assign_lang(vec!["universidad"], "es", "", pool).await?; 
+    
+    records_affected += assign_lang(vec!["universitaire"], "fr", "", pool).await?; 
+     
+    records_affected += assign_lang(vec!["universitaria"], "es", 
+        "'AR', 'BO', 'BY', 'BZ', 'CL', 'CO', 'CR', 'CU', 'DO', 'EC', 'ES', 'GT', 'HN', 'MX', 
+        'NI', 'PA', 'PE', 'PH', 'PR', 'PY', 'QA', 'SV', 'TT', 'US', 'UY', 'VE'", pool).await?; 
+    records_affected += assign_lang(vec!["universitária"], "pt", 
+        "'AO', 'BR', 'CV', 'GW', 'MO', 'MZ', 'PT', 'ST', 'TL'", pool).await?; 
+    records_affected += assign_lang(vec!["universitària"], "ca", "'ES'", pool).await?; 
+  
+    records_affected += assign_lang(vec!["universitario"], "es", 
+        "'AR', 'BO', 'BY', 'BZ', 'CL', 'CO', 'CR', 'CU', 'DO', 'EC', 'ES', 'GT', 'HN', 'MX', 
+        'NI', 'PA', 'PE', 'PH', 'PR', 'PY', 'QA', 'SV', 'TT', 'US', 'UY', 'VE'", pool).await?; 
+    records_affected += assign_lang(vec!["universitário", "universitario"], "pt", 
+        "'AO', 'BR', 'CV', 'GW', 'MO', 'MZ', 'PT', 'ST', 'TL'", pool).await?; 
+
+    records_affected += assign_lang(vec!["universitaria", "universitario", "universitari"], "it", "'CH', 'IT'", pool).await?; 
+    records_affected += assign_lang(vec!["universitaris", "universitari"], "ca", "'ES'", pool).await?; 
+
+    records_affected += assign_lang(vec!["universitare"], "sq", "'XK'", pool).await?; 
+    records_affected += assign_lang(vec!["universitar", "universitară", "universitare", "universitatea"], "ro", "'RO'", pool).await?; 
+
+    records_affected += assign_lang(vec!["universitas universal", "universitas digital teknologi digitech university"], "id, en", "'ID'", pool).await?; 
+    records_affected += assign_lang(vec!["universitas"], "id", "'ID'", pool).await?; 
+    records_affected += assign_lang(vec!["universitas", "universitatis"], "la", "", pool).await?; 
+    
+    records_affected += assign_lang(vec!["universitāte"], "lv", "'LV', 'LT'", pool).await?; 
+    records_affected += assign_lang(vec!["universität", "universitäre", "universitaet"], "de", "", pool).await?; 
+    records_affected += assign_lang(vec!["universitat"], "ca", "'AD', 'ES', 'FR', 'IT'", pool).await?; 
+    
+    records_affected += assign_lang(vec!["universita"], "he", "'IL'", pool).await?;
+    records_affected += assign_lang(vec!["università"], "mt", "'MT'", pool).await?; 
+    records_affected += assign_lang(vec!["università"], "it", "", pool).await?; 
+    
+    records_affected += assign_lang(vec!["universitét"], "uk", "'UA'", pool).await?; 
+    records_affected += assign_lang(vec!["université"], "fr", "", pool).await?; 
+
+    records_affected += assign_lang(vec!["universitehta"], "se", "'NO'", pool).await?;
+    records_affected += assign_lang(vec!["universiteit"], "nl", "'AL', 'AW', 'BE', 'CW', 'NL', 'SR'", pool).await?; 
+    records_affected += assign_lang(vec!["universiteit"], "af", "'ZA'", pool).await?; 
+
+    records_affected += assign_lang(vec!["universitesi"], "tr", "'CY', 'TR'", pool).await?; 
+
+    records_affected += assign_lang(vec!["universiteto", "universitetas"], "lt", "'LT', 'LV'", pool).await?; 
+    records_affected += assign_lang(vec!["universitāte",], "lv", "'LV', 'LT'", pool).await?; 
+    
+    records_affected += assign_lang(vec!["universiteti"], "uz", "'AF', 'KG', 'SY', 'UZ'", pool).await?; 
+    records_affected += assign_lang(vec!["universiteti"], "sq", "'AL', 'MK', 'XK'", pool).await?; 
+    records_affected += assign_lang(vec!["universiteti"], "az", "'AZ', 'TR', 'GE'", pool).await?; 
+            
+    records_affected += assign_lang(vec!["universitet"], "sv", "'SE', 'FI'", pool).await?;
+    records_affected += assign_lang(vec!["universitet"], "da", "'FO', 'GL', 'DK'", pool).await?;
+    records_affected += assign_lang(vec!["universitet"], "no", "'NO'", pool).await?;
+    records_affected += assign_lang(vec!["universitet"], "kk", "'KZ'", pool).await?;
+    records_affected += assign_lang(vec!["universitet"], "bg", "'BG'", pool).await?;
+    records_affected += assign_lang(vec!["universitet"], "uk", "'UA'", pool).await?;
+    records_affected += assign_lang(vec!["universitet"], "ru", "'RU', 'BY'", pool).await?;
+    records_affected += assign_lang(vec!["universitet"], "zh", "'CN'", pool).await?;
+    
+    records_affected += assign_lang(vec!["universite "], "fr", "'FR', 'HT', 'RW', 'UA'", pool).await?;
+
+    records_affected += assign_lang(vec!["universities"], "en", "", pool).await?;
+
+    records_affected += assign_lang(vec!["universiti"], "ms", "'BN', 'MY', 'SG'", pool).await?;
+
+    records_affected += assign_lang(vec!["hochschule münchen university of"], "de, en", "", pool).await?;
+    records_affected += assign_lang(vec!["university of coimbra centro de estudos"], "pt, en", "", pool).await?;
+    records_affected += assign_lang(vec!["vysoká škola manažmentu city university of"], "sk, en", "", pool).await?;
+
+    records_affected += assign_lang(vec!["university of"], "en", "", pool).await?;
+
+    records_affected += assign_lang(vec!["корпоративный фонд university medical center"], "ru, en", "", pool).await?;
+    records_affected += assign_lang(vec!["professionshøjskolen university college nordjylland"], "da, en", "", pool).await?;
+    records_affected += assign_lang(vec!["university frères mentouri"], "fr, en", "", pool).await?;
+    records_affected += assign_lang(vec!["científica del sur university"], "es, en", "", pool).await?;
+
+    records_affected += assign_lang(vec!["university"], "en", "", pool).await?;
+    
+    records_affected += assign_lang(vec!["univerza"], "sl", "'AT', 'IT', 'SI'", pool).await?;
+    records_affected += assign_lang(vec!["univerzita"], "cs", "'CZ', 'PL'", pool).await?;
+    records_affected += assign_lang(vec!["univerzita"], "sk", "'SK'", pool).await?;
+
+    records_affected += assign_lang(vec!["univerzitet"], "bs", "'BA', 'ME'", pool).await?;
+    records_affected += assign_lang(vec!["univerzitet"], "sr", "'RS'", pool).await?;
+    records_affected += assign_lang(vec!["univerzitet"], "bg", "'MK'", pool).await?;
+   
+    records_affected += assign_lang(vec!["univerziteta", "univerzitetska", "univerzitetski"], "bs", "'BA'", pool).await?;
+    records_affected += assign_lang(vec!["univerziteta", "univerzitetska", "univerzitetski"], "sr", "'RS'", pool).await?;
+    
+    records_affected += assign_lang(vec!["universytet"], "uk", "'UA'", pool).await?;
+    
+    records_affected += assign_lang(vec!["yunivarsiitii"], "om", "'ET'", pool).await?;  
+    records_affected += assign_lang(vec!["yunivesithi"], "st", "'ZA'", pool).await?;  
+    
+    records_affected += assign_lang(vec!["yliopisto"], "fi", "", pool).await?;     
+
+
+    /* 
+     * 
+     
+     univ fr, FR			
+     univ en, JP, SG
+     
+     univeristy  en, NE
+     universit   en, JP
+     univesity   en, IN, RO
+               
+'univeristy', 'universit$', 'univesity'
+   
+     
+     universality  en, FR
+     universalité  fr, FR
+     universale  it, IT
+     universalmuseum de, AT
+     conselleria de sanitat universal i salut pública ca, ES
+
+     %universal %  en
+     %lunivers %   fr
+     %lunivers$   fr
+     %universe sciences%  en
+     %the universe%   en
+     %universe and %  en
+
+          
+     
+     fundação centro de estudos do universo
+     univesp
+     univalor
+     union postale universelle
+     excellence cluster universe
+     exzellenzcluster universe
+     univation institut für evaluation dr beywl  associates
+     universum bremen
+     universum science center
+     walter brendel centre of experimental medicine wbex at the ludwig-maximilians-universität münchen
+     univ mohamed boudiaf msila
+     biodiversity research institute of the universiy of barcelona
+     iese business school universidad de navarra
+     universia foundation
+     cnrs earth  universe
+     cnrs terre et univers
+     inria centre at université côte dazur
+     inria centre at université de lorraine
+     inria centre at université grenoble alpes
+     inria saclay centre at université paris-saclay
+     labex univearths
+     observatory for universe sciences of franche-comté burgundy
+     terres univia
+     univearths
+     typologie et universaux linguistiques
+     universcience
+     univers transport interfaces nanostructures atmosphère et environnement molécules
+     well-being organizations digital habitability education universality relations knowledge
+     univrab
+     univtrinita
+     kanchi mamunivar centre for post graduate studies
+     centro universale del bel canto
+     univers foundation
+     the univers foundation
+     kuniv (kuwait uni)
+     american universal college
+     univotec
+     univers moldova
+     universitam
+     construction research center universiti teknologi malaysia
+     observatoire des sciences de lunivers de la réunion
+     bryansk regional scientific universal library f i tyutchev
+     universeum
+         
+
+     */
+   
+    info!("{} language codes added to university names", records_affected);
+    
+    Ok(())
+}
+
 
 pub async fn assign_lang(names: Vec<&str>, lang_code: &str, countries: &str, pool: &Pool<Postgres>) -> Result<u64, AppError> {
 
