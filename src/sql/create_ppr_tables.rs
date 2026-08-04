@@ -41,7 +41,7 @@ pub fn get_sql<'a>() -> &'a str {
     
     
     drop table if exists ppr.names_pad;
-    create table ppr.names_pad
+    create table rec.names_pad
     (
         id                varchar     not null
       , original_name     varchar     not null    
@@ -51,7 +51,7 @@ pub fn get_sql<'a>() -> &'a str {
       , latin             varchar     null
       , nonlatin          varchar     null
     );
-    create index names_pad_idx on ppr.names_pad(id);
+    create index names_pad_idx on rec.names_pad(id);
     
     
     drop table if exists ppr.locations;
@@ -188,6 +188,44 @@ pub fn get_sql<'a>() -> &'a str {
       , changed_name      varchar     not null	
       , nature_of_change  varchar     null	
     );
-        
+
+    drop table if exists rec.dup_names;
+    create table rec.dup_names
+    (
+        ident             int         not null
+      , id                varchar     not null
+      , value             varchar     not null  
+      , name_type         varchar     null 
+      , is_ror_name       bool        null
+      , lang_code         varchar     null
+      , fate              varchar     null
+    );
+    create index dup_names_idx on rec.dup_names(id);
+
+    drop table if exists rec.names;
+    create table rec.names
+    (  
+        ident             int         not null
+      , id                varchar     not null
+      , orig_value        varchar     not null       -- as from src.names
+      , display_value     varchar     not null       -- after basic repairs (if applied, after apost processing too and after company name processing)
+      , lang_value        varchar     null           -- lower case and without punctuation (but still with spaces, ampersands)
+      , match_value       varchar     null           -- lower case, no punctuation or ampersands, some stop words removed, hyphens standardised
+      , script_value      varchar     null           -- spaces and hyphens removed - chars only
+      , name_type         int         not null
+      , is_ror_name       bool        not null
+      , lang              varchar     null
+      , der_lang          varchar     null
+      , der_script        varchar     null
+      , num_countries     int         null
+      , country_code      varchar     null
+      , changed           bool        not null  default false
+      , change_type_id    varchar     null
+      , change_type       varchar     null
+    );
+    create index rec_names_idx on src.names(id);
+
+    -- if company name processing applied - redo match values
+    
     SET client_min_messages TO NOTICE"#
 }

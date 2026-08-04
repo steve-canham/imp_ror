@@ -5,7 +5,7 @@ use crate::AppError;
 
 pub async fn create_rec_names (pool: &Pool<Postgres>) -> Result<(), AppError> {
 
-    let sql = r#"insert into rec.names(ident, id, orig_value, value, 
+    let sql = r#"insert into rec.names(ident, id, orig_value, display_value, 
        name_type, is_ror_name, lang)
        select ident, id, value, value, 
        case 
@@ -66,21 +66,21 @@ pub async fn update_rec_names_with_country_data  (pool: &Pool<Postgres>) -> Resu
 }
 
 
-pub async fn create_lc_names (pool: &Pool<Postgres>) -> Result<(), AppError> {
+pub async fn create_lang_names (pool: &Pool<Postgres>) -> Result<(), AppError> {
 
     let sql = r#"update rec.names rn
-        set lc_value = lower(value)"#;
+        set lang_value = lower(display_value)"#;
 
     sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
-    simplify_lc_names(pool).await?;
+    simplify_lang_names(pool).await?;
         
     Ok(())
 }
 
 
-async fn simplify_lc_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
+async fn simplify_lang_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
     // Remove punctuation from lc names (Will also be used to support script detection)
                            
@@ -88,19 +88,19 @@ async fn simplify_lc_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
     punctuation += remove_char(",", pool).await?;
     punctuation += remove_char(";", pool).await?;
     punctuation += remove_char(":", pool).await?;
-    info!("{} commas, full stops, colons and semi-colons removed from lc names", punctuation);
+    info!("{} commas, full stops, colons and semi-colons removed from lang names", punctuation);
                         
     let mut brackets = remove_char("(", pool).await?;   // parentheses and brackets
     brackets += remove_char(")", pool).await?;
-    info!("{} parantheses characters removed from lc names", brackets);
+    info!("{} parantheses characters removed from lang names", brackets);
 
     let mut brackets = remove_char("[", pool).await?;
     brackets += remove_char("]", pool).await?;
-    info!("{} bracket characters removed from lc names", brackets);
+    info!("{} bracket characters removed from lang names", brackets);
     
     let mut smart_single_quotes = remove_char("‘", pool).await?;
     smart_single_quotes += remove_char("’", pool).await?;
-    info!("{} smart quote characters removed from lc names", smart_single_quotes);
+    info!("{} smart quote characters removed from lang names", smart_single_quotes);
 
     let mut smart_double_quotes = remove_char("“", pool).await?;
     smart_double_quotes += remove_char("”", pool).await?;
@@ -111,15 +111,15 @@ async fn simplify_lc_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
     info!("{} smart quote characters removed from lc names", smart_double_quotes);
 
     let res  = remove_char("''", pool).await?;
-    info!("{} apostrophes removed from lc names", res);
+    info!("{} apostrophes removed from lang names", res);
     let res  = remove_char("\"", pool).await?;
-    info!("{} stright double quiotes removed from lc names", res);
+    info!("{} stright double quiotes removed from lang names", res);
 
-    //let mut punctuation = remove_char("-", pool).await?;  // ampersands, slashes
-    let mut punctuation = remove_char("&", pool).await?;
+    // let mut punctuation = remove_char("-", pool).await?;  // ampersands, slashes
+    // let mut punctuation = remove_char("&", pool).await?;
     punctuation += remove_char("/", pool).await?;
     punctuation += remove_char("|", pool).await?;
-    info!("{} sundry punctuation removed from lc names", punctuation);
+    info!("{} sundry punctuation removed from lang names", punctuation);
    
     let mut bullets = remove_char("·", pool).await?;       // middle dot, U+00b7
     bullets += remove_char("・", pool).await?;      // katakana middle dot, U+30fb
@@ -132,14 +132,16 @@ async fn simplify_lc_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
 async fn remove_char(char: &str, pool: &Pool<Postgres>) -> Result<u64, AppError> {
 
     let sql  = format!(r#"update rec.names
-            set lc_value = replace(lc_value, '{char}', '')
-            where lc_value like '%{char}%'; "#);
+            set lang_value = replace(lang_value, '{char}', '')
+            where lang_value like '%{char}%'; "#);
 
     let res = sqlx::query(&sql).execute(pool).await
     .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
     Ok(res.rows_affected())
 }
+
+
 
 
 

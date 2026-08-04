@@ -1,7 +1,7 @@
 mod names_clean;
 mod names_langs;
-mod rmv_dup_names;
-mod script_coder;
+mod names_scripts;
+mod names_dedup;
 
 use crate::setup::InitParams;
 use crate::sql::create_ppr_tables;
@@ -32,11 +32,13 @@ pub async fn process_data(params: &InitParams, pool : &Pool<Postgres>) -> Result
     names_langs::create_countries(pool).await?;
     names_langs::update_rec_names_with_country_data(pool).await?;
     
-    names_clean::basic_clean(pool).await?;  // do some very basic tidying of names
-    names_langs::create_lc_names(pool).await?; 
+    names_clean::do_basic_repair(pool).await?;  // do some very basic tidying of names
+    names_langs::create_lang_names(pool).await?; 
+    names_scripts::apply_script_codes(pool).await?;
+    
     names_langs::derive_lang_codes(pool).await?;  // try and obtain lang codes 
     names_clean::clean_names2(pool).await?;  // before che3cking for duplicates so some basic tidying of names
-    rmv_dup_names::remove_dups(pool).await?;  // done here to prevent PK errors in core_data
+    names_dedup::remove_dups(pool).await?;  // done here to prevent PK errors in core_data
     
     execute_sql(get_core_data_sql(), pool).await?;
     execute_sql(get_admin_data_sql(), pool).await?;
@@ -152,10 +154,6 @@ pub async fn process_data(params: &InitParams, pool : &Pool<Postgres>) -> Result
         info!("Withdrawn records retained within main dataset");
         info!("");
     }
-    
-    // Generate script codes for names
-   
-    script_coder::apply_script_codes(pool).await?;
 
     Ok(())
 }

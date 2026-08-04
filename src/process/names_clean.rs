@@ -3,7 +3,7 @@ use log::info;
 use crate::AppError;
 
 
-pub async fn basic_clean (pool: &Pool<Postgres>) -> Result<(), AppError> {
+pub async fn do_basic_repair (pool: &Pool<Postgres>) -> Result<(), AppError> {
 
     // remnove invisible characters
     
@@ -59,7 +59,47 @@ pub async fn basic_clean (pool: &Pool<Postgres>) -> Result<(), AppError> {
     replace_chars("I'information", "l''information", "I'information repaired", pool).await?;
     replace_chars("I'industrie", "l''industrie", "I'industrie repaired", pool).await?;
     replace_chars("I'INSU", "l''INSU", "I'INSU repaired", pool).await?;
+
+    let sql = r#"update rec.names set value = replace(value, 'eople ''s', 'eople''s')
+    where value like '%eople ''s%'"#;
+    execute_sql(sql, "name with odd ‘people 's’ repaired", pool).await?;
+
+    let sql = r#"update rec.names set value = replace(value, ' d'' ', ' d’')
+    where value like '% d'' %'"#; 
+    execute_sql(sql, "apostrophe replaced, in d' followed by a space", pool).await?;
     
+    replace_chars("Children's' ", "Children''s ", "name with odd ‘Children's'’ repaired", pool).await?;
+    replace_chars("Seiryo WOMEN'S ", "Seiryo Women''s ", "name with odd ‘WOMEN'S’ repaired", pool).await?;
+    replace_chars("Women'S ", "Women''s ", "name with odd ‘women'S’ repaired", pool).await?;
+    
+    replace_chars("THE Japan WRITERS' Association", "The Japan Writers'' Association", "name with ‘THE and WRITERS’ repaired", pool).await?;
+    replace_chars("Japan WRITERS' Association", "Japan Writers'' Association", "name with ‘WRITERS’ repaired", pool).await?;
+    replace_chars("SEAMEN'S Employment", "Seamen''s Employment", "name with ‘SEAMEN'S’ repaired", pool).await?;
+    replace_chars("Glass MANUFACTURERS' ", "Glass Manufacturers'' ", "name with ‘MANUFACTURERS’ repaired", pool).await?;
+
+    replace_chars("'М.Д. Інститут кардіології ім. Стражеска", "“М.Д. Інститут кардіології ім. Стражеска”", "apostrophe added to 'М.Д. Інститут кардіології ім. Стражеск", pool).await?;
+    
+    replace_chars("'Scientific and Research Institute Voskhod", "''Scientific and Research Institute Voskhod''", "apostrophe added to 'Scientific and Research Institute Voskhod", pool).await?;
+    
+    replace_chars("Foundation ''Villa Joep", "Foundation ''Villa Joep''", "apostrophe added to Foundation ''Villa Joep", pool).await?;
+
+    let sql = r#"update rec.names set value = replace(replace(value, '''', ''), '’', '')
+    where value like '%Workers ''and Peasants’%'"#;
+    execute_sql(sql, "spurious apostrophes in Workers 'and Peasants’ removed", pool).await?;
+    
+    replace_chars("'École nationale supérieure des postes", "École nationale supérieure des postes",
+         "apostrophe removed from 'École nationale supérieure des postes", pool).await?;
+
+    /*
+     * univeristy  en, NE
+     universit   en, JP
+     univesity   en, IN, RO
+     'univeristy', 'universit$', 'univesity'
+
+
+     records_affected += assign_lang(vec!["universite "], "fr", "'FR', 'HT', 'RW', 'UA'", pool).await?;
+     
+     */
     Ok(())
 }
 
@@ -221,19 +261,6 @@ pub async fn clean_names2 (pool: &Pool<Postgres>) -> Result<(), AppError> {
     //////////////////////////////////////////////////////////
     
     // Need to deal with some oddities first
-    
-    let sql = r#"update rec.names set value = replace(value, 'eople ''s', 'eople’s')
-    where value like '%eople ''s%'"#;
-    execute_sql(sql, "name with odd ‘people 's’ repaired", pool).await?;
-
-    replace_chars("Children's' ", "Children’s ", "name with odd ‘Children's'’ repaired", pool).await?;
-    replace_chars("Seiryo WOMEN'S ", "Seiryo Women’s ", "name with odd ‘WOMEN'S’ repaired", pool).await?;
-    replace_chars("Women'S ", "Women’s ", "name with odd ‘women'S’ repaired", pool).await?;
-    
-    replace_chars("THE Japan WRITERS' Association", "The Japan Writers’ Association", "name with ‘THE and WRITERS’ repaired", pool).await?;
-    replace_chars("Japan WRITERS' Association", "Japan Writers’ Association", "name with ‘WRITERS’ repaired", pool).await?;
-    replace_chars("SEAMEN'S Employment", "Seamen’s Employment", "name with ‘SEAMEN'S’ repaired", pool).await?;
-    replace_chars("Glass MANUFACTURERS' ", "Glass Manufacturers’ ", "name with ‘MANUFACTURERS’ repaired", pool).await?;
 
     replace_chars("FU'S LAB", "Fu’s Lab", "name with ‘FU’s repaired", pool).await?;
     replace_chars("Y'S Therap", "Y’s Therap", "name with ‘Y'S’ repaired", pool).await?;
@@ -303,11 +330,6 @@ pub async fn clean_names2 (pool: &Pool<Postgres>) -> Result<(), AppError> {
     // Deal with d' and D'
     //////////////////////////////////////////////////////////
     
-    // A few odd ones first    
-    let sql = r#"update rec.names set value = replace(value, ' d'' ', ' d’')
-    where value like '% d'' %'"#; 
-    execute_sql(sql, "apostrophe replaced, in d' followed by a space", pool).await?;
-
     let sql = r#"update rec.names set value = regexp_replace(value, '([ eou-])d''([AÁEÉHIÎOUXY])', '\1d’\2', 'gi')
     where value ~* '([ eou-])d''([AÁEÉHIÎOUXY])'"#;
     execute_sql(sql, "apostrophe replaced, in d' followed by a vowel or a few consonants", pool).await?;
@@ -413,17 +435,6 @@ pub async fn clean_names2 (pool: &Pool<Postgres>) -> Result<(), AppError> {
     where value ~ '[a-zA-Z]''a'"#;
     execute_sql(sql, "apostrophe retained when before a", pool).await?;
 
-    replace_chars("'М.Д. Інститут кардіології ім. Стражеска", "“М.Д. Інститут кардіології ім. Стражеска”", "apostrophe added to 'М.Д. Інститут кардіології ім. Стражеск", pool).await?;
-    replace_chars("'Scientific and Research Institute Voskhod", "''Scientific and Research Institute Voskhod''", "apostrophe added to 'Scientific and Research Institute Voskhod", pool).await?;
-    replace_chars("Foundation ''Villa Joep", "Foundation ''Villa Joep''", "apostrophe added to Foundation ''Villa Joep", pool).await?;
-
-    let sql = r#"update rec.names set value = replace(replace(value, '''', ''), '’', '')
-    where value like '%Workers ''and Peasants’%'"#;
-    execute_sql(sql, "spurious apostrophes in Workers 'and Peasants’ removed", pool).await?;
-    
-    replace_chars("'École nationale supérieure des postes", "École nationale supérieure des postes",
-         "apostrophe removed from 'École nationale supérieure des postes", pool).await?;
-    
     // At this stage possible to safely do those names with paired apostrophes 
     // turning them into 66 99 quotes
     

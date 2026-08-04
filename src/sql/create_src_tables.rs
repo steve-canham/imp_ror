@@ -56,11 +56,13 @@ pub fn get_sql<'a>() -> &'a str {
     (  
         ident             int         not null
       , id                varchar     not null
-      , orig_value        varchar     not null 
+      , orig_value        varchar     not null       -- as from src.names
+      , display_value     varchar     not null       -- after basic repairs (if applied, after apost processing too and after company name processing)
+      , lang_value        varchar     null           -- lower case and without punctuation (but still with spaces, ampersands)
+      , match_value       varchar     null           -- lower case, no punctuation or ampersands, some stop words removed, hyphens standardised
+      , script_value      varchar     null           -- spaces and hyphens removed - chars only
       , name_type         int         not null
       , is_ror_name       bool        not null
-      , value             varchar     not null  
-      , lc_value          varchar     null
       , lang              varchar     null
       , der_lang          varchar     null
       , der_script        varchar     null
@@ -71,6 +73,8 @@ pub fn get_sql<'a>() -> &'a str {
       , change_type       varchar     null
     );
     create index rec_names_idx on src.names(id);
+
+    -- if company name processing applied - redo match values
     
     drop table if exists src.locations;
     create table src.locations
@@ -150,19 +154,6 @@ pub fn get_sql<'a>() -> &'a str {
       , value             varchar     not null
     );
     create index rec_bare_ror_names_idx on rec.bare_ror_names(id);
-        
-    drop table if exists rec.dup_names;
-    create table rec.dup_names
-    (
-        ident             int         not null
-      , id                varchar     not null
-      , value             varchar     not null  
-      , name_type         varchar     null 
-      , is_ror_name       bool        null
-      , lang_code         varchar     null
-      , fate              varchar     null
-    );
-    create index dup_names_idx on rec.dup_names(id);
     
     SET client_min_messages TO NOTICE;"#
 }
