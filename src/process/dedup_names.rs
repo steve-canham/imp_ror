@@ -4,7 +4,7 @@ use crate::AppError;
 
 pub async fn remove_dups (pool: &Pool<Postgres>) -> Result<(), AppError> {
     
-    // Before further processing the duplicate names need to be removed from src.names. 
+    // Before further processing the duplicate names need to be removed from rec.names. 
     // If this is not done the import to the core data, that follows, will fail, 
     // as some organisations have more than one name marked as the 'ror name' (the 
     // import therefore fails because of a duplicated PK). 
@@ -83,14 +83,14 @@ fn make_duplicates_table <'a>() -> &'a str {
     // which the duplication was resolved.
     
     r#"insert into rec.dup_names (ident, id, value, name_type, is_ror_name, lang_code)
-    select n.ident, d.id, n.value, n.name_type, n.is_ror_name, n.lang
+    select n.ident, d.id, n.display_value, n.name_type, n.is_ror_name, n.lang
     from (
-        select id, lower(value) as lvalue from src.names
-        group by id, lower(value) having count(id) > 1
+        select id, lower(display_value) as lvalue from rec.names
+        group by id, lower(display_value) having count(id) > 1
     ) d
-    inner join src.names n
+    inner join rec.names n
     on d.id = n.id
-    and d.lvalue = lower(n.value)
+    and d.lvalue = lower(n.display_value)
     order by d.id;"#
 }
 
@@ -100,8 +100,8 @@ async fn recreate_dups(pool: &Pool<Postgres>) -> Result<(), AppError> {
     // Table recreated after each duplicate drop operatrion -  i.e.
     // has the current (but diminishing) duplicate name orgs
     
-    let sql = r#"drop table if exists src.dups;
-        create table src.dups 
+    let sql = r#"drop table if exists rec.dups;
+        create table rec.dups 
         (  
               ident             int         not null
             , id                varchar     not null
@@ -110,19 +110,19 @@ async fn recreate_dups(pool: &Pool<Postgres>) -> Result<(), AppError> {
             , is_ror_name       bool        null
             , lang_code         varchar     null
         );
-        create index dup_names_full_idx on src.dups(id);"#;
+        create index dup_names_full_idx on rec.dups(id);"#;
         sqlx::raw_sql(&sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
-    let sql = r#"insert into src.dups (ident, id, value, name_type, is_ror_name, lang_code)
-        select n.ident, d.id, n.value, n.name_type, n.is_ror_name, n.lang
+    let sql = r#"insert into rec.dups (ident, id, value, name_type, is_ror_name, lang_code)
+        select n.ident, d.id, n.display_value, n.name_type, n.is_ror_name, n.lang
         from (
-            select id, lower(value) as lvalue from src.names
-            group by id, lower(value) having count(id) > 1
+            select id, lower(display_value) as lvalue from rec.names
+            group by id, lower(display_value) having count(id) > 1
         ) d
-        inner join src.names n
+        inner join rec.names n
         on d.id = n.id
-        and d.lvalue = lower(n.value)
+        and d.lvalue = lower(n.display_value)
         order by d.id;"#;
         sqlx::raw_sql(&sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;

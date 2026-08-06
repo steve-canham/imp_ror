@@ -32,12 +32,8 @@ pub fn get_sql<'a>() -> &'a str {
       , lm_schema         varchar     not null  
     );
     
-    -- ror names has an identity column to help resolve ambiguities 
+    -- src names has an identity column to help resolve ambiguities 
     -- The column does not appear in the derived ppr.names table
-    -- rec.names also has an orig_value and value columns, as some 
-    -- original values are changed (to correct errors, make them more consistent) 
-    -- before further processing. The change_hist and change_type
-    -- columns are used to record the nature of any changes
 
     drop table if exists src.names;
     create table src.names
@@ -50,32 +46,7 @@ pub fn get_sql<'a>() -> &'a str {
       , lang              varchar     null
     );
     create index src_names_idx on src.names(id);
-    
-    drop table if exists rec.names;
-    create table rec.names
-    (  
-        ident             int         not null
-      , id                varchar     not null
-      , orig_value        varchar     not null       -- as from src.names
-      , display_value     varchar     not null       -- after basic repairs (if applied, after apost processing too and after company name processing)
-      , lang_value        varchar     null           -- lower case and without punctuation (but still with spaces, ampersands)
-      , match_value       varchar     null           -- lower case, no punctuation or ampersands, some stop words removed, hyphens standardised
-      , script_value      varchar     null           -- spaces and hyphens removed - chars only
-      , name_type         int         not null
-      , is_ror_name       bool        not null
-      , lang              varchar     null
-      , der_lang          varchar     null
-      , der_script        varchar     null
-      , num_countries     int         null
-      , country_code      varchar     null
-      , changed           bool        not null  default false
-      , change_type_id    varchar     null
-      , change_type       varchar     null
-    );
-    create index rec_names_idx on src.names(id);
-
-    -- if company name processing applied - redo match values
-    
+        
     drop table if exists src.locations;
     create table src.locations
     (  
@@ -146,14 +117,16 @@ pub fn get_sql<'a>() -> &'a str {
       , value             varchar     not null
     );
     create index src_domains_idx on src.domains(id);
+
     
-    drop table if exists rec.bare_ror_names;
-    create table rec.bare_ror_names
+    drop table if exists rec.strange_ror_names;
+    create table rec.strange_ror_names
     (
         id                varchar     not null
       , value             varchar     not null
+      , oddity_type       int         not null
     );
-    create index rec_bare_ror_names_idx on rec.bare_ror_names(id);
+    create index rec_strange_ror_names_idx on rec.strange_ror_names(id);
     
     SET client_min_messages TO NOTICE;"#
 }

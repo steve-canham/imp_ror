@@ -247,7 +247,7 @@ async fn t_check_ppr_name_data() {
     assert_eq!(names.len(), 7);
     assert_eq!(names[0], PprName{
         value: "Yamashita Kōjōsen Byōin".to_string(), name_type: 7, 
-        is_ror_name: false, lang_code: None, script_code: Some("Latn".to_string())});
+        is_ror_name: false, lang_code: Some("ja".to_string()), script_code: Some("Latn".to_string())});
     assert_eq!(names[4], PprName{
         value: "ヤマシタ コージョーセン ビョーイン".to_string(), name_type: 7, 
         is_ror_name: false, lang_code: Some("ja".to_string()), script_code: Some("Jpan".to_string())});

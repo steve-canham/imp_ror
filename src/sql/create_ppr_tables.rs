@@ -40,7 +40,7 @@ pub fn get_sql<'a>() -> &'a str {
     create index names_idx on ppr.names(id);
     
     
-    drop table if exists ppr.names_pad;
+    drop table if exists rec.names_pad;
     create table rec.names_pad
     (
         id                varchar     not null
@@ -202,6 +202,11 @@ pub fn get_sql<'a>() -> &'a str {
     );
     create index dup_names_idx on rec.dup_names(id);
 
+    -- rec.names has an orig_value and display_value columns, as some 
+    -- original values are changed (to correct errors, make them more consistent) 
+    -- before further processing. The change_type and change_type_id
+    -- columns are used to record the nature of any changes
+    
     drop table if exists rec.names;
     create table rec.names
     (  
@@ -216,16 +221,27 @@ pub fn get_sql<'a>() -> &'a str {
       , is_ror_name       bool        not null
       , lang              varchar     null
       , der_lang          varchar     null
-      , der_script        varchar     null
+      , der_script        varchar     default ''     -- make non-null to allow concatenation
       , num_countries     int         null
       , country_code      varchar     null
       , changed           bool        not null  default false
       , change_type_id    varchar     null
       , change_type       varchar     null
     );
-    create index rec_names_idx on src.names(id);
+    create index rec_names_idx on rec.names(id);
 
     -- if company name processing applied - redo match values
+
+    drop table if exists ppr.names_to_match;
+    create table ppr.names_to_match
+    (
+        id                varchar     not null
+      , match_value       varchar     null 
+      , frequency         int         null
+    );
+    create index names_to_match_idx on ppr.names_to_match(id);
+
+
     
     SET client_min_messages TO NOTICE"#
 }

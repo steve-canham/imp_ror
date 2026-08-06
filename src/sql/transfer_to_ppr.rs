@@ -36,21 +36,24 @@ pub fn get_admin_data_sql <'a>() -> &'a str {
 pub fn get_import_names_sql <'a>() -> &'a str {
         
         r#"insert into ppr.names(id, value, name_type, 
-        is_ror_name, lang_code)
-        select id, value,  
+        is_ror_name, lang_code, script_code)
+        select id, display_value, name_type, is_ror_name,
         case 
-            when name_type = 'alias' then 7
-            when name_type = 'acronym' then 10
-            when name_type = 'label' then 5
-            else 0
+            when der_lang is not null then der_lang
+            else lang
         end,
-        case
-            when is_ror_name = true then true
-            else false
-        end, 
-        lang
-        from src.names"#
+        der_script
+        from rec.names
+        where change_type_id not like '%99%'; "#    // 99 = Deleted as duplicate
 }
+
+pub fn get_import_maatch_names_sql <'a>() -> &'a str {
+        
+        r#"insert into ppr.names_to_match(id, match_value)
+        select distinct id, match_value
+        from rec.names; "#
+}
+
 
 
 pub fn get_links_sql <'a>() -> &'a str  {

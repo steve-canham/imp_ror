@@ -2,8 +2,70 @@ use sqlx::{Pool, Postgres};
 use log::info;
 use crate::AppError;
 
+pub async fn create_rec_names (pool: &Pool<Postgres>) -> Result<(), AppError> {
 
-pub async fn do_basic_repair (pool: &Pool<Postgres>) -> Result<(), AppError> {
+    let sql = r#"insert into rec.names(ident, id, orig_value, display_value, 
+       name_type, is_ror_name, lang)
+       select ident, id, value, value, 
+       case 
+           when name_type = 'label' then 5
+           when name_type = 'alias' then 7
+           when name_type = 'acronym' then 10
+           else 0
+       end,
+       case
+           when is_ror_name = true then true
+           else false
+       end,
+       lang
+       from src.names;"#;
+
+    let res = sqlx::raw_sql(sql).execute(pool)
+            .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    info!("{} records created in rec.names table", res.rows_affected()); 
+ 
+    Ok(())
+}
+
+pub async fn create_countries (pool: &Pool<Postgres>) -> Result<(), AppError> {
+
+    let sql = r#"insert into src.countries(id, country_code)
+        select distinct id, country_code
+        from src.locations;"#;
+    
+    let res = sqlx::raw_sql(sql).execute(pool)
+            .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    info!("{} country records created", res.rows_affected()); 
+    Ok(())
+}
+
+pub async fn update_rec_names_with_country_data  (pool: &Pool<Postgres>) -> Result<(), AppError> {
+
+    let sql = r#"update rec.names rn
+    set num_countries = c.n
+    from (
+        select id, count(country_code) as n
+        from src.countries 
+        group by id) c
+    where rn.id = c.id;"#;
+
+    sqlx::raw_sql(sql).execute(pool)
+            .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+
+    let sql = r#"update rec.names r
+        set country_code = c.country_code
+        from src.countries c
+        where r.id = c.id
+        and r.num_countries = 1;"#;
+
+    let res = sqlx::raw_sql(sql).execute(pool)
+            .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    info!("{} Country codes inserted into rec.names table", res.rows_affected()); 
+    Ok(())
+}
+
+
+pub async fn remove_invisible_chars (pool: &Pool<Postgres>) -> Result<(), AppError> {
 
     // remnove invisible characters
     
@@ -30,6 +92,12 @@ pub async fn do_basic_repair (pool: &Pool<Postgres>) -> Result<(), AppError> {
     replace_unicode_char("2011", 3, "non-breaking hyphen", "-", pool).await?;  
     replace_unicode_char("2012", 3, "figure dash", "-", pool).await?;  
 
+    Ok(())
+}
+
+
+pub async fn repair_typos (pool: &Pool<Postgres>) -> Result<(), AppError> {
+
     // deal with some very specific oddities (clearing them out of the way)
       
     replace_chars("[править | править вики-текст]", "", "'[%править | править вики-текст]', translated as 'edit | edit wiki-text' removed", pool).await?;
@@ -40,32 +108,32 @@ pub async fn do_basic_repair (pool: &Pool<Postgres>) -> Result<(), AppError> {
     replace_chars("literally Public Komatsu University", "Public Komatsu University", "'literally' removed", pool).await?;
     replace_chars("... ", "", "ellipsis removed", pool).await?;
 
-    let sql = r#"update rec.names set value = replace(value, '[', '') where value like '%['"#;
+    let sql = r#"update rec.names set display_value = replace(display_value, '[', '') where display_value like '%['"#;
     execute_sql(sql, "final left bracket removed", pool).await?;
-    let sql = r#"update rec.names set value = replace(value, ';', '') where value like '%;'"#;
+    let sql = r#"update rec.names set display_value = replace(display_value, ';', '') where display_value like '%;'"#;
     execute_sql(sql, "final semi-colon removed", pool).await?;
-    let sql = r#"update rec.names set value = translate(value, '[]', '')
+    let sql = r#"update rec.names set display_value = translate(display_value, '[]', '')
     where orig_value like '%]' and orig_value like '[%'"#;
     execute_sql(sql, "paired outer brackets removed", pool).await?;
     //  N.B. No current equivalent for paranthese or curly btrackets
     
-    let sql = r#"update rec.names set value = replace(value, '[', '') 
-    where value like '%[%' and value not like '%]%'"#;
+    let sql = r#"update rec.names set display_value = replace(display_value, '[', '') 
+    where display_value like '%[%' and display_value not like '%]%'"#;
     execute_sql(sql, "unpaired left bracket removed", pool).await?;
-    let sql = r#"update rec.names set value = replace(value, ']', '') 
-    where value like '%]%' and value not like '%[%'"#;
+    let sql = r#"update rec.names set display_value = replace(display_value, ']', '') 
+    where display_value like '%]%' and display_value not like '%[%'"#;
     execute_sql(sql,"unpaired right bracket removed", pool).await?;
 
     replace_chars("I'information", "l''information", "I'information repaired", pool).await?;
     replace_chars("I'industrie", "l''industrie", "I'industrie repaired", pool).await?;
     replace_chars("I'INSU", "l''INSU", "I'INSU repaired", pool).await?;
 
-    let sql = r#"update rec.names set value = replace(value, 'eople ''s', 'eople''s')
-    where value like '%eople ''s%'"#;
+    let sql = r#"update rec.names set display_value = replace(display_value, 'eople ''s', 'eople''s')
+    where display_value like '%eople ''s%'"#;
     execute_sql(sql, "name with odd ‘people 's’ repaired", pool).await?;
 
-    let sql = r#"update rec.names set value = replace(value, ' d'' ', ' d’')
-    where value like '% d'' %'"#; 
+    let sql = r#"update rec.names set display_value = replace(display_value, ' d'' ', ' d’')
+    where display_value like '% d'' %'"#; 
     execute_sql(sql, "apostrophe replaced, in d' followed by a space", pool).await?;
     
     replace_chars("Children's' ", "Children''s ", "name with odd ‘Children's'’ repaired", pool).await?;
@@ -83,8 +151,8 @@ pub async fn do_basic_repair (pool: &Pool<Postgres>) -> Result<(), AppError> {
     
     replace_chars("Foundation ''Villa Joep", "Foundation ''Villa Joep''", "apostrophe added to Foundation ''Villa Joep", pool).await?;
 
-    let sql = r#"update rec.names set value = replace(replace(value, '''', ''), '’', '')
-    where value like '%Workers ''and Peasants’%'"#;
+    let sql = r#"update rec.names set display_value = replace(replace(display_value, '''', ''), '’', '')
+    where display_value like '%Workers ''and Peasants’%'"#;
     execute_sql(sql, "spurious apostrophes in Workers 'and Peasants’ removed", pool).await?;
     
     replace_chars("'École nationale supérieure des postes", "École nationale supérieure des postes",
@@ -104,13 +172,7 @@ pub async fn do_basic_repair (pool: &Pool<Postgres>) -> Result<(), AppError> {
 }
 
 
-pub async fn clean_names2 (pool: &Pool<Postgres>) -> Result<(), AppError> {
-
-    // not sure if these are needed
-    
-    replace_unicode_char("2013", 4, "n dash", "-", pool).await?;  
-    replace_unicode_char("2014", 5, "m dash", "-", pool).await?;  
-    replace_unicode_char("2015", 6, "horizontal bar", "-", pool).await?;  
+pub async fn standardise_double_quotes (pool: &Pool<Postgres>) -> Result<(), AppError> {
 
     // First put all double quotes and equivalents as straight double quotes
     // and all single quotes as apostrophes
@@ -126,14 +188,7 @@ pub async fn clean_names2 (pool: &Pool<Postgres>) -> Result<(), AppError> {
     
     replace_chars("''", "\"", "pairs of apostrophes replaced by straight quotes", pool).await?;  // needed for a few records
     replace_chars("\"\"", "\"", "pairs of double quotes made into a single double quote", pool).await?;  // AS few records with doubled double quotes
-    
-    replace_chars("‘", "''", "left single quote replaced by apostrophes", pool).await?;
-    replace_chars("’", "''", "right single quote replaced by apostrophes", pool).await?;
-    
-    //////////////////////////////////////////////////////////
-    // Deal with Double quotes
-    //////////////////////////////////////////////////////////
-    
+        
     info!("{} names with double quotes, to begin with", double_quotes_num(pool).await?);
 
     // First deal with hebrew names. These have double quotes standing in for the 
@@ -143,35 +198,35 @@ pub async fn clean_names2 (pool: &Pool<Postgres>) -> Result<(), AppError> {
     // with the unicode gershayim symbol.
 
     let sql = r#"update rec.names set lang = 'he' 
-    where value ~ '[\u0590-\u05FF]' and lang <> 'he'"#;
+    where display_value ~ '[\u0590-\u05FF]' and lang <> 'he'"#;
     execute_sql(sql, "hebrew language label (re-)applied", pool).await?;
     
     // change a double quote to gershayim (u05F4)
     // if it is the only double quote in the name
 
-    let sql = r#"update rec.names set value = replace(value, '"', U&'\05F4')
+    let sql = r#"update rec.names set display_value = replace(display_value, '"', U&'\05F4')
     where lang = 'he'
-    and length(value) - length(replace(value, '"', '')) = 1"#;
+    and length(display_value) - length(replace(display_value, '"', '')) = 1"#;
     execute_sql(sql, "double quotes replaced by gershayim symbol in hebrew names",pool).await?;
 
     // Can now proceed with dealing with the remaining double quotes.
     // Consider those few records (2) with 5 "
     // Drop the spurious 5th " so the records have 4 "
 
-    let sql = r#"update rec.names set value = trim(regexp_replace(value, '"', '', 1, 5))
-    where length(value) - length(replace(value, '"', '')) = 5"#;
+    let sql = r#"update rec.names set display_value = trim(regexp_replace(display_value, '"', '', 1, 5))
+    where length(display_value) - length(replace(display_value, '"', '')) = 5"#;
     execute_sql(sql, "final double quotes removed in records with 5 double quotes", pool).await?;
     
     // consider those records (30+) with 3 "
     // Which one to drop will depend on specific record - select by id
 
-    let sql = r#"update rec.names set value = trim(regexp_replace(value, '"', '', 1, 1))
-    where length(value) - length(replace(value, '"', '')) = 3
+    let sql = r#"update rec.names set display_value = trim(regexp_replace(display_value, '"', '', 1, 1))
+    where length(display_value) - length(replace(display_value, '"', '')) = 3
     and id in('019j1v294', '01hprsv49', '01mp7gg57', '01vd5cb71', '020whct63', '028mtfb17', '02b47v767', '03dx8n755', '03q57f308', '03qc6zh37' , '03wn3aq07', '049j4jr36', '04a7dp661', '057tmwv53', '05kzawq90', '05pkv9t98', '05q23ne91', '05svms055')"#;
     execute_sql(sql, "inital double quotes removed in records with 3 double quotes", pool).await?;
     
-    let sql = r#"update rec.names set value = trim(regexp_replace(value, '"', '', 1, 3))
-    where length(value) - length(replace(value, '"', '')) = 3
+    let sql = r#"update rec.names set display_value = trim(regexp_replace(display_value, '"', '', 1, 3))
+    where length(display_value) - length(replace(display_value, '"', '')) = 3
     and id in ('00aa7ab77', '00kysjz64', '00qbdg904', '00wsvb073', '013fj3d42', '033z59547', '03b0cj417', '03xdgrg08', '05pc7fv53')"#;
     execute_sql(sql, "final double quotes removed in records with 3 double quotes", pool).await?;
         
@@ -179,47 +234,53 @@ pub async fn clean_names2 (pool: &Pool<Postgres>) -> Result<(), AppError> {
     // Then can consider names with just a single doble quote
     // In many cases add an additional quote to the end, but not in all
     
-    let sql = r#"update rec.names set value = '"'||value
+    let sql = r#"update rec.names set display_value = '"'||display_value
     where id in ('00a9b0g29', '00vrtwn56', '01g7a7y43', '03mgprp21', '052q58629', '05bpnjz66')
-    and length(value) - length(replace(value, '"', '')) = 1"#;
+    and length(display_value) - length(replace(display_value, '"', '')) = 1"#;
     execute_sql(sql, "additional double quote added at beginning to form a pair", pool).await?;
     
-    let sql = r#"update rec.names set value = replace(value, '"', '')
+    let sql = r#"update rec.names set display_value = replace(display_value, '"', '')
     where id in ('04cnfv189')
-    and length(value) - length(replace(value, '"', '')) = 1"#;
+    and length(display_value) - length(replace(display_value, '"', '')) = 1"#;
     execute_sql(sql, "spurious unpaired double quote removed", pool).await?;
 
-    let sql = r#"update rec.names set value = value||'"'
-    where length(value) - length(replace(value, '"', '')) = 1"#;
+    let sql = r#"update rec.names set display_value = display_value||'"'
+    where length(display_value) - length(replace(display_value, '"', '')) = 1"#;
     execute_sql(sql, "additional double quote added at end to form a pair", pool).await?;
     
     // Finally change all the paired double quotes to 'proper' 66 -- 99 quotes
     
-    let sql = r#"update rec.names set value = regexp_replace(value, '"(.*)"(.*)"(.*)"', '“\1”\2“\3”') 
-        where length(value) - length(replace(value, '"', '')) = 4"#;
+    let sql = r#"update rec.names set display_value = regexp_replace(display_value, '"(.*)"(.*)"(.*)"', '“\1”\2“\3”') 
+        where length(display_value) - length(replace(display_value, '"', '')) = 4"#;
     execute_sql(sql, "2 pairs of double quotes changed to smart quotes", pool).await?;
     
-    let sql = r#"update rec.names set value = regexp_replace(value, '"(.*)"', '“\1”') 
-    where length(value) - length(replace(value, '"', '')) = 2"#;
+    let sql = r#"update rec.names set display_value = regexp_replace(display_value, '"(.*)"', '“\1”') 
+    where length(display_value) - length(replace(display_value, '"', '')) = 2"#;
     execute_sql(sql, "paired double quotes changed to smart quotes", pool).await?;
     
     // Ensure quotes are 'tight' to the words
-    let sql = r#"update rec.names set value = trim(replace(value, '“ ', ' “')) 
-    where value like '%“ %'"#;
+    let sql = r#"update rec.names set display_value = trim(replace(display_value, '“ ', ' “')) 
+    where display_value like '%“ %'"#;
     execute_sql(sql, "left double quotes followed by a space brought tight to word", pool).await?;
      
-    let sql = r#"update rec.names set value = trim(replace(value, ' ”', '” '))
-    where value like '% ”%'"#;
+    let sql = r#"update rec.names set display_value = trim(replace(display_value, ' ”', '” '))
+    where display_value like '% ”%'"#;
     execute_sql(sql, "right double quotes preceded by a space brought tight to word", pool).await?;
     
     // Put left and right double quote choices in the config file...
     // US pattern is the default but others can be used...
     // After paired single quotes have been done
     // do a final replace with the user's selected quote marks , if necessary
+    
+    info!("");
+    
+    Ok(())
+}
 
-    /////////////////////////////////////////////////////////
-    // Deal with Single quotes
-    //////////////////////////////////////////////////////////
+pub async fn standardise_single_quotes (pool: &Pool<Postgres>) -> Result<(), AppError> {
+   
+    replace_chars("‘", "''", "left single quote replaced by apostrophes", pool).await?;
+    replace_chars("’", "''", "right single quote replaced by apostrophes", pool).await?;
         
     info!("{} names with apostrophes, to begin with", apos_num(pool).await?);
 
@@ -233,12 +294,12 @@ pub async fn clean_names2 (pool: &Pool<Postgres>) -> Result<(), AppError> {
 
     // Uzbek language names - left quote added to some vowels - chiefly after o
 
-    let sql  = r#"update rec.names set value = regexp_replace(value, 'O''', 'O‘', 'g')
-    where value ~ 'O'''  and lang = 'uz'"#;
+    let sql  = r#"update rec.names set display_value = regexp_replace(display_value, 'O''', 'O‘', 'g')
+    where display_value ~ 'O'''  and lang = 'uz'"#;
     execute_sql(sql, "Uzbek capital o and apostrophe replaced by O left quote", pool).await?;
     
-    let sql  = r#"update rec.names set value = regexp_replace(value, 'o''', 'o‘', 'g')
-    where value ~ 'o'''  and lang = 'uz'"#;
+    let sql  = r#"update rec.names set display_value = regexp_replace(display_value, 'o''', 'o‘', 'g')
+    where display_value ~ 'o'''  and lang = 'uz'"#;
     execute_sql(sql, "Uzbek lower case o and apostrophe replaced by o left quote", pool).await?;
 
     // Ukranian and Belarussian
@@ -250,9 +311,9 @@ pub async fn clean_names2 (pool: &Pool<Postgres>) -> Result<(), AppError> {
 
     // Hebrew
 
-    let sql = r#"update rec.names set value = replace(value, '''', U&'\05F3')
+    let sql = r#"update rec.names set display_value = replace(display_value, '''', U&'\05F3')
     where lang = 'he'
-    and length(value) - length(replace(value, '''', '')) = 1"#;
+    and length(display_value) - length(replace(display_value, '''', '')) = 1"#;
     execute_sql(sql, "isolated apostrophe replaced by geresh symbol in hebrew names", pool).await?;
     
 
@@ -290,28 +351,28 @@ pub async fn clean_names2 (pool: &Pool<Postgres>) -> Result<(), AppError> {
     replace_chars("AGTI'S", "AGTI’s", "apostrophe in AGTI'S replaced", pool).await?;
     replace_chars("T'Sou", "T’Sou", "apostrophe in T'Sou replaced", pool).await?;
         
-    let sql = r#"update rec.names set value = regexp_replace(value, '([a-zA-Z0-9])''s([ ,-])', '\1’s\2' , 'g') 
-    where value ~ '[a-zA-Z0-9]''s[ ,-]'"#;
+    let sql = r#"update rec.names set display_value = regexp_replace(display_value, '([a-zA-Z0-9])''s([ ,-])', '\1’s\2' , 'g') 
+    where display_value ~ '[a-zA-Z0-9]''s[ ,-]'"#;
     execute_sql(sql, "possessive apostrophe replaced, 's to ’s", pool).await?;
     
     let sql = r#"update rec.names 
-    set value = regexp_replace(value, '([a-zA-Z0-9])''s$', '\1’s') 
-    where value ~ '[a-zA-Z0-9]''s$'"#;
+    set display_value = regexp_replace(display_value, '([a-zA-Z0-9])''s$', '\1’s') 
+    where display_value ~ '[a-zA-Z0-9]''s$'"#;
     execute_sql(sql, "possessive apostrophe at end replaced, 's to ’s", pool).await?;
 
-    let sql = r#"update rec.names set value = regexp_replace(value, 's''', 's’', 'g')
-    where value ~ 's'' ' or value ~ 's''$'"#;
+    let sql = r#"update rec.names set display_value = regexp_replace(display_value, 's''', 's’', 'g')
+    where display_value ~ 's'' ' or display_value ~ 's''$'"#;
     execute_sql(sql, "possessive apostrophe replaced for plural nouns, s' to s’", pool).await?;
 
     // N.B. Last change masks some paired apostrophes, that should become double quotes
     // Need to go back later to repair this
 
-    let sql = r#"update rec.names set value = regexp_replace(value, '''s ', '’s ' ) 
-    where value ~ '^''s '"#;
+    let sql = r#"update rec.names set display_value = regexp_replace(display_value, '''s ', '’s ' ) 
+    where display_value ~ '^''s '"#;
     execute_sql(sql, "apostrophe replaced, in initial 's (Dutch abbreviation)", pool).await?;
 
-    let sql = r#"update rec.names set value = regexp_replace(value, ' ''t ', ' ’t ' ) 
-    where value ~ ' ''t '"#;
+    let sql = r#"update rec.names set display_value = regexp_replace(display_value, ' ''t ', ' ’t ' ) 
+    where display_value ~ ' ''t '"#;
     execute_sql(sql, "apostrophe replaced, in free floating 't (Dutch abbreviation)", pool).await?;
 
     replace_chars("A'Sharqiyah", "A^Sharqiyah", "apostrophe in A'Sharqiyah retained", pool).await?;
@@ -330,33 +391,48 @@ pub async fn clean_names2 (pool: &Pool<Postgres>) -> Result<(), AppError> {
     // Deal with d' and D'
     //////////////////////////////////////////////////////////
     
-    let sql = r#"update rec.names set value = regexp_replace(value, '([ eou-])d''([AÁEÉHIÎOUXY])', '\1d’\2', 'gi')
-    where value ~* '([ eou-])d''([AÁEÉHIÎOUXY])'"#;
+    let sql = r#"update rec.names set display_value = regexp_replace(display_value, '([ eou-])d''([AÁEÉHIÎOUXY])', '\1d’\2', 'gi')
+    where display_value ~* '([ eou-])d''([AÁEÉHIÎOUXY])'"#;
     execute_sql(sql, "apostrophe replaced, in d' followed by a vowel or a few consonants", pool).await?;
 
-    let sql = r#"update rec.names set value = regexp_replace(value, '^D''([AEÉHIÎOUXY])', 'D’\1', 'i')
-    where value ~* '^D''([AEÉHIÎOUXY])'"#;
+    let sql = r#"update rec.names set display_value = regexp_replace(display_value, '^D''([AEÉHIÎOUXY])', 'D’\1', 'i')
+    where display_value ~* '^D''([AEÉHIÎOUXY])'"#;
     execute_sql(sql, "apostrophe replaced, in initial D", pool).await?;
 
     /////////////////////////////////////////////////////////
     // Deal with l' and L'
     //////////////////////////////////////////////////////////
+
+    execute_regex_replace(r"'([ l])l'' ' , '\1l’'", "display_value ~ '[ l]l'' '", 
+        "apostrophe replaced, in l'-space following space or l", 210, pool).await?;
+
+    execute_regex_replace(r"'^L'' ' , 'L’'", "display_value ~ '^L'' '", 
+        "apostrophe replaced, in initial L' followed by space", 211, pool).await?;
+
+    execute_regex_replace(r"'([ l-])l''([AÁEÉèHIÎOlœUXY])', '\1l’\2', 'gi'", "display_value ~* '([ l-])l''([AÁEÉèHIÎOœUXY])'", 
+        "apostrophe replaced, in l' following space or l", 212, pool).await?;
+
+    execute_regex_replace(r"'^l''([AÁEÉHIÎOUXY])', 'L’\1', 'gi'", "display_value ~* '^l''([AÁEÉHIÎOUXY])'", 
+        "apostrophe replaced, in initial L'", 213, pool).await?;
+
     
-    let sql = r#"update rec.names set value = regexp_replace(value, '([ l])l'' ' , '\1l’')
-    where value ~ '[ l]l'' '"#;  
+   /*
+    let sql = r#"update rec.names set display_value = regexp_replace(display_value, '([ l])l'' ' , '\1l’')
+    where display_value ~ '[ l]l'' '"#;  
     execute_sql(sql, "apostrophe replaced, in l'-space following space or l", pool).await?;
 
-    let sql = r#"update rec.names set value = regexp_replace(value, '^L'' ' , 'L’')
-    where value ~ '^L'' '"#;
+    let sql = r#"update rec.names set display_value = regexp_replace(display_value, '^L'' ' , 'L’')
+    where display_value ~ '^L'' '"#;
     execute_sql(sql, "apostrophe replaced, in initial L' followed by space", pool).await?;
     
-    let sql = r#"update rec.names set value = regexp_replace(value, '([ l-])l''([AÁEÉèHIÎOlœUXY])', '\1l’\2', 'gi')
-    where value ~* '([ l-])l''([AÁEÉèHIÎOœUXY])'"#;
+    let sql = r#"update rec.names set display_value = regexp_replace(display_value, '([ l-])l''([AÁEÉèHIÎOlœUXY])', '\1l’\2', 'gi')
+    where display_value ~* '([ l-])l''([AÁEÉèHIÎOœUXY])'"#;
     execute_sql(sql, "apostrophe replaced, in l' following space or l", pool).await?;
     
-    let sql = r#"update rec.names set value = regexp_replace(value, '^l''([AÁEÉHIÎOUXY])', 'L’\1', 'gi')
-    where value ~* '^l''([AÁEÉHIÎOUXY])'"#;
+    let sql = r#"update rec.names set display_value = regexp_replace(display_value, '^l''([AÁEÉHIÎOUXY])', 'L’\1', 'gi')
+    where display_value ~* '^l''([AÁEÉHIÎOUXY])'"#;
     execute_sql(sql, "apostrophe replaced, in initial L'", pool).await?;
+    */
     
     // Remainder preserved as apostrophes or equivalewnt
        
@@ -370,8 +446,8 @@ pub async fn clean_names2 (pool: &Pool<Postgres>) -> Result<(), AppError> {
     replace_chars("Ca' ", "Ca’ ", "apostrophe replaced, in Ca' ", pool).await?;
     
     let sql = r#"update rec.names
-    set value = regexp_replace(value, '([aāáeěiíou])''([aāáeěiíou])', '\1^\2', 'g')
-    where value ~* '[aāáeěiíou]''[aāáeěiíou]'"#;
+    set display_value = regexp_replace(display_value, '([aāáeěiíou])''([aāáeěiíou])', '\1^\2', 'g')
+    where display_value ~* '[aāáeěiíou]''[aāáeěiíou]'"#;
     execute_sql(sql, "apostrophe retained when between vowels'", pool).await?;
 
     replace_chars("O'", "O’", "apostrophe replaced, in non-Uzbek O'", pool).await?;
@@ -400,8 +476,8 @@ pub async fn clean_names2 (pool: &Pool<Postgres>) -> Result<(), AppError> {
     replace_chars("En'Urga", "En’Urga", "apostrophe replaced, in En'Urga", pool).await?;
 
     let sql = r#"update rec.names
-    set value = regexp_replace(value, '''([0-9])', '’\1', 'g')
-    where value ~ '''[0-9]'"#;
+    set display_value = regexp_replace(display_value, '''([0-9])', '’\1', 'g')
+    where display_value ~ '''[0-9]'"#;
     execute_sql(sql, "apostrophe replaced when immediately before numerals (usually years)", pool).await?;
        
     // An odd one that needs to be done first, then n', N' retained 
@@ -421,31 +497,30 @@ pub async fn clean_names2 (pool: &Pool<Postgres>) -> Result<(), AppError> {
     
     replace_chars("t'l", "t’l", "apostrophe replaced, in t'l'", pool).await?;
     let sql = r#"update rec.names
-    set value = regexp_replace(value, 't''([a-z])', 't^\1', 'g')
-    where value ~ 't''[a-z]'"#;
+    set display_value = regexp_replace(display_value, 't''([a-z])', 't^\1', 'g')
+    where display_value ~ 't''[a-z]'"#;
     execute_sql(sql, "apostrophe retained when after other t", pool).await?;
 
     let sql = r#"update rec.names
-    set value = regexp_replace(value, 'a''([a-zA-Z])', 'a^\1', 'g') 
-    where value ~ 'a''[a-zA-Z]'"#;
+    set display_value = regexp_replace(display_value, 'a''([a-zA-Z])', 'a^\1', 'g') 
+    where display_value ~ 'a''[a-zA-Z]'"#;
     execute_sql(sql, "apostrophe retained when after a", pool).await?;
 
     let sql = r#"update rec.names
-    set value = regexp_replace(value, '([a-zA-Z])''a', '\1^a', 'g')
-    where value ~ '[a-zA-Z]''a'"#;
+    set display_value = regexp_replace(display_value, '([a-zA-Z])''a', '\1^a', 'g')
+    where display_value ~ '[a-zA-Z]''a'"#;
     execute_sql(sql, "apostrophe retained when before a", pool).await?;
 
     // At this stage possible to safely do those names with paired apostrophes 
     // turning them into 66 99 quotes
     
-    let sql = r#"update rec.names set value = regexp_replace(value, '''(.*)''', '“\1”') 
-    where value ~ '''[a-zA-Z. -]*'''"#;
+    let sql = r#"update rec.names set display_value = regexp_replace(display_value, '''(.*)''', '“\1”') 
+    where display_value ~ '''[a-zA-Z. -]*'''"#;
     execute_sql(sql, "paired single quotes changed to smart double quotes", pool).await?;
 
-    let sql = r#"update rec.names set value = regexp_replace(value, '''(.*)’', '“\1”') 
-    where value ~ '''[a-zA-Z. -]*’'"#;
+    let sql = r#"update rec.names set display_value = regexp_replace(display_value, '''(.*)’', '“\1”') 
+    where display_value ~ '''[a-zA-Z. -]*’'"#;
     execute_sql(sql, "paired single / right quotes changed to smart double quotes", pool).await?;
-
     
 
     replace_chars("'Αμφισσας", "Αμφισσας", "apostrophe removed in 'Αμφισσας (greek town)", pool).await?;
@@ -493,6 +568,7 @@ pub async fn clean_names2 (pool: &Pool<Postgres>) -> Result<(), AppError> {
 async fn execute_sql(sql: &str, change: &str, pool: &Pool<Postgres>) -> Result<(), AppError> {
 
     let change2 = if change.contains("'") {change.replace("'", "''")} else {change.to_string()};
+    
     let sql = sql.replace(" where ", format!(r#",
     changed = true,
     change_type_id = case when change_type_id is null then '7'
@@ -519,13 +595,44 @@ async fn execute_sql(sql: &str, change: &str, pool: &Pool<Postgres>) -> Result<(
 }
 
 
+async fn execute_regex_replace(regex: &str, wh: &str, change: &str, rep_type: i32, pool: &Pool<Postgres>) -> Result<(), AppError> {
+
+    let change2 = if change.contains("'") {change.replace("'", "''")} else {change.to_string()};
+    
+    let sql = format!(r#"update rec.names 
+    set display_value = regexp_replace(display_value, {regex}),
+    changed = true,
+    change_type_id = case when change_type_id is null then '{rep_type}'
+        else change_type_id||', {rep_type}'
+    end,
+    change_type = 
+        case when change_type is null then '{change2}'
+        else change_type||', '||'{change2}'
+    end 
+    where {wh}"#);
+    
+    let n = sqlx::query(&sql).execute(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?.rows_affected();
+   
+    if n > 0 {
+        if n == 1 {
+            info!("{change} ({})", "1 record");
+        } 
+        else {
+            info!("{change} ({})", format!("{n} records").as_str());
+        };
+    }
+    Ok(())
+}
+
+
 async fn replace_chars(chars: &str, replacement: &str, description: &str, 
               pool: &Pool<Postgres>) -> Result<(), AppError> {
 
     let chars2 = if chars.contains("'") {chars.replace("'", "''")} else {chars.to_string()};
     let ch_type = format!("({chars2}) replaced by ({replacement})");
     let sql  = format!(r#"update rec.names
-            set value = replace(value, '{chars2}', '{replacement}'),
+            set display_value = replace(display_value, '{chars2}', '{replacement}'),
             changed = true,
             change_type_id = case when change_type_id is null then '5'
                 else change_type_id||', 5'
@@ -534,7 +641,7 @@ async fn replace_chars(chars: &str, replacement: &str, description: &str,
                 case when change_type is null then '{ch_type}'
                 else change_type||', '||'{ch_type}'
             end
-            where value like '%{chars2}%' "#);
+            where display_value like '%{chars2}%' "#);
 
     let n = sqlx::query(&sql).execute(pool).await
     .map_err(|e| AppError::SqlxError(e, sql.to_string()))?.rows_affected();
@@ -565,7 +672,7 @@ async fn replace_unicode_char(unicode_char: &str, rep_type: i32, char_descriptio
         }
     };
     let sql  = format!(r#"update rec.names
-            set value = replace(value, U&'\{unicode_char}', '{replacement}'),
+            set display_value = replace(display_value, U&'\{unicode_char}', '{replacement}'),
             changed = true,
             change_type_id = case when change_type_id is null then '{rep_type}'
                 else change_type_id||', '||'{rep_type}'
@@ -574,7 +681,7 @@ async fn replace_unicode_char(unicode_char: &str, rep_type: i32, char_descriptio
                 case when change_type is null then '{ch_type}'
                 else change_type||', '||'{ch_type}'
             end
-            where value like U&'%\{unicode_char}%'; "#);
+            where display_value like U&'%\{unicode_char}%'; "#);
 
     let n = sqlx::query(&sql).execute(pool).await
     .map_err(|e| AppError::SqlxError(e, sql.to_string()))?.rows_affected();
@@ -594,7 +701,7 @@ async fn replace_unicode_char(unicode_char: &str, rep_type: i32, char_descriptio
 async fn apos_num(pool: &Pool<Postgres>) -> Result<i64, AppError> {
 
     let sql  = r#"select count(*) from rec.names 
-    where value like '%''%'"#;
+    where display_value like '%''%'"#;
 
     let r: i64 = sqlx::query_scalar(sql).fetch_one(pool).await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
@@ -604,7 +711,7 @@ async fn apos_num(pool: &Pool<Postgres>) -> Result<i64, AppError> {
 async fn double_quotes_num(pool: &Pool<Postgres>) -> Result<i64, AppError> {
 
     let sql  = r#"select count(*) from rec.names 
-    where value like '%"%'"#;
+    where display_value like '%"%'"#;
 
     let r: i64 = sqlx::query_scalar(sql).fetch_one(pool).await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;

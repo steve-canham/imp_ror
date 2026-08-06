@@ -125,6 +125,7 @@ impl RequiredDataVecs{
     pub async fn add_name_data(&mut self, r: &RorRecord, db_id: &String, pool : &Pool<Postgres>) -> Result<(), AppError> 
     {
         if r.names.len() > 0 {
+            let mut has_ror_name = false;
             for name in r.names.iter()
             {
                 if name.types.len() > 0 {
@@ -138,13 +139,22 @@ impl RequiredDataVecs{
                         self.name_types.push("label".to_string());
                         self.is_rors.push(true);
                         self.langs.push(name.lang.clone()); 
-                        store_mising_type_ror_record(&db_id, &name.value, pool).await?;
+                        store_strange_ror_record(&db_id, &name.value, 1, pool).await?;
+                        has_ror_name = true;
                     }
                     else {
+                        
                         let mut is_a_ror_name = false;
                         if name.types.contains(&"ror_display".to_string())
                         {
-                            is_a_ror_name = true;
+                            if has_ror_name {
+                                // ror_name already identified - can't be two!
+                                store_strange_ror_record(&db_id, &name.value, 2, pool).await?;  
+                            }
+                            else {
+                                is_a_ror_name = true;
+                                has_ror_name = true;
+                            }
                         }
 
                         for name_type in name.types.iter()
@@ -160,7 +170,15 @@ impl RequiredDataVecs{
                     }
                 }
             }
+
+            if !has_ror_name {   // store the fact that no name is identified as a ror name in the data
+                store_strange_ror_record(&db_id, "no ROR name", 3, pool).await?;  
+            }
         }
+        else {   // store the fact that no names at alll are listed
+            store_strange_ror_record(&db_id, "no names at all!", 4, pool).await?;  
+        }
+        
         Ok(())
     }
 
@@ -402,11 +420,11 @@ pub fn extract_id_from(full_id: &String) -> &str {
 }
 
 
-pub async fn store_mising_type_ror_record(id: &str, name: &str, pool : &Pool<Postgres>) -> Result<PgQueryResult, AppError> {
+pub async fn store_strange_ror_record(id: &str, name: &str, oddity_type: i32, pool : &Pool<Postgres>) -> Result<PgQueryResult, AppError> {
 
-    let sql = r#"INSERT INTO rec.bare_ror_names (id, value) values ($1, $2);"#;
+    let sql = r#"INSERT INTO rec.strange_ror_names (id, value, oddity_type) values ($1, $2, $3);"#;
     sqlx::query(sql)
-        .bind(id).bind(name).execute(pool)
+        .bind(id).bind(name).bind(oddity_type).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))
 }
 

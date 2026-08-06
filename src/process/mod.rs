@@ -1,7 +1,7 @@
-mod names_clean;
-mod names_langs;
-mod names_scripts;
-mod names_dedup;
+mod clean_names;
+mod check_langs;
+mod add_scripts;
+mod dedup_names;
 
 use crate::setup::InitParams;
 use crate::sql::create_ppr_tables;
@@ -28,23 +28,33 @@ pub async fn process_data(params: &InitParams, pool : &Pool<Postgres>) -> Result
         select version, data_date, data_days, {} from src.version_details;"#, params.flags.inc_withdrawn);
     execute_sql(&sql, pool).await?;
 
-    names_langs::create_rec_names(pool).await?;
-    names_langs::create_countries(pool).await?;
-    names_langs::update_rec_names_with_country_data(pool).await?;
+    clean_names::create_rec_names(pool).await?;
+    clean_names::create_countries(pool).await?;
+    clean_names::update_rec_names_with_country_data(pool).await?;
     
-    names_clean::do_basic_repair(pool).await?;  // do some very basic tidying of names
-    names_langs::create_lang_names(pool).await?; 
-    names_scripts::apply_script_codes(pool).await?;
+    clean_names::remove_invisible_chars(pool).await?;  // do some very basic tidying of names
+    clean_names::repair_typos(pool).await?; 
     
-    names_langs::derive_lang_codes(pool).await?;  // try and obtain lang codes 
-    names_clean::clean_names2(pool).await?;  // before che3cking for duplicates so some basic tidying of names
-    names_dedup::remove_dups(pool).await?;  // done here to prevent PK errors in core_data
+    check_langs::create_lang_names(pool).await?; 
+    
+    add_scripts::prepare_match_names(pool).await?;
+    add_scripts::prepare_script_names(pool).await?;
+    add_scripts::add_script_codes(pool).await?;
+    add_scripts::clean_japanese_script_codes(pool).await?;
+    
+    check_langs::derive_lang_codes(pool).await?;  // try and obtain lang codes 
+
+    clean_names::standardise_double_quotes(pool).await?;  // before checking for duplicates so some basic tidying of names
+    clean_names::standardise_single_quotes(pool).await?;
+
+    dedup_names::remove_dups(pool).await?;  // done here to prevent PK errors in core_data
     
     execute_sql(get_core_data_sql(), pool).await?;
     execute_sql(get_admin_data_sql(), pool).await?;
     info!("Core organisation data transferred to ppr table");
 
     execute_sql(get_import_names_sql(), pool).await?;
+    execute_sql(get_import_maatch_names_sql(), pool).await?;
     info!("Name data transferred to ppr table");
     
     execute_sql(get_links_sql(), pool).await?;

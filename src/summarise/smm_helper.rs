@@ -526,7 +526,7 @@ pub async fn store_singletons(vcode: &String, inc_wd: bool, num_denom: i64, num_
 
     // Labels added to names designated only as 'ror names'
 
-    let num_added_labels = get_count("select count(id) from rec.bare_ror_names", pool).await?;
+    let num_added_labels = get_count("select count(id) from rec.strange_ror_names", pool).await?;
     let pc_added = get_pc (num_added_labels, num_names);
     sings.add(vcode, inc_wd, 1, "added_labels", "Labels added to designated ROR names without a name type", num_added_labels, Some(pc_added));
     
