@@ -19,7 +19,7 @@ pub fn get_core_data_sql <'a>() -> &'a str {
         c.established 
         from src.core_data c
         inner join
-            (select id, value from src.names where is_ror_name = true) m
+            (select id, value from ppr.names where is_ror_name = true) m
         on c.id = m.id;"#
 }
 
@@ -37,14 +37,11 @@ pub fn get_import_names_sql <'a>() -> &'a str {
         
         r#"insert into ppr.names(id, value, name_type, 
         is_ror_name, lang_code, script_code)
-        select id, display_value, name_type, is_ror_name,
-        case 
-            when der_lang is not null then der_lang
-            else lang
-        end,
-        der_script
+        select id, display_value, name_type, 
+        is_ror_name, lang, der_script
         from rec.names
-        where change_type_id not like '%99%'; "#    // 99 = Deleted as duplicate
+        where change_type_id is null
+        or change_type_id not like '%XX%'; "#    // XXn = Deleted as duplicate
 }
 
 pub fn get_import_maatch_names_sql <'a>() -> &'a str {
@@ -53,7 +50,6 @@ pub fn get_import_maatch_names_sql <'a>() -> &'a str {
         select distinct id, match_value
         from rec.names; "#
 }
-
 
 
 pub fn get_links_sql <'a>() -> &'a str  {

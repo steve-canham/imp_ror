@@ -220,6 +220,7 @@ pub fn get_sql<'a>() -> &'a str {
       , name_type         int         not null
       , is_ror_name       bool        not null
       , lang              varchar     null
+      , ror_lang          varchar     null
       , der_lang          varchar     null
       , der_script        varchar     default ''     -- make non-null to allow concatenation
       , num_countries     int         null

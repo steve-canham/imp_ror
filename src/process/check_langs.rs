@@ -3,7 +3,6 @@ use log::info;
 use crate::AppError;
 
 
-
 pub async fn create_lang_names (pool: &Pool<Postgres>) -> Result<(), AppError> {
 
     let sql = r#"update rec.names rn
@@ -12,11 +11,25 @@ pub async fn create_lang_names (pool: &Pool<Postgres>) -> Result<(), AppError> {
     sqlx::raw_sql(sql).execute(pool)
         .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
 
+    info!("lower case version of display names copied to lang names");
+    info!("lang names to be simplified to remove punctuation");
     simplify_lang_names(pool).await?;
         
     Ok(())
 }
 
+pub async fn combine_lang_codes (pool: &Pool<Postgres>) -> Result<(), AppError> {
+
+    let sql = r#"update rec.names rn
+        set lang = case 
+        when der_lang is not null then der_lang
+        else ror_lang
+        end"#;
+
+    sqlx::raw_sql(sql).execute(pool)
+        .await.map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    Ok(())
+}
 
 async fn simplify_lang_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
        
@@ -57,9 +70,6 @@ async fn simplify_lang_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
     punctuation += remove_char("|", pool).await?;
     info!("{} sundry punctuation removed from lang names", punctuation);
    
-    let mut bullets = remove_char("·", pool).await?;       // middle dot, U+00b7
-    bullets += remove_char("・", pool).await?;      // katakana middle dot, U+30fb
-    info!("{} Bullets removed from lc names", bullets);
     info!("");
     Ok(())
 }
@@ -122,6 +132,75 @@ pub async fn derive_lang_codes (pool: &Pool<Postgres>) -> Result<(), AppError> {
     info!("");
     Ok(())
 }
+
+
+pub async fn assign_lang(names: Vec<&str>, lang_code: &str, countries: &str, pool: &Pool<Postgres>) -> Result<u64, AppError> {
+
+    let mut word_list = "".to_string();
+    for i in 0..names.len() {
+        let comparator = if names[i].starts_with("^") { 
+            format!("lang_value like '{}%'", &names[i][1..]) 
+        }
+        else { 
+            format!("lang_value like '%{}%'", names[i]) 
+        };
+        let comparison = format!(" {}{comparator}", if i > 0 {"or "} else {""});
+        word_list += comparison.as_str();
+    }
+
+    let sql = if countries == "" {
+        format!(r#"update rec.names
+                set der_lang = '{lang_code}'
+                where der_lang is null and name_type <> 10
+                and ({word_list});"#)
+    } 
+    else {
+        format!(r#"update rec.names
+                set der_lang = '{lang_code}'
+                where der_lang is null and name_type <> 10
+                and country_code in ({countries})
+                and ({word_list});"#)
+    };
+    
+    let res = sqlx::raw_sql(&sql).execute(pool)
+        .await.map_err(|e| AppError::SqlxError(e, sql))?;
+    Ok(res.rows_affected())
+}
+
+
+pub async fn assign_lang_using_display_name(names: Vec<&str>, lang_code: &str, countries: &str, pool: &Pool<Postgres>) -> Result<u64, AppError> {
+
+    let mut word_list = "".to_string();
+    for i in 0..names.len() {
+        let comparator = if names[i].starts_with("^") { 
+            format!("display_value like '{}%'", &names[i][1..]) 
+        }
+        else { 
+            format!("display_value like '%{}%'", names[i]) 
+        };
+        let comparison = format!(" {}{comparator}", if i > 0 {"or "} else {""});
+        word_list += comparison.as_str();
+    }
+
+    let sql = if countries == "" {
+        format!(r#"update rec.names
+                set der_lang = '{lang_code}'
+                where der_lang is null and name_type <> 10
+                and ({word_list});"#)
+    } 
+    else {
+        format!(r#"update rec.names
+                set der_lang = '{lang_code}'
+                where der_lang is null and name_type <> 10
+                and country_code in ({countries})
+                and ({word_list});"#)
+    };
+    
+    let res = sqlx::raw_sql(&sql).execute(pool)
+        .await.map_err(|e| AppError::SqlxError(e, sql))?;
+    Ok(res.rows_affected())
+}
+
 
 pub async fn add_bd_lang_code_to_comm_orgs(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
@@ -460,76 +539,8 @@ pub async fn update_institute_names_2(pool: &Pool<Postgres>) -> Result<(), AppEr
 
     Ok(())
 }
-  
-
-pub async fn assign_lang(names: Vec<&str>, lang_code: &str, countries: &str, pool: &Pool<Postgres>) -> Result<u64, AppError> {
-
-    let mut word_list = "".to_string();
-    for i in 0..names.len() {
-        let comparator = if names[i].starts_with("^") { 
-            format!("lang_value like '{}%'", &names[i][1..]) 
-        }
-        else { 
-            format!("lang_value like '%{}%'", names[i]) 
-        };
-        let comparison = format!(" {}{comparator}", if i > 0 {"or "} else {""});
-        word_list += comparison.as_str();
-    }
-
-    let sql = if countries == "" {
-        format!(r#"update rec.names
-                set der_lang = '{lang_code}'
-                where der_lang is null and name_type <> 10
-                and ({word_list});"#)
-    } 
-    else {
-        format!(r#"update rec.names
-                set der_lang = '{lang_code}'
-                where der_lang is null and name_type <> 10
-                and country_code in ({countries})
-                and ({word_list});"#)
-    };
-    
-    let res = sqlx::raw_sql(&sql).execute(pool)
-        .await.map_err(|e| AppError::SqlxError(e, sql))?;
-    Ok(res.rows_affected())
-}
 
 
-pub async fn assign_lang_using_display_name(names: Vec<&str>, lang_code: &str, countries: &str, pool: &Pool<Postgres>) -> Result<u64, AppError> {
-
-    let mut word_list = "".to_string();
-    for i in 0..names.len() {
-        let comparator = if names[i].starts_with("^") { 
-            format!("display_value like '{}%'", &names[i][1..]) 
-        }
-        else { 
-            format!("display_value like '%{}%'", names[i]) 
-        };
-        let comparison = format!(" {}{comparator}", if i > 0 {"or "} else {""});
-        word_list += comparison.as_str();
-    }
-
-    let sql = if countries == "" {
-        format!(r#"update rec.names
-                set der_lang = '{lang_code}'
-                where der_lang is null and name_type <> 10
-                and ({word_list});"#)
-    } 
-    else {
-        format!(r#"update rec.names
-                set der_lang = '{lang_code}'
-                where der_lang is null and name_type <> 10
-                and country_code in ({countries})
-                and ({word_list});"#)
-    };
-    
-    let res = sqlx::raw_sql(&sql).execute(pool)
-        .await.map_err(|e| AppError::SqlxError(e, sql))?;
-    Ok(res.rows_affected())
-}
-
- 
 pub async fn update_english_names_1(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
     let mut records_affected = 0;

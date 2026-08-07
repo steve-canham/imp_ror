@@ -13,14 +13,17 @@ pub async fn prepare_match_names(pool: &Pool<Postgres>) -> Result<(), AppError> 
         set match_value = lang_value; "#;
     sqlx::query(sql).execute(pool).await
             .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
-    info!("lang_values copied to match_values");
-
-    // remaining dashes need to be standardised to hyphens
-    // and the spaces arund them removed
+    info!("lang names copied to match names");
+    info!("match names further simplified and standardised");
     
-    replace_unicode_with_hyphen("2013", 504, "n dash", "-", pool).await?;  
-    replace_unicode_with_hyphen("2014", 505, "m dash", "-", pool).await?;  
-    replace_unicode_with_hyphen("2015", 506, "horizontal bar", "-", pool).await?;  
+    // remaining dashes need to be standardised to hyphens
+    // and the spaces arund them removed, and hyphen spacing regiularised
+    
+    replace_unicode_char("2013", 504, "n dash", "-", pool).await?;  
+    replace_unicode_char("2014", 505, "m dash", "-", pool).await?;  
+    replace_unicode_char("2015", 506, "horizontal bar", "-", pool).await?; 
+    replace_chars("- ", "-", 507, pool).await?;
+    replace_chars(" -", "-", 508, pool).await?;
    
     // Most punctuation already removed, when constructimn the lang_names.
     // Needs a bit more standardisation.
@@ -31,30 +34,27 @@ pub async fn prepare_match_names(pool: &Pool<Postgres>) -> Result<(), AppError> 
     remove_chars("&", 510, pool).await?;
     remove_chars("·", 511, pool).await?;       // middle dot, U+00b7
     remove_chars("・", 512, pool).await?;      // katakana middle dot, U+30fb
-
-    // (underscore removal affects all records as it acts as a wildcard) in the like statement
+    replace_unicode_char("005f", 504, "underscore", " ", pool).await?;  
     
-    remove_chars("_", 513, pool).await?;  
-
     // make double spaces single...
 
-    replace_with_space("  ", 514, pool).await?; 
+    replace_chars("  ", " ", 514, pool).await?; 
         
     // some simple stop words removed...
     
-    replace_with_space(" and ", 520, pool).await?; 
-    replace_with_space(" et ", 521, pool).await?;
-    replace_with_space(" und ", 522,  pool).await?;
-    replace_with_space(" y ", 523,  pool).await?;
-    replace_with_space(" of ", 524,  pool).await?;
-    replace_with_space(" the ", 525,  pool).await?;
-    replace_with_space(" for ", 526,  pool).await?;
-    replace_with_space(" de ", 527,  pool).await?;
-    replace_with_space(" le ", 528,  pool).await?;
-    replace_with_space(" la ", 529, pool).await?;
-    replace_with_space(" les ", 530, pool).await?;
-    replace_with_space(" des ", 531, pool).await?;
-    replace_with_space(" del ", 532, pool).await?;
+    replace_chars(" and ", " ", 520, pool).await?; 
+    replace_chars(" et ", " ", 521, pool).await?;
+    replace_chars(" und ", " ", 522,  pool).await?;
+    replace_chars(" y ", " ", 523,  pool).await?;
+    replace_chars(" of ", " ", 524,  pool).await?;
+    replace_chars(" the ", " ", 525,  pool).await?;
+    replace_chars(" for ", " ", 526,  pool).await?;
+    replace_chars(" de ", " ", 527,  pool).await?;
+    replace_chars(" le ", " ", 528,  pool).await?;
+    replace_chars(" la ", " ", 529, pool).await?;
+    replace_chars(" les ", " ", 530, pool).await?;
+    replace_chars(" des ", " ", 531, pool).await?;
+    replace_chars(" del ", " ", 532, pool).await?;
 
     // remove initial 'the' unless it is the first of two words
 
@@ -67,7 +67,7 @@ pub async fn prepare_match_names(pool: &Pool<Postgres>) -> Result<(), AppError> 
     .map_err(|e| AppError::SqlxError(e, sql.to_string()))?.rows_affected();
     info!("{res} initial 'the's removed from match_values");
 
-    replace_with_space("  ", 514, pool).await?;   // make double spaces single (again)...
+    replace_chars("  ", " ", 514, pool).await?;   // make double spaces single (again)...
     info!("");
     Ok(())
 }
@@ -118,12 +118,17 @@ async fn remove_chars(chars: &str, rep_type: i32, pool: &Pool<Postgres>) -> Resu
 }
 
 
-async fn replace_with_space(chars: &str, rep_type: i32, pool: &Pool<Postgres>) -> Result<(), AppError> {
+async fn replace_chars(chars: &str, replacement: &str, rep_type: i32, pool: &Pool<Postgres>) -> Result<(), AppError> {
 
-    let ch_type = format!("({chars}) replaced by single space in match_name");
+    let ch_type = if replacement == "" {
+        format!("({chars}) replaced by single space in match_name")
+    }
+    else {
+        format!("({chars}) replaced by ({replacement}) in match_name")
+    };
     
     let sql  = format!(r#"update rec.names
-            set match_value = replace(match_value, '{chars}', ' '),
+            set match_value = replace(match_value, '{chars}', '{replacement}'),
             changed = true,
             change_type_id = case when change_type_id is null then '{rep_type}'
                 else change_type_id||', '||'{rep_type}'
@@ -149,10 +154,16 @@ async fn replace_with_space(chars: &str, rep_type: i32, pool: &Pool<Postgres>) -
 }
 
 
-async fn replace_unicode_with_hyphen(unicode_char: &str, rep_type: i32, char_description: &str, 
+async fn replace_unicode_char(unicode_char: &str, rep_type: i32, char_description: &str, 
     replacement: &str, pool: &Pool<Postgres>) -> Result<(), AppError> {
    
-    let ch_type = format!("(\\u{unicode_char}, {char_description}) replaced by ascii hyphen in match name");
+    let ch_type = if replacement == "-" {
+        format!("(\\u{unicode_char}, {char_description}) replaced by ascii hyphen in match name")
+    }
+    else {
+        format!("(\\u{unicode_char}, {char_description}) replaced by ({replacement}) in match name")
+    };
+            
     let sql  = format!(r#"update rec.names
             set match_value = replace(match_value, U&'\{unicode_char}', '{replacement}'),
             changed = true,
@@ -163,7 +174,7 @@ async fn replace_unicode_with_hyphen(unicode_char: &str, rep_type: i32, char_des
                 case when change_type is null then '{ch_type}'
                 else change_type||', '||'{ch_type}'
             end
-            where display_value like U&'%\{unicode_char}%'; "#);
+            where display_value ~ U&'\{unicode_char}'; "#);
 
     let n = sqlx::query(&sql).execute(pool).await
     .map_err(|e| AppError::SqlxError(e, sql.to_string()))?.rows_affected();
@@ -327,6 +338,7 @@ pub async fn clean_japanese_script_codes (pool: &Pool<Postgres>) -> Result<(), A
 
     info!("{} japanese non-latin scripts recoded to 'Jpan'", japanese_nonlatin_names); 
 
+    info!("");
     Ok(())
 }
 

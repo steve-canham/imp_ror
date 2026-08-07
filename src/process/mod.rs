@@ -43,20 +43,21 @@ pub async fn process_data(params: &InitParams, pool : &Pool<Postgres>) -> Result
     add_scripts::clean_japanese_script_codes(pool).await?;
     
     check_langs::derive_lang_codes(pool).await?;  // try and obtain lang codes 
-
+    check_langs::combine_lang_codes(pool).await?;
+    
     clean_names::standardise_double_quotes(pool).await?;  // before checking for duplicates so some basic tidying of names
     clean_names::standardise_single_quotes(pool).await?;
 
     dedup_names::remove_dups(pool).await?;  // done here to prevent PK errors in core_data
     
-    execute_sql(get_core_data_sql(), pool).await?;
-    execute_sql(get_admin_data_sql(), pool).await?;
-    info!("Core organisation data transferred to ppr table");
-
     execute_sql(get_import_names_sql(), pool).await?;
     execute_sql(get_import_maatch_names_sql(), pool).await?;
     info!("Name data transferred to ppr table");
     
+    execute_sql(get_core_data_sql(), pool).await?;
+    execute_sql(get_admin_data_sql(), pool).await?;
+    info!("Core organisation data transferred to ppr table");
+       
     execute_sql(get_links_sql(), pool).await?;
     execute_sql(get_external_ids_sql(), pool).await?;
     execute_sql(get_types_sql(), pool).await?;
