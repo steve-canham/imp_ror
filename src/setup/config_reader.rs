@@ -18,6 +18,7 @@ pub struct TomlDataPars {
     pub src_file_name: Option<String>,
     pub data_version: Option<String>,
     pub data_date: Option<String>,
+    pub double_quotes: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -47,6 +48,7 @@ pub struct DataPars {
     pub src_file_name: String,
     pub data_version: String,
     pub data_date: String,
+    pub double_quotes: String,
 }
 
 pub struct FolderPars {
@@ -92,10 +94,13 @@ pub fn populate_config_vars(config_string: &String) -> Result<Config, AppError> 
 
 fn verify_data_parameters(toml_data_pars: TomlDataPars) -> Result<DataPars, AppError> {
 
-    Ok(DataPars {   // default values of "" available for all parameters
+    let double_quotes = check_defaulted_string (toml_data_pars.double_quotes, "double quotes to use", "“”");
+        
+    Ok(DataPars {   // default values of "" available for 3 of 4 parameters
         src_file_name: toml_data_pars.src_file_name.unwrap_or_else(|| "".to_string()),
         data_version: toml_data_pars.data_version.unwrap_or_else(|| "".to_string()),
         data_date: toml_data_pars.data_date.unwrap_or_else(|| "".to_string()),
+        double_quotes: double_quotes,
     })
 }
 
@@ -185,6 +190,7 @@ mod tests {
 data_version="v99"
 data_date="2026-06-15"
 src_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
+double_quotes="“”"
 
 [folders]
 data_folder_path="/home/steve/Data/MDR source data/ROR/data"
@@ -203,11 +209,12 @@ db_name="ror"
         assert_eq!(res.folders.data_folder_path, PathBuf::from("/home/steve/Data/MDR source data/ROR/data"));
         assert_eq!(res.folders.log_folder_path, PathBuf::from("/home/steve/Data/MDR/MDR_Logs/ror"));
         assert_eq!(res.folders.output_folder_path, PathBuf::from("/home/steve/Data/MDR source data/ROR/outputs"));
-
+        
         assert_eq!(res.data_details.src_file_name, "v1.59-2025-01-23-ror-data_schema_v2.json");
         assert_eq!(res.data_details.data_version, "v99");
         assert_eq!(res.data_details.data_date, "2026-06-15");
-
+        assert_eq!(res.data_details.double_quotes, "“”");
+        
         assert_eq!(res.db_pars.db_host, "localhost");
         assert_eq!(res.db_pars.db_user, "user_name");
         assert_eq!(res.db_pars.db_password, "password");
@@ -224,6 +231,7 @@ db_name="ror"
 data_version="v99"
 data_date="2026-06-15"
 src_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
+double_quotes="“”"
 
 [folders]
 data_folder_path="/home/steve/Data/MDR source data/ROR/data"
@@ -247,13 +255,14 @@ db_name="ror"
 
 
     #[test]
-    fn check_config_with_blank_log_and_outputs_folders() {
+    fn check_config_with_blank_log_and_outputs_folders_and_double_quotes() {
 
         let config = r#"
 [data]
 data_version="v99"
 data_date="2026-06-15"
 src_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
+double_quotes=""
 
 [folders]
 data_folder_path="/home/steve/Data/MDR source data/ROR/data"
@@ -274,6 +283,7 @@ db_name="ror"
         assert_eq!(res.folders.output_folder_path, PathBuf::from("/home/steve/Data/MDR source data/ROR/data"));
 
         assert_eq!(res.data_details.src_file_name, "v1.59-2025-01-23-ror-data_schema_v2.json");
+        assert_eq!(res.data_details.double_quotes, "“”");
     }
 
 
@@ -306,6 +316,7 @@ db_name="ror"
         assert_eq!(res.data_details.src_file_name, "v1.59-2025-01-23-ror-data_schema_v2.json");
         assert_eq!(res.data_details.data_version, "");
         assert_eq!(res.data_details.data_date, "");
+        assert_eq!(res.data_details.double_quotes, "“”");
 
         assert_eq!(res.db_pars.db_host, "localhost");
         assert_eq!(res.db_pars.db_user, "user_name");
@@ -324,6 +335,7 @@ db_name="ror"
 data_version="v99"
 data_date="2026-06-15"
 src_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
+double_quotes="“”"
 
 [folders]
 output_folder_path="/home/steve/Data/MDR source data/ROR/outputs"
@@ -350,6 +362,7 @@ db_name="ror"
 data_version="v99"
 data_date="2026-06-15"
 ppr_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
+double_quotes="“”"
 
 [folders]
 data_folder_path="/home/steve/Data/MDR source data/ROR/data"
@@ -376,6 +389,7 @@ db_name="ror"
 data_version="v99"
 data_date="2026-06-15"
 ppr_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
+double_quotes=""
 
 [folders]
 data_folder_path="/home/steve/Data/MDR source data/ROR/data"
@@ -388,6 +402,8 @@ db_password="password"
 "#;
         let config_string = config.to_string();
         let res = populate_config_vars(&config_string).unwrap();
+         assert_eq!(res.data_details.double_quotes, "“”");
+        
         assert_eq!(res.db_pars.db_host, "localhost");
         assert_eq!(res.db_pars.db_user, "user_name");
         assert_eq!(res.db_pars.db_password, "password");
@@ -402,6 +418,7 @@ db_password="password"
         let config = r#"
 [data]
 ppr_file_name="v1.59-2025-01-23-ror-data_schema_v2.json"
+double_quotes="‘’"
 
 [folders]
 data_folder_path="/home/steve/Data/MDR source data/ROR/data"
@@ -421,6 +438,7 @@ db_name="ror"
 
         assert_eq!(res.data_details.data_version, "");
         assert_eq!(res.data_details.data_date, "");
+        assert_eq!(res.data_details.double_quotes, "‘’");
 
         assert_eq!(res.db_pars.db_host, "localhost");
         assert_eq!(res.db_pars.db_user, "user_name");

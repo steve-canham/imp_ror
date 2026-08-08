@@ -84,7 +84,8 @@ async fn create_duplicates_table(pool: &Pool<Postgres>) -> Result<u64, AppError>
     // Table recreated after each duplicate drop operatrion -  i.e.
     // has the current (but diminishing) duplicate name orgs
     
-    let sql = r#"drop table if exists rec.dups;
+    let sql = r#"SET client_min_messages TO WARNING; 
+        drop table if exists rec.dups;
         create table rec.dups 
         (  
     	  ident             int         not null  primary key
@@ -100,18 +101,17 @@ async fn create_duplicates_table(pool: &Pool<Postgres>) -> Result<u64, AppError>
         execute_sql(sql, pool).await?;
         
     let sql = r#"insert into rec.dups (ident, id, value, name_type, is_ror_name, lang_code)
-        select n.ident, d.id, n.display_value, n.name_type, n.is_ror_name, n.lang
+        select n.ident, d.id, n.display_name, n.name_type, n.is_ror_name, n.lang
         from (
-            select id, lower(display_value) as lvalue from rec.names
-            group by id, lower(display_value) having count(id) > 1
+            select id, lower(display_name) as lvalue from rec.names
+            group by id, lower(display_name) having count(id) > 1
         ) d
         inner join rec.names n
         on d.id = n.id
-        and d.lvalue = lower(n.display_value)
+        and d.lvalue = lower(n.display_name)
         order by d.id;"#;
     
         let res = execute_sql(sql, pool).await?.rows_affected();
-
         Ok(res)
 }
 
@@ -120,7 +120,8 @@ async fn drop_non_ror_name_dups(pool: &Pool<Postgres>) -> Result<u64, AppError> 
 
     let drop_reason = "DROPPED because of non-ror status when ror equivalent present";
 
-    let sql = r#"drop table if exists rec.ror_nonror;
+    let sql = r#"SET client_min_messages TO WARNING; 
+        drop table if exists rec.ror_nonror;
         create table rec.ror_nonror as
         select f.ident as non_ror_ident, t.ident as ror_ident
         from 
@@ -164,19 +165,20 @@ async fn drop_alias_dups(pool: &Pool<Postgres>) -> Result<u64, AppError> {
 
     let drop_reason = "DROPPED because an alias when equivalent label present";
 
-    let sql = r#"drop table if exists rec.alias_label;
-    create table rec.alias_label as
-    select s.ident as alias_ident, b.ident as label_ident
-    from 
-	(select * from rec.dups
-		where name_type = 7
-		and dealt_with = false) s
-	inner join
-		(select * from rec.dups
-		where name_type = 5
-		and dealt_with = false) b
-	on s.id = b.id
-	and lower(s.value) = lower(b.value);"#;
+    let sql = r#"SET client_min_messages TO WARNING; 
+        drop table if exists rec.alias_label;
+        create table rec.alias_label as
+        select s.ident as alias_ident, b.ident as label_ident
+        from 
+    	(select * from rec.dups
+    		where name_type = 7
+    		and dealt_with = false) s
+    	inner join
+    		(select * from rec.dups
+    		where name_type = 5
+    		and dealt_with = false) b
+    	on s.id = b.id
+    	and lower(s.value) = lower(b.value);"#;
     
     execute_sql(sql, pool).await?;
 
@@ -209,20 +211,21 @@ async fn drop_acro_dups(pool: &Pool<Postgres>) -> Result<u64, AppError> {
 
     // N.B. Names >= 5 in length are viewed as non-acronyms.
     
-    let sql = r#"drop table if exists rec.acro_nonacro;
-    create table rec.acro_nonacro as
-    select b.ident as nonacro_ident, a.ident as acro_ident, 
-            length(a.value) as name_length
-    from 
-    	(select * from rec.dups
-    		where name_type <> 10
-    		and dealt_with = false) b
-    	inner join
-    		(select * from rec.dups
-    		where name_type = 10
-    		and dealt_with = false) a
-    	on b.id = a.id
-    	and lower(b.value) = lower(a.value);"#;
+    let sql = r#"SET client_min_messages TO WARNING; 
+        drop table if exists rec.acro_nonacro;
+        create table rec.acro_nonacro as
+        select b.ident as nonacro_ident, a.ident as acro_ident, 
+                length(a.value) as name_length
+        from 
+       	(select * from rec.dups
+      		where name_type <> 10
+      		and dealt_with = false) b
+       	inner join
+      		(select * from rec.dups
+      		where name_type = 10
+      		and dealt_with = false) a
+       	on b.id = a.id
+       	and lower(b.value) = lower(a.value);"#;
        
     execute_sql(sql, pool).await?;
 
@@ -265,7 +268,8 @@ async fn drop_acro_dups(pool: &Pool<Postgres>) -> Result<u64, AppError> {
         from rec.acro_nonacro x
         where d.ident = x.acro_ident
         or d.ident = x.nonacro_ident;
-        drop table rec.acro_nonacro;"#;
+        drop table rec.acro_nonacro;
+        SET client_min_messages TO NOTICE;"#;
 
     execute_sql(sql, pool).await?;
     Ok(res1 + res2)
@@ -307,7 +311,7 @@ async fn drop_specific_dup(id: &str, name: &str, lang: &str, pool: &Pool<Postgre
     	case when change_type is null then '{drop_reason}'
     	else change_type||', '||'{drop_reason}'
         end 
-        where id = '{}' and display_value = '{}' and lang = '{}';"#, id, name, lang);
+        where id = '{}' and display_name = '{}' and lang = '{}';"#, id, name, lang);
     execute_sql(&sql, pool).await?;
 
     let sql = format!("update rec.dups d

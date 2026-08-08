@@ -1,11 +1,4 @@
 
-/*
-pub fn get_version_details_sql <'a>() -> &'a str {
-       r#"insert into ppr.version_details (version, data_date, data_days, exc_wd)
-       select version, data_date, data_days from src.version_details;"#
-}
-*/
-
 pub fn get_core_data_sql <'a>() -> &'a str {
    
         r#"insert into ppr.core_data (id, ror_full_id, 
@@ -37,17 +30,17 @@ pub fn get_import_names_sql <'a>() -> &'a str {
         
         r#"insert into ppr.names(id, value, name_type, 
         is_ror_name, lang_code, script_code)
-        select id, display_value, name_type, 
+        select id, display_name, name_type, 
         is_ror_name, lang, der_script
         from rec.names
         where change_type_id is null
         or change_type_id not like '%XX%'; "#    // XXn = Deleted as duplicate
 }
 
-pub fn get_import_maatch_names_sql <'a>() -> &'a str {
+pub fn get_import_match_names_sql <'a>() -> &'a str {
         
-        r#"insert into ppr.names_to_match(id, match_value)
-        select distinct id, match_value
+        r#"insert into ppr.names_to_match(id, match_name)
+        select distinct id, match_name
         from rec.names; "#
 }
 

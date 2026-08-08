@@ -212,11 +212,11 @@ pub fn get_sql<'a>() -> &'a str {
     (  
         ident             int         not null
       , id                varchar     not null
-      , orig_value        varchar     not null       -- as from src.names
-      , display_value     varchar     not null       -- after basic repairs (if applied, after apost processing too and after company name processing)
-      , lang_value        varchar     null           -- lower case and without punctuation (but still with spaces, ampersands)
-      , match_value       varchar     null           -- lower case, no punctuation or ampersands, some stop words removed, hyphens standardised
-      , script_value      varchar     null           -- spaces and hyphens removed - chars only
+      , orig_name        varchar     not null       -- as from src.names
+      , display_name     varchar     not null       -- after basic repairs (if applied, after apost processing too and after company name processing)
+      , lang_name        varchar     null           -- lower case and without punctuation (but still with spaces, ampersands)
+      , match_name       varchar     null           -- lower case, no punctuation or ampersands, some stop words removed, hyphens standardised
+      , script_name      varchar     null           -- spaces and hyphens removed - chars only
       , name_type         int         not null
       , is_ror_name       bool        not null
       , lang              varchar     null
@@ -237,7 +237,7 @@ pub fn get_sql<'a>() -> &'a str {
     create table ppr.names_to_match
     (
         id                varchar     not null
-      , match_value       varchar     null 
+      , match_name        varchar     null 
       , frequency         int         null
     );
     create index names_to_match_idx on ppr.names_to_match(id);

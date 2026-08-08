@@ -32,6 +32,7 @@ pub struct InitParams {
     pub source_file_name: String,
     pub data_version: String,
     pub data_date: String,
+    pub double_quotes: String,
     pub flags: Flags,
 }
 
@@ -179,6 +180,8 @@ pub fn combine_args(cli_pars: CliPars, config: Config) -> Result<InitParams, App
         }
     }
 
+    let double_quotes = data_pars.double_quotes;
+
     // For execution flags read from the environment variables
 
     Ok(InitParams {
@@ -188,6 +191,7 @@ pub fn combine_args(cli_pars: CliPars, config: Config) -> Result<InitParams, App
         source_file_name,
         data_version,
         data_date,
+        double_quotes,
         flags: cli_pars.flags,
     })
 
@@ -398,6 +402,7 @@ mod tests {
 data_version="v1.60"
 data_date="2025-12-11"
 src_file_name="v1.58 20241211.json"
+double_quotes="“”"
 
 [folders]
 data_folder_path="/home/steve/Data/MDR source data/ROR/data"
@@ -421,6 +426,8 @@ db_name="ror"
         let res = combine_args(cli, config).unwrap();
 
         assert_eq!(res.flags.import_ror, true);
+        assert_eq!(res.flags.enhance_proc, false);
+        assert_eq!(res.flags.simplify_comms, false);
         assert_eq!(res.flags.export_csv, false);
         assert_eq!(res.flags.export_all_csv, false);
         assert_eq!(res.flags.create_config, false);
@@ -432,6 +439,7 @@ db_name="ror"
         assert_eq!(res.source_file_name, "v1.58 20241211.json");
         assert_eq!(res.data_version, "v1.58");
         assert_eq!(res.data_date, "2024-12-11");
+        assert_eq!(res.double_quotes, "“”");
     }
 
     
@@ -442,6 +450,7 @@ db_name="ror"
 data_version="v1.60"
 data_date="2025-12-11"
 src_file_name="v1.58 20241211.json"
+double_quotes="“”"
 
 [folders]
 data_folder_path="/home/steve/Data/MDR source data/ROR/data"
@@ -466,6 +475,8 @@ db_name="ror"
         let res = combine_args(cli, config).unwrap();
 
         assert_eq!(res.flags.import_ror, true);
+        assert_eq!(res.flags.enhance_proc, false);
+        assert_eq!(res.flags.simplify_comms, false);
         assert_eq!(res.flags.export_csv, true);
         assert_eq!(res.flags.export_all_csv, false);
         assert_eq!(res.flags.create_config, false);
@@ -476,6 +487,7 @@ db_name="ror"
         assert_eq!(res.output_folder, PathBuf::from("/home/steve/Data/MDR source data/ROR/outputs"));        assert_eq!(res.source_file_name, "schema2 data.json");
         assert_eq!(res.data_version, "v1.60");
         assert_eq!(res.data_date, "2026-12-25");
+        assert_eq!(res.double_quotes, "“”");
     }
 
 
@@ -487,6 +499,7 @@ db_name="ror"
 src_file_name="v1.58 20241211.json"
 data_version="v1.50"
 data_date="2025-12-11"
+double_quotes="“”"
 
 [folders]
 data_folder_path="/home/steve/Data/MDR source data/ROR/data"
@@ -500,7 +513,7 @@ db_password="password"
 db_port="5433"
 db_name="ror"
     "#;
-        let args : Vec<&str> = vec!["dummy target", "-a", "-x", "-c", "-m",
+        let args : Vec<&str> = vec!["dummy target", "-a", "-s", "-x", "-c", "-m",
                                     "-d", "2026-12-25", "-f", "schema2 data.json", "-v", "v1.60"];
         let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
         let cli = get_command_line_args(test_args).unwrap();
@@ -511,6 +524,8 @@ db_name="ror"
         let res = combine_args(cli, config).unwrap();
 
         assert_eq!(res.flags.import_ror, false);
+        assert_eq!(res.flags.enhance_proc, false);
+        assert_eq!(res.flags.simplify_comms, false);
         assert_eq!(res.flags.export_csv, false);
         assert_eq!(res.flags.export_all_csv, false);
         assert_eq!(res.flags.create_config, true);
@@ -522,6 +537,7 @@ db_name="ror"
         assert_eq!(res.source_file_name, "schema2 data.json");
         assert_eq!(res.data_version, "v1.60");
         assert_eq!(res.data_date, "2026-12-25");
+        assert_eq!(res.double_quotes, "“”");
     }
 
 
@@ -533,6 +549,7 @@ db_name="ror"
 src_file_name="v1.58 20241211.json"
 data_version="v1.60"
 data_date="2025-12-11"
+double_quotes="“”"
 
 [folders]
 data_folder_path="/home/steve/Data/MDR source data/ROR/data"
@@ -556,6 +573,8 @@ db_name="ror"
         let res = combine_args(cli, config).unwrap();
 
         assert_eq!(res.flags.import_ror, false);
+        assert_eq!(res.flags.enhance_proc, false);
+        assert_eq!(res.flags.simplify_comms, false);
         assert_eq!(res.flags.export_csv, false);
         assert_eq!(res.flags.export_all_csv, true);
         assert_eq!(res.flags.create_config, false);
@@ -567,6 +586,7 @@ db_name="ror"
         assert_eq!(res.source_file_name, "schema2 data.json");
         assert_eq!(res.data_version, "v1.60");
         assert_eq!(res.data_date, "2025-12-11");
+        assert_eq!(res.double_quotes, "“”");
     }
    
 
@@ -579,6 +599,7 @@ db_name="ror"
 src_file_name="v1.58 20241211.json"
 data_version="v1.60"
 data_date="2025-12-11"
+double_quotes="“”"
 
 [folders]
 data_folder_path="/home/steve/Data/MDR source data/ROR/no_data"
@@ -611,6 +632,7 @@ db_name="ror"
 src_file_name="v1.58 20241211.json"
 data_version="v1.60"
 data_date="2025-12-11"
+double_quotes="“”"
 
 [folders]
 data_folder_path="/home/steve/Data/MDR source data/ROR/no_data"
@@ -634,6 +656,8 @@ db_name="ror"
         let res = combine_args(cli, config).unwrap();
 
         assert_eq!(res.flags.import_ror, false);
+        assert_eq!(res.flags.enhance_proc, false);
+        assert_eq!(res.flags.simplify_comms, false);
         assert_eq!(res.flags.export_csv, true);
         assert_eq!(res.flags.export_all_csv, false);
         assert_eq!(res.flags.create_config, false);
@@ -645,6 +669,105 @@ db_name="ror"
         assert_eq!(res.source_file_name, "v1.58 20241211.json");
         assert_eq!(res.data_version, "v1.58");
         assert_eq!(res.data_date, "2024-12-11");
+        assert_eq!(res.double_quotes, "“”");
+    }
+
+
+    #[test]
+    fn check_missing_double_quotes_handled_by_default() {
+
+        let config = r#"
+[data]
+src_file_name="v1.58 20241211.json"
+data_version="v1.60"
+data_date="2025-12-11"
+double_quotes="“”"
+
+[folders]
+data_folder_path="/home/steve/Data/MDR source data/ROR/data"
+output_folder_path="/home/steve/Data/MDR source data/ROR/outputs"
+log_folder_path="/home/steve/Data/MDR logs/ror"
+
+[database]
+db_host="localhost"
+db_user="user_name"
+db_password="password"
+db_port="5433"
+db_name="ror"
+"#;
+        let args : Vec<&str> = vec!["dummy target", "-x"];
+        let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
+        let cli = get_command_line_args(test_args).unwrap();
+        
+        let config_string = config.to_string();
+        let config = config_reader::populate_config_vars(&config_string).unwrap();
+        
+        let res = combine_args(cli, config).unwrap();
+
+        assert_eq!(res.flags.import_ror, false);
+        assert_eq!(res.flags.enhance_proc, false);
+        assert_eq!(res.flags.simplify_comms, false);
+        assert_eq!(res.flags.export_csv, true);
+        assert_eq!(res.flags.export_all_csv, false);
+        assert_eq!(res.flags.create_config, false);
+        assert_eq!(res.flags.create_lookups, false);
+        assert_eq!(res.flags.create_summary, false);
+        assert_eq!(res.data_folder, PathBuf::from("/home/steve/Data/MDR source data/ROR/data"));
+        assert_eq!(res.log_folder, PathBuf::from("/home/steve/Data/MDR logs/ror"));
+        assert_eq!(res.output_folder, PathBuf::from("/home/steve/Data/MDR source data/ROR/outputs"));
+        assert_eq!(res.source_file_name, "v1.58 20241211.json");
+        assert_eq!(res.data_version, "v1.58");
+        assert_eq!(res.data_date, "2024-12-11");
+        assert_eq!(res.double_quotes, "“”");
+    }
+
+
+    #[test]
+    fn check_s_flag_works_correctly() {
+
+        let config = r#"
+[data]
+src_file_name="v1.58 20241211.json"
+data_version="v1.60"
+data_date="2025-12-11"
+double_quotes="“”"
+
+[folders]
+data_folder_path="/home/steve/Data/MDR source data/ROR/data"
+output_folder_path="/home/steve/Data/MDR source data/ROR/outputs"
+log_folder_path="/home/steve/Data/MDR logs/ror"
+
+[database]
+db_host="localhost"
+db_user="user_name"
+db_password="password"
+db_port="5433"
+db_name="ror"
+"#;
+        let args : Vec<&str> = vec!["dummy target", "-s", "-f", "schema2 data.json"];
+        let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
+        let cli = get_command_line_args(test_args).unwrap();
+        
+        let config_string = config.to_string();
+        let config = config_reader::populate_config_vars(&config_string).unwrap();
+        
+        let res = combine_args(cli, config).unwrap();
+
+        assert_eq!(res.flags.import_ror, true);
+        assert_eq!(res.flags.enhance_proc, true);
+        assert_eq!(res.flags.simplify_comms, true);
+        assert_eq!(res.flags.export_csv, false);
+        assert_eq!(res.flags.export_all_csv, false);
+        assert_eq!(res.flags.create_config, false);
+        assert_eq!(res.flags.create_lookups, false);
+        assert_eq!(res.flags.create_summary, false);
+        assert_eq!(res.data_folder, PathBuf::from("/home/steve/Data/MDR source data/ROR/data"));
+        assert_eq!(res.log_folder, PathBuf::from("/home/steve/Data/MDR logs/ror"));
+        assert_eq!(res.output_folder, PathBuf::from("/home/steve/Data/MDR source data/ROR/outputs"));
+        assert_eq!(res.source_file_name, "schema2 data.json");
+        assert_eq!(res.data_version, "v1.60");
+        assert_eq!(res.data_date, "2025-12-11");
+        assert_eq!(res.double_quotes, "“”");
     }
 
 }

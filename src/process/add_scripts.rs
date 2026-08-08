@@ -10,7 +10,7 @@ pub async fn prepare_match_names(pool: &Pool<Postgres>) -> Result<(), AppError> 
     // initially construct the match value as a copy of the lang_value
 
     let sql = r#"update rec.names 
-        set match_value = lang_value; "#;
+        set match_name = lang_name; "#;
     sqlx::query(sql).execute(pool).await
             .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     info!("lang names copied to match names");
@@ -59,13 +59,13 @@ pub async fn prepare_match_names(pool: &Pool<Postgres>) -> Result<(), AppError> 
     // remove initial 'the' unless it is the first of two words
 
     let sql  = r#"update rec.names
-        set match_value = regexp_replace(match_value, '^the ', '')
-        where match_value ~ '^the '
-        and array_length(string_to_array(match_value, ' '), 1) > 2 "#;
+        set match_name = regexp_replace(match_name, '^the ', '')
+        where match_name ~ '^the '
+        and array_length(string_to_array(match_name, ' '), 1) > 2 "#;
 
     let res = sqlx::query(&sql).execute(pool).await
     .map_err(|e| AppError::SqlxError(e, sql.to_string()))?.rows_affected();
-    info!("{res} initial 'the's removed from match_values");
+    info!("{res} initial 'the's removed from match_names");
 
     replace_chars("  ", " ", 514, pool).await?;   // make double spaces single (again)...
     info!("");
@@ -74,14 +74,14 @@ pub async fn prepare_match_names(pool: &Pool<Postgres>) -> Result<(), AppError> 
 
 pub async fn prepare_script_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
-    // Remove spaces from the match_value and transfer the result to the script_value
+    // Remove spaces from the match_name and transfer the result to the script_name
     
     let sql  = r#"update rec.names
-            set script_value = replace(match_value, ' ', ''); "#;
+            set script_name = replace(match_name, ' ', ''); "#;
     let res = sqlx::query(&sql).execute(pool).await
     .map_err(|e| AppError::SqlxError(e, sql.to_string()))?.rows_affected();
     
-    info!("{res} script_values created");
+    info!("{res} script_names created");
     info!("");
     Ok(())
 }
@@ -92,7 +92,7 @@ async fn remove_chars(chars: &str, rep_type: i32, pool: &Pool<Postgres>) -> Resu
     let ch_type = format!("({chars}) removed from match_name");
     
     let sql  = format!(r#"update rec.names
-            set match_value = replace(match_value, '{chars}', ''),
+            set match_name = replace(match_name, '{chars}', ''),
             changed = true,
             change_type_id = case when change_type_id is null then '{rep_type}'
                 else change_type_id||', '||'{rep_type}'
@@ -101,7 +101,7 @@ async fn remove_chars(chars: &str, rep_type: i32, pool: &Pool<Postgres>) -> Resu
                 case when change_type is null then '{ch_type}'
                 else change_type||', '||'{ch_type}'
             end
-            where match_value like '%{chars}%'; "#);
+            where match_name like '%{chars}%'; "#);
 
     let n = sqlx::query(&sql).execute(pool).await
     .map_err(|e| AppError::SqlxError(e, sql.to_string()))?.rows_affected();
@@ -128,7 +128,7 @@ async fn replace_chars(chars: &str, replacement: &str, rep_type: i32, pool: &Poo
     };
     
     let sql  = format!(r#"update rec.names
-            set match_value = replace(match_value, '{chars}', '{replacement}'),
+            set match_name = replace(match_name, '{chars}', '{replacement}'),
             changed = true,
             change_type_id = case when change_type_id is null then '{rep_type}'
                 else change_type_id||', '||'{rep_type}'
@@ -137,7 +137,7 @@ async fn replace_chars(chars: &str, replacement: &str, rep_type: i32, pool: &Poo
                 case when change_type is null then '{ch_type}'
                 else change_type||', '||'{ch_type}'
             end
-            where match_value like '%{chars}%'; "#);
+            where match_name like '%{chars}%'; "#);
 
     let n = sqlx::query(&sql).execute(pool).await
     .map_err(|e| AppError::SqlxError(e, sql.to_string()))?.rows_affected();
@@ -165,7 +165,7 @@ async fn replace_unicode_char(unicode_char: &str, rep_type: i32, char_descriptio
     };
             
     let sql  = format!(r#"update rec.names
-            set match_value = replace(match_value, U&'\{unicode_char}', '{replacement}'),
+            set match_name = replace(match_name, U&'\{unicode_char}', '{replacement}'),
             changed = true,
             change_type_id = case when change_type_id is null then '{rep_type}'
                 else change_type_id||', '||'{rep_type}'
@@ -174,7 +174,7 @@ async fn replace_unicode_char(unicode_char: &str, rep_type: i32, char_descriptio
                 case when change_type is null then '{ch_type}'
                 else change_type||', '||'{ch_type}'
             end
-            where display_value ~ U&'\{unicode_char}'; "#);
+            where match_name ~ U&'\{unicode_char}'; "#);
 
     let n = sqlx::query(&sql).execute(pool).await
     .map_err(|e| AppError::SqlxError(e, sql.to_string()))?.rows_affected();
@@ -226,7 +226,7 @@ pub async fn add_script_codes (pool: &Pool<Postgres>) -> Result<(), AppError> {
         if r.hex_start.len() < 5 {
             let sql  = format!(r#"update rec.names
                     set der_script = der_script||', '||'{}' 
-                    where script_value ~ '[\u{:0>4}-\u{:0>4}]'"#, r.code, r.hex_start, r.hex_end);
+                    where script_name ~ '[\u{:0>4}-\u{:0>4}]'"#, r.code, r.hex_start, r.hex_end);
 
             let res = sqlx::query(&sql).execute(pool).await
                 .map_err(|e| AppError::SqlxError(e, sql.to_string()))?.rows_affected();
@@ -242,8 +242,8 @@ pub async fn add_script_codes (pool: &Pool<Postgres>) -> Result<(), AppError> {
             
             let sql  = format!(r#"update rec.names
             set der_script = der_script||', '||'{}'  
-            where ascii(substr(script_value, 1, 1)) >= {}
-            and ascii(substr(script_value, 1, 1)) <= {}"#, r.code, r.ascii_start, r.ascii_end);
+            where ascii(substr(script_name, 1, 1)) >= {}
+            and ascii(substr(script_name, 1, 1)) <= {}"#, r.code, r.ascii_start, r.ascii_end);
     
             sqlx::query(&sql).execute(pool).await
                 .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;

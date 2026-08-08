@@ -99,6 +99,9 @@ pub fn log_startup_params (ip : &InitParams) {
     info!("create look up tables: {}", ip.flags.create_lookups);
     info!("create summary tables: {}", ip.flags.create_summary);
     info!("import_ror: {}", ip.flags.import_ror);
+    info!("enhanced name processing: {}", ip.flags.enhance_proc);
+    info!("comm. names simplified: {}", ip.flags.simplify_comms);
+    info!("import_ror: {}", ip.flags.import_ror);
     info!("export_csv: {}", ip.flags.export_csv);
     info!("export_all_csv: {}", ip.flags.export_all_csv);
     info!("retain withdrawn: {}", ip.flags.inc_withdrawn);

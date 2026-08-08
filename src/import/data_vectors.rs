@@ -71,6 +71,13 @@ impl CoreDataVecs{
     }
 }
 
+pub struct RorName {
+    pub db_id: String,
+    pub name: String,
+    pub name_type: String,
+    pub is_ror:bool,
+    pub lang: Option<String>,
+}
 
 pub struct RequiredDataVecs {
     pub name_db_ids: Vec<String>,
@@ -125,63 +132,122 @@ impl RequiredDataVecs{
     pub async fn add_name_data(&mut self, r: &RorRecord, db_id: &String, pool : &Pool<Postgres>) -> Result<(), AppError> 
     {
         if r.names.len() > 0 {
-            let mut has_ror_name = false;
+            let mut org_ror_name = 0;
             for name in r.names.iter()
             {
+                let mut rn = RorName {
+                    db_id: db_id.clone(),
+                    name: name.value.clone(),
+                    name_type: "".to_string(),
+                    is_ror: false,
+                    lang: name.lang.clone(),
+                };
+
                 if name.types.len() > 0 {
-
-                    // First option inserted for the small number of cases (~30)
-                    // where only 'ror_display' is provided as the name type
-
-                    if name.types.len() == 1 && name.types[0] == "ror_display" {
-                        self.name_db_ids.push(db_id.clone());
-                        self.names.push(name.value.clone());
-                        self.name_types.push("label".to_string());
-                        self.is_rors.push(true);
-                        self.langs.push(name.lang.clone()); 
-                        store_strange_ror_record(&db_id, &name.value, 1, pool).await?;
-                        has_ror_name = true;
-                    }
-                    else {
-                        
-                        let mut is_a_ror_name = false;
-                        if name.types.contains(&"ror_display".to_string())
+                    if name.types.len() == 1 {
+                        if name.types[0] == "ror_display" {    // rare but seems to occur in about 100 cases
+                            rn.name_type = "label".to_string();
+                            rn.is_ror = true;
+                            store_strange_ror_record(&db_id, &name.value, 1, pool).await?;
+                            org_ror_name += 1;
+                        }
+                        else      // much more commonly
                         {
-                            if has_ror_name {
-                                // ror_name already identified - can't be two!
-                                store_strange_ror_record(&db_id, &name.value, 2, pool).await?;  
+                            rn.name_type = name.types[0].clone();
+                        }
+                    }
+                    else if name.types.len() == 2 {   // the other usual situation
+
+                        // One would normally be 'ror_display', the other the name type
+                        // Check not both 'ror_display' or that none of them are
+
+                        let zero_is_ror = name.types[0].as_str() == "ror_display";
+                        let one_is_ror = name.types[1].as_str() == "ror_display";
+                        
+                        if zero_is_ror && one_is_ror {
+                            store_strange_ror_record(&db_id, &name.value, 2, pool).await?;
+                        }
+                        else if !zero_is_ror && !one_is_ror {   // A pair of type designations 
+                            
+                            let t1 = name.types[0].as_str();
+                            let t2 = name.types[1].as_str();
+                            let (selected_type, other_type) = obtain_name_type(&name.value, t1, t2);
+                            rn.name_type = selected_type.clone();
+                            let info = format!("{}: {}, {}", &name.value, selected_type, other_type);
+                            store_strange_ror_record(&db_id, &info, 3, pool).await?;
+                        }
+                        else {   // a single name type that is also a ror_name
+                            
+                            if zero_is_ror {
+                                rn.name_type = name.types[1].clone();
+                            }
+                            if one_is_ror {
+                                rn.name_type = name.types[0].clone();
+                            }
+                            rn.is_ror = true;
+                            org_ror_name += 1;
+                        }
+                    }
+                    else if name.types.len() == 3 { // almost always a ror_name indicator plus two namne types
+
+                        let mut is_ror_name = false;
+                        let mut t1 = "";
+                        let mut t2 = "";
+                        for t in &name.types {
+                            if t == "ror_display" {
+                                is_ror_name = true;
+                                org_ror_name += 1;
                             }
                             else {
-                                is_a_ror_name = true;
-                                has_ror_name = true;
+                                if t1 == "" {
+                                    t1 = t.as_str();
+                                }
+                                else {
+                                    t2 = t.as_str();
+                                }
                             }
                         }
 
-                        for name_type in name.types.iter()
-                        {
-                            if name_type != "ror_display" {
-                                self.name_db_ids.push(db_id.clone());
-                                self.names.push(name.value.clone());
-                                self.name_types.push(name_type.clone());
-                                self.is_rors.push(is_a_ror_name);
-                                self.langs.push(name.lang.clone()); 
-                            }
+                        if !is_ror_name {
+                            // very strange!
+                            let info = format!("{}: {}, {}", &name.value, t1, t2);
+                            store_strange_ror_record(&db_id, &info, 4, pool).await?;
+                        }
+                        else {
+                            let (selected_type, other_type) = obtain_name_type(&name.value, t1, t2);
+                            rn.is_ror = true;
+                            rn.name_type = selected_type.clone();
+                            let info = format!("{}: {}, {}", &name.value, selected_type, other_type);
+                            store_strange_ror_record(&db_id, &info, 5, pool).await?;
                         }
                     }
+                    else {    // 4 or more name types!
+                        
+                    }
                 }
+
+                self.name_db_ids.push(rn.db_id);
+                self.names.push(rn.name); 
+                self.name_types.push(rn.name_type);
+                self.is_rors.push(rn.is_ror); 
+                self.langs.push(rn.lang); 
             }
 
-            if !has_ror_name {   // store the fact that no name is identified as a ror name in the data
-                store_strange_ror_record(&db_id, "no ROR name", 3, pool).await?;  
+            if org_ror_name == 0 {   // store the fact that no name is identified as a ror name in the data
+                store_strange_ror_record(&db_id, "no ROR name", 6, pool).await?;  
+            }
+            if org_ror_name > 1 {   // store the fact that multiple names are identified as a ror name in the data
+                store_strange_ror_record(&db_id, "More than one ROR name", 7, pool).await?;  
             }
         }
         else {   // store the fact that no names at alll are listed
-            store_strange_ror_record(&db_id, "no names at all!", 4, pool).await?;  
+            store_strange_ror_record(&db_id, "no names at all!", 8, pool).await?;  
         }
         
         Ok(())
     }
 
+    
     pub fn add_locs_and_types_data(&mut self, r: &RorRecord, db_id: &String) 
     {
 
@@ -251,6 +317,49 @@ impl RequiredDataVecs{
                 .await.map_err(|e| AppError::SqlxError(e, "Storing src locations".to_string()))
 
     }
+}
+
+
+fn obtain_name_type(name: &str, t1: &str, t2: &str) -> (String, String) {
+
+    let acronym_limit: usize = 5;
+    let selected_type: &str;
+    let other_type: &str;
+    
+    if name.chars().count() <=  acronym_limit {
+        if t1 == "acronym" || t2 == "acronym" {
+            selected_type = "acronym";
+            other_type = if t1 == "acronym" {t2} else {t1};
+        }
+        else {
+            if t1 == "label" || t2 == "label" {
+                selected_type =  "label";
+                other_type = if t1 == "label" {t2} else {t1};
+            }
+            else {  // shouldn't occur but if it does use first
+                selected_type = t1;
+                other_type = t2;
+            }
+        }
+    }
+    else {
+        if t1 == "label" || t2 == "label" {
+            selected_type = "label";
+            other_type = if t1 == "label" {t2} else {t1};
+        }
+        else {
+            if t1 == "alias" || t2 == "alias" {
+                selected_type = "alias";
+                other_type = if t1 == "alias" {t2} else {t1};
+            }
+            else {  // shouldn't occur but if it does use first
+                selected_type = t1;
+                other_type = t2;
+            }
+        }
+    }
+
+    (selected_type.to_string(), other_type.to_string())
 }
 
 

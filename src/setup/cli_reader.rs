@@ -18,6 +18,8 @@ pub struct CliPars {
 #[derive(Debug, Clone, Copy)]
 pub struct Flags {
     pub import_ror: bool,
+    pub enhance_proc: bool,
+    pub simplify_comms: bool,
     pub export_csv: bool,
     pub export_all_csv: bool,
     pub inc_withdrawn: bool,
@@ -36,12 +38,15 @@ pub fn fetch_valid_arguments(args: Vec<OsString>) -> Result<CliPars, AppError> {
     let source_file = parse_result.get_one::<String>("src_file").unwrap();
     let data_version = parse_result.get_one::<String>("data_version").unwrap();
     let data_date = parse_result.get_one::<String>("data_date").unwrap();
+   
     let test_folder_as_string = parse_result.get_one::<String>("test_folder").unwrap();
     let test_folder = PathBuf::from(test_folder_as_string);
     
     // Flag values are false if not present, true if present.
     
     let mut a_flag = parse_result.get_flag("a_flag");
+    let mut e_flag = parse_result.get_flag("e_flag");
+    let mut s_flag = parse_result.get_flag("s_flag");
     let mut x_flag = parse_result.get_flag("x_flag");
     let mut y_flag = parse_result.get_flag("y_flag");
     let w_flag = parse_result.get_flag("w_flag");
@@ -62,6 +67,8 @@ pub fn fetch_valid_arguments(args: Vec<OsString>) -> Result<CliPars, AppError> {
       
     if k_flag || m_flag || c_flag {
         a_flag = false;
+        e_flag = false;
+        s_flag = false;
         x_flag = false;
         y_flag = false;
         t_flag = false;        
@@ -77,14 +84,17 @@ pub fn fetch_valid_arguments(args: Vec<OsString>) -> Result<CliPars, AppError> {
                Result::Err(AppError::MissingProgramParameter("valid test folder".to_string())),   
         }
         a_flag = true;   
+        e_flag = true;   // test run should test enhanced processing too
+        s_flag = true;
         x_flag = false;
         y_flag = false;
     }
 
-    // More usual situation is -a, -x, or -y, possibly with -w.
-    // -a flag can be accompanied by -x or -y (will be done first)
+    // More usual situation is -a, -e, -x, or -y, possibly with -w.
+    // -a and / or -e flags can be accompanied by -x or -y (will be done first)
     // If -x and -y flags both given, only -y is allowed.
-    // If none of a, x, y or t flags set a to true, as the default - this
+    // If -e flag emsure -a is true. If -s flag ensure both -a and -e are true
+    // If none of a, e, s, x, y or t flags set a to true, as the default - this
     // will also need the source file designated, perhaps in config file.
     
     else 
@@ -93,13 +103,24 @@ pub fn fetch_valid_arguments(args: Vec<OsString>) -> Result<CliPars, AppError> {
             x_flag = false;
         }
        
-        if !a_flag && !x_flag && !y_flag {
+        if !a_flag && !e_flag && !s_flag && !x_flag && !y_flag {
             a_flag = true;   
+        }
+
+        if e_flag {
+            a_flag = true;   
+        }
+
+        if s_flag {
+            a_flag = true;  
+            e_flag = true;   
         }
     }
 
     let flags = Flags {
         import_ror: a_flag,
+        enhance_proc: e_flag,
+        simplify_comms: s_flag,
         export_csv: x_flag,
         export_all_csv: y_flag,
         create_config: c_flag,
@@ -154,6 +175,22 @@ fn parse_args(args: Vec<OsString>) -> Result<ArgMatches, clap::Error> {
            .help("A flag signifying import, process, and generate report for designated version, excluding withdrawn organisations")
            .action(clap::ArgAction::SetTrue)
          )
+         .arg(
+             Arg::new("e_flag")
+            .short('e')
+            .long("enhanced")
+            .required(false)
+            .help("A flag signifying import, process - with additional language and apostrophe processing - and generate report for designated version, excluding withdrawn organisations")
+            .action(clap::ArgAction::SetTrue)
+          )
+          .arg(
+              Arg::new("s_flag")
+             .short('s')
+             .long("simplify-commercial")
+             .required(false)
+             .help("A flag signifying import, process - with additional language, apostrophe and company name processing - and generate report for designated version, excluding withdrawn organisations")
+             .action(clap::ArgAction::SetTrue)
+           )
          .arg(
              Arg::new("x_flag")
             .short('x')
@@ -245,6 +282,8 @@ mod tests {
         let res = fetch_valid_arguments(test_args).unwrap();
         assert_eq!(res.source_file, "");
         assert_eq!(res.flags.import_ror, true);
+        assert_eq!(res.flags.enhance_proc, false);
+        assert_eq!(res.flags.simplify_comms, false);
         assert_eq!(res.flags.export_csv, false);
         assert_eq!(res.flags.export_all_csv, false);
         assert_eq!(res.flags.create_config, false);
@@ -264,6 +303,8 @@ mod tests {
         let res = fetch_valid_arguments(test_args).unwrap();
         assert_eq!(res.source_file, "");
         assert_eq!(res.flags.import_ror, true);
+        assert_eq!(res.flags.enhance_proc, false);
+        assert_eq!(res.flags.simplify_comms, false);
         assert_eq!(res.flags.export_csv, false);
         assert_eq!(res.flags.export_all_csv, false);
         assert_eq!(res.flags.create_config, false);
@@ -273,7 +314,50 @@ mod tests {
         assert_eq!(res.data_date, "");
         assert_eq!(res.data_version, "");
     }
-   
+
+    #[test]
+    fn check_cli_with_e_flag() {
+        let target = "dummy target";
+        let args : Vec<&str> = vec![target, "-e"];
+        let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
+
+        let res = fetch_valid_arguments(test_args).unwrap();
+        assert_eq!(res.source_file, "");
+        assert_eq!(res.flags.import_ror, true);
+        assert_eq!(res.flags.enhance_proc, true);
+        assert_eq!(res.flags.simplify_comms, false);
+        assert_eq!(res.flags.export_csv, false);
+        assert_eq!(res.flags.export_all_csv, false);
+        assert_eq!(res.flags.create_config, false);
+        assert_eq!(res.flags.create_lookups, false);
+        assert_eq!(res.flags.create_summary, false);
+        assert_eq!(res.flags.test_run, false);
+        assert_eq!(res.data_date, "");
+        assert_eq!(res.data_version, "");
+    }
+
+
+    #[test]
+    fn check_cli_with_s_flag() {
+        let target = "dummy target";
+        let args : Vec<&str> = vec![target, "-s"];
+        let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
+
+        let res = fetch_valid_arguments(test_args).unwrap();
+        assert_eq!(res.source_file, "");
+        assert_eq!(res.flags.import_ror, true);
+        assert_eq!(res.flags.enhance_proc, true);
+        assert_eq!(res.flags.simplify_comms, true);
+        assert_eq!(res.flags.export_csv, false);
+        assert_eq!(res.flags.export_all_csv, false);
+        assert_eq!(res.flags.create_config, false);
+        assert_eq!(res.flags.create_lookups, false);
+        assert_eq!(res.flags.create_summary, false);
+        assert_eq!(res.flags.test_run, false);
+        assert_eq!(res.data_date, "");
+        assert_eq!(res.data_version, "");
+    }
+       
 
     #[test]
     fn check_cli_with_ckm_flags() {
@@ -284,6 +368,8 @@ mod tests {
         let res = fetch_valid_arguments(test_args).unwrap();
         assert_eq!(res.source_file, "");
         assert_eq!(res.flags.import_ror, false);
+        assert_eq!(res.flags.enhance_proc, false);
+        assert_eq!(res.flags.simplify_comms, false);
         assert_eq!(res.flags.export_csv, false);
         assert_eq!(res.flags.export_all_csv, false);
         assert_eq!(res.flags.create_config, true);
@@ -304,6 +390,8 @@ mod tests {
         let res = fetch_valid_arguments(test_args).unwrap();
         assert_eq!(res.source_file, "");
         assert_eq!(res.flags.import_ror, true);
+        assert_eq!(res.flags.enhance_proc, true);
+        assert_eq!(res.flags.simplify_comms, true);
         assert_eq!(res.flags.export_csv, false);
         assert_eq!(res.flags.export_all_csv, false);
         assert_eq!(res.flags.create_config, false);
@@ -335,6 +423,8 @@ mod tests {
         let res = fetch_valid_arguments(test_args).unwrap();
         assert_eq!(res.source_file, "");
         assert_eq!(res.flags.import_ror, false);
+        assert_eq!(res.flags.enhance_proc, false);
+        assert_eq!(res.flags.simplify_comms, false);
         assert_eq!(res.flags.export_csv, false);
         assert_eq!(res.flags.export_all_csv, false);
         assert_eq!(res.flags.create_config, false);
@@ -355,6 +445,8 @@ mod tests {
         let res = fetch_valid_arguments(test_args).unwrap();
         assert_eq!(res.source_file, "");
         assert_eq!(res.flags.import_ror, false);
+        assert_eq!(res.flags.enhance_proc, false);
+        assert_eq!(res.flags.simplify_comms, false);
         assert_eq!(res.flags.export_csv, false);
         assert_eq!(res.flags.export_all_csv, true);
         assert_eq!(res.flags.create_config, false);
@@ -375,6 +467,8 @@ mod tests {
         let res = fetch_valid_arguments(test_args).unwrap();
         assert_eq!(res.source_file, "schema2.1 data.json");
         assert_eq!(res.flags.import_ror, true);
+        assert_eq!(res.flags.enhance_proc, false);
+        assert_eq!(res.flags.simplify_comms, false);
         assert_eq!(res.flags.export_csv, false);
         assert_eq!(res.flags.export_all_csv, false);
         assert_eq!(res.flags.create_config, false);
@@ -390,12 +484,14 @@ mod tests {
     fn check_cli_with_most_params_explicit() {
         let target = "dummy target";
         let args : Vec<&str> = vec![target, "-f", "schema2.1 data.json", "-d", "2026-12-25", 
-                                            "-v", "v1.63", "-x", "-y", "-a"];
+                                            "-v", "v1.63", "-x", "-y", "-a", "-e", "-s"];
         let test_args = args.iter().map(|x| x.to_string().into()).collect::<Vec<OsString>>();
 
         let res = fetch_valid_arguments(test_args).unwrap();
         assert_eq!(res.source_file, "schema2.1 data.json");
         assert_eq!(res.flags.import_ror, true);
+        assert_eq!(res.flags.enhance_proc, true);
+        assert_eq!(res.flags.simplify_comms, true);
         assert_eq!(res.flags.export_csv, false);
         assert_eq!(res.flags.export_all_csv, true);
         assert_eq!(res.flags.create_config, false);
