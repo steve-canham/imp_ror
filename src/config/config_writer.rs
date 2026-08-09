@@ -214,11 +214,39 @@ pub fn create_config_file(config_file_path: &Path) -> Result<String, AppError>
         println!("    {data_date_entry}{suffix}");
     }
 
+    let p = format!(r#"
+    DOUBLE QUOTES
+    Please input two characters to represent the left and right double quotes, for use in enclosing
+    emphasised titles within names. These are only used if standardising apostrophes is requested.
+    These must be one of the following four options:
+    a) US style 66-99 smart quotes (“”), b) UK style single quotes (‘’), 
+    c) French style guillmets («»), or d) German style low / high quotes („“). 
+    To accept the default (US style smart double quotes, “”) simply press enter, otherwise type the two 
+    characters and press enter.
+    "#);
+    println!("{p}");
+
+    let mut users_dq_selection: String;
+    let mut suffix = "".to_string();
+    let mut dq = "no_valid_dq".to_string();
+    while dq == "no_valid_dq".to_string() {
+        (users_dq_selection, suffix) = user_input_or_default("“”")?;
+        if users_dq_selection == "“”".to_string() || users_dq_selection == "‘’".to_string()
+            || users_dq_selection == "«»".to_string() || users_dq_selection == "„“".to_string() {
+            dq = users_dq_selection;
+        }
+        else {
+            println!("    The quote pattern entered does not conform to one of the allowed options - please try again");
+        }
+    }
+    let double_quote_entry = format!(r#"double_quotes="{dq}""#);
+    println!("    {double_quote_entry}{suffix}");
+
     // *****************************************************
     // Create file.
     // *****************************************************
     
-    let data_section = format!("[data]\n{}\n{}\n{}\n", src_file_entry, data_version_entry, data_date_entry);
+    let data_section = format!("[data]\n{}\n{}\n{}\n{}\n", src_file_entry, data_version_entry, data_date_entry, double_quote_entry);
     let folders_section = format!("[folders]\n{}\n{}\n{}\n", data_folder_entry, output_folder_entry, log_folder_entry);
     let database_section = format!("[database]\n{}\n{}\n{}\n{}\n{}\n", db_host_entry, db_user_entry, db_password_entry, db_port_entry, db_name_entry);
     let config_string = format!("\n{}\n\n{}\n\n{}\n", data_section, folders_section, database_section);

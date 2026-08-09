@@ -496,10 +496,8 @@ pub async fn standardise_single_quotes (pool: &Pool<Postgres>) -> Result<(), App
     replace_chars("Klet'", "Klet’", "apostrophe replaced, in Klet'", 363, pool).await?;
     replace_chars("Oniversiten'Antananarivo", "Oniversiten’Antananarivo", "apostrophe replaced, in Oniversiten'Antananarivo", 365, pool).await?;
 
-    // Do double spaces to single at end?
     // info!("{} double spaces replaced by single in names to match", replace_in_names("  ", " ", pool).await?);
     
-
     info!("{} names with apostrophes after processing", apos_num(pool).await?);
     info!("");
 
@@ -668,4 +666,33 @@ async fn double_quotes_num(pool: &Pool<Postgres>) -> Result<i64, AppError> {
 
     Ok(r)
 }
+
+pub async fn swap_double_quotes(quotes: &str, pool: &Pool<Postgres>) -> Result<u64, AppError> {
+
+    // quotes guarantees to have two characters
+    
+    let lh_dq = quotes.chars().nth(0).unwrap();
+    let rh_dq = quotes.chars().nth(1).unwrap();
+    
+    let sql  = format!(r#"update rec.names
+       set display_name = replace(display_name, '“', '{lh_dq}')
+        where display_name like '%“%'"#);
+
+    sqlx::query(&sql).execute(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+
+    let sql  = format!(r#"update rec.names
+       set display_name = replace(display_name, '”', '{rh_dq}')
+        where display_name like '%”%'"#);
+
+    let r = sqlx::query(&sql).execute(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?.rows_affected();
+    
+    Ok(r)
+}
+
+
+
+
+
 

@@ -92,19 +92,33 @@ pub fn log_startup_params (ip : &InitParams) {
     info!("data_folder: {}", ip.data_folder.display());
     info!("log_folder: {}", ip.log_folder.display());
     info!("output_folder: {}", ip.output_folder.display());
+    
     info!("source_file_name: {}", ip.source_file_name);
-    info!("data_version: {}", ip.data_version);
-    info!("data_date: {}", ip.data_date);
-    info!("create config table: {}", ip.flags.create_config);
-    info!("create look up tables: {}", ip.flags.create_lookups);
-    info!("create summary tables: {}", ip.flags.create_summary);
-    info!("import_ror: {}", ip.flags.import_ror);
-    info!("enhanced name processing: {}", ip.flags.enhance_proc);
-    info!("comm. names simplified: {}", ip.flags.simplify_comms);
-    info!("import_ror: {}", ip.flags.import_ror);
-    info!("export_csv: {}", ip.flags.export_csv);
-    info!("export_all_csv: {}", ip.flags.export_all_csv);
-    info!("retain withdrawn: {}", ip.flags.inc_withdrawn);
+    if ip.data_version != "".to_string() {
+        info!("data_version: {}", ip.data_version);
+    }
+    if ip.data_date != "".to_string() {
+        info!("data_date: {}", ip.data_date);
+    }
+    info!("");
+    
+    let f = ip.flags;
+    if f.create_config ||  f.create_lookups || f.create_summary {
+        info!("Configuration run");
+        info!("create config table: {}", f.create_config);
+        info!("create look up tables: {}", f.create_lookups);
+        info!("create summary tables: {}", f.create_summary);
+    }
+    else {
+        info!("Processing run");
+        info!("import_ror: {}", f.import_ror);
+        info!("enhanced name processing: {}", f.enhance_proc);
+        info!("comm. names simplified: {}", f.simplify_comms);
+
+        info!("export_csv: {}", f.export_csv);
+        info!("export_all_csv: {}", f.export_all_csv);
+        info!("retain withdrawn: {}", f.inc_withdrawn);
+    }
     info!("");
     info!("************************************");
     info!("");

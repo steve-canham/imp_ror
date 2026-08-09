@@ -18,7 +18,7 @@ pub async fn create_lang_names (pool: &Pool<Postgres>) -> Result<(), AppError> {
     Ok(())
 }
 
-pub async fn combine_lang_codes (pool: &Pool<Postgres>) -> Result<(), AppError> {
+async fn combine_lang_codes (pool: &Pool<Postgres>) -> Result<(), AppError> {
 
     let sql = r#"update rec.names rn
         set lang = case 
@@ -90,8 +90,11 @@ async fn remove_char(char: &str, pool: &Pool<Postgres>) -> Result<u64, AppError>
 
 pub async fn derive_lang_codes (pool: &Pool<Postgres>) -> Result<(), AppError> {
 
-    info!("{} records with, initially, no derived language code", blank_langs_num(pool).await?);
+    info!("{} names with, initially, no derived language code", blank_der_langs_num(pool).await?);
+    let nonacro = blank_nonacro_der_langs_num(pool).await?;
+    info!("{nonacro} non-acronym names with, initially, no derived language code");
     info!("");
+    
     // Add languages if possible, using location of org and key words or word parts
     
     add_langs_for_nonlatin_codes(pool).await?;
@@ -135,17 +138,49 @@ pub async fn derive_lang_codes (pool: &Pool<Postgres>) -> Result<(), AppError> {
     // See what are left
    
     info!("");
-    info!("{} remainilng records with blank derived language", blank_langs_num(pool).await?);
+    info!("{} remaining names with blank derived language", blank_der_langs_num(pool).await?);
+    let new_nonacro = blank_nonacro_der_langs_num(pool).await?;
+    info!("{new_nonacro} remaining non-acronym names with blank derived language");
+    info!("{:.2}% - percentage of non-acronym names without language codes", 100.0 * new_nonacro as f32 / nonacro as f32);
+    
+    combine_lang_codes(pool).await?;
+    info!("Derived and ror-sourced language codes combined");
+    
+    let new_comb_nonacro = blank_nonacro_langs_num(pool).await?;
+    info!("{new_comb_nonacro} remaining non-acronym names with blank language code");
+    info!("{:.2}% - percentage of non-acronym names without language codes", 100.0 * new_comb_nonacro as f32 / nonacro as f32);
     info!("");
     Ok(())
 }
 
 
-async fn blank_langs_num(pool: &Pool<Postgres>) -> Result<i64, AppError> {
+async fn blank_der_langs_num(pool: &Pool<Postgres>) -> Result<i64, AppError> {
 
     let sql  = r#"select count(*) from rec.names 
     where der_lang is null"#;
 
+    let r: i64 = sqlx::query_scalar(sql).fetch_one(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    Ok(r)
+}
+
+async fn blank_nonacro_der_langs_num(pool: &Pool<Postgres>) -> Result<i64, AppError> {
+
+    let sql  = r#"select count(*) from rec.names 
+    where der_lang is null
+    and name_type <> 10"#;
+   
+    let r: i64 = sqlx::query_scalar(sql).fetch_one(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
+    Ok(r)
+}
+
+async fn blank_nonacro_langs_num(pool: &Pool<Postgres>) -> Result<i64, AppError> {
+
+    let sql  = r#"select count(*) from rec.names 
+    where lang is null
+    and name_type <> 10"#;
+   
     let r: i64 = sqlx::query_scalar(sql).fetch_one(pool).await
         .map_err(|e| AppError::SqlxError(e, sql.to_string()))?;
     Ok(r)
@@ -324,7 +359,7 @@ pub async fn update_hospital_names_2(pool: &Pool<Postgres>) -> Result<(), AppErr
     records_affected += assign_lang(vec!["spitalul"], "ro", "'RO'", pool).await?;
     records_affected += assign_lang(vec!["^spital", " spital"], "de", "'DE', 'CH', 'AT'", pool).await?;
     
-    info!("{} language codes added to hospital names", records_affected);
+    info!("{} additional language codes added to hospital names", records_affected);
     
     Ok(())
 }
@@ -416,11 +451,6 @@ pub async fn update_university_names_1(pool: &Pool<Postgres>) -> Result<(), AppE
      
      univ fr, FR			
      univ en, JP, SG
-     
-     univeristy  en, NE
-     universit   en, JP
-     univesity   en, IN, RO
-     'univeristy', 'universit^', 'univesity'
         
      universality  en, FR
      universalité  fr, FR
@@ -434,7 +464,6 @@ pub async fn update_university_names_1(pool: &Pool<Postgres>) -> Result<(), AppE
      %universe sciences%  en
      %the universe%   en
      %universe and %  en
-
           
      
      fundação centro de estudos do universo
@@ -526,7 +555,7 @@ pub async fn update_university_names_2(pool: &Pool<Postgres>) -> Result<(), AppE
 
     records_affected += assign_lang(vec!["yliopisto"], "fi", "", pool).await?;     
     
-    info!("{} language codes added to university names", records_affected);
+    info!("{} additional language codes added to university names", records_affected);
 
     Ok(())
 }
@@ -560,6 +589,51 @@ pub async fn update_institute_names_2(pool: &Pool<Postgres>) -> Result<(), AppEr
 }
 
 
+/*
+ * GL
+ -- da - grønlands, dronning 
+ -- kalaallisut (ki):  pinngortitaleriffik, ilisimatusarfik, napparsimmavissua, nunatsinni, nunatta, nka
+ -- perorsaanermik ilinniarfik  college of social education = ki, en
+ -- rest, including upi, = en
+
+
+  FO
+
+  da -- marbejde, færøernes
+  fo -- føroya, norrønt, havstovan 
+  
+  landsbókasavnið - national library of the faroe islands = is, en
+  is - savnið, umhvørvisstovan, starfið, garráðið, us
+  ki - avannaani
+  
+  rest english, including FAMRI
+
+  IS
+
+  de - hochschule hólar
+  
+  is - ð, stofnun, kóli, spítali, veit, hjart, skógur, bók, sók, læknis, stofa, knisetur, félag
+  -- also PFS, SAk, LFÍ, LOGS, ÍSOR, PSSÍ, RANNÍS, LMFÍ, FS, RMF
+  
+  icetec - bd 
+  Matis - bd
+  Össur - bd
+  Origo - bd
+  Kerecis - bd
+  Star-Oddi - bd
+  Oculis - bd
+  deCODE Genetics - bd
+  Marel - bd
+  
+  N.B. Reykjavík Energy (Iceland) - en
+  Landsvirkjun (Iceland) - is 
+  
+  GRO, on its own, is a brand
+
+  Rest is en
+  
+*/
+ 
 pub async fn update_english_names_1(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
     let mut records_affected = 0;
@@ -611,7 +685,7 @@ pub async fn update_english_names_2(pool: &Pool<Postgres>) -> Result<(), AppErro
     records_affected += assign_lang(vec!["people", "women", "kids", "mother", "father", 
         "boys", "girls", "black", "white", "yellow", "blue"], "en", "", pool).await?;   
 
-    info!("{} language codes added to english names", records_affected);
+    info!("{} additional language codes added to english names", records_affected);
 
     Ok(())
 

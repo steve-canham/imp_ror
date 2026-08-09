@@ -47,13 +47,17 @@ pub async fn process_data(params: &InitParams, pool : &Pool<Postgres>) -> Result
         // Try and derive as many lang codes as possible
         
         check_langs::derive_lang_codes(pool).await?;  // try and obtain lang codes 
-        check_langs::combine_lang_codes(pool).await?;
         // to include manually derived file...???
 
         // Try and standardise quotes and apostrophes
         
         clean_names::standardise_double_quotes(pool).await?;  // before checking for duplicates so some basic tidying of names
         clean_names::standardise_single_quotes(pool).await?;
+
+        if params.double_quotes != "“”"   {   // i.e. not the default
+            let r = clean_names::swap_double_quotes(&params.double_quotes, pool).await?;
+            info!("{r} pairs of double quotes changed to user preference ({})", params.double_quotes);
+        }
     }
 
     if params.flags.simplify_comms {
