@@ -1,7 +1,7 @@
 use sqlx::{Pool, Postgres};
 use log::info;
 use crate::AppError;
-
+use super::specific_langs::*;
 
 pub async fn create_lang_names (pool: &Pool<Postgres>) -> Result<(), AppError> {
 
@@ -69,7 +69,14 @@ async fn simplify_lang_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
     punctuation += remove_char("/", pool).await?;
     punctuation += remove_char("|", pool).await?;
     info!("{} sundry punctuation removed from lang names", punctuation);
-   
+
+    let sql  = format!(r#"update rec.names
+            set lang_name = replace(lang_name, '  ', ' ')
+            where lang_name like '%  %'; "#);
+
+    let res = sqlx::query(&sql).execute(pool).await
+        .map_err(|e| AppError::SqlxError(e, sql.to_string()))?.rows_affected();
+    info!("{res} double spaces replaced by single spaces");
     info!("");
     Ok(())
 }
@@ -98,7 +105,17 @@ pub async fn derive_lang_codes (pool: &Pool<Postgres>) -> Result<(), AppError> {
     // Add languages if possible, using location of org and key words or word parts
     
     add_langs_for_nonlatin_codes(pool).await?;
-    
+
+    update_greenland_names(pool).await?;
+    update_faroe_island_names(pool).await?;
+    update_iceland_names(pool).await?;
+
+    update_malta_names(pool).await?;
+    update_cyprus_names(pool).await?;
+    update_turkish_names(pool).await?;
+
+
+    /* 
     update_hospital_names_1(pool).await?;
     update_hospital_names_2(pool).await?;
 
@@ -131,9 +148,9 @@ pub async fn derive_lang_codes (pool: &Pool<Postgres>) -> Result<(), AppError> {
     update_greek_names(pool).await?;
     update_english_names_1(pool).await?;
     update_english_names_2(pool).await?;
-
+   
     add_bd_lang_code_to_comm_orgs(pool).await?;
-    
+    */
     // Do language of acronyms where all other names have the same language
     // See what are left
    
@@ -186,33 +203,43 @@ async fn blank_nonacro_langs_num(pool: &Pool<Postgres>) -> Result<i64, AppError>
     Ok(r)
 }
 
-
+/*
 pub async fn assign_lang(names: Vec<&str>, lang_code: &str, countries: &str, pool: &Pool<Postgres>) -> Result<u64, AppError> {
 
-    let mut word_list = "".to_string();
-    for i in 0..names.len() {
-        let comparator = if names[i].starts_with("^") { 
-            format!("lang_name like '{}%'", &names[i][1..]) 
-        }
-        else { 
-            format!("lang_name like '%{}%'", names[i]) 
-        };
-        let comparison = format!(" {}{comparator}", if i > 0 {"or "} else {""});
-        word_list += comparison.as_str();
+    let name_crit = if names == vec!["the rest"] {
+        "".to_string()
     }
+    else
+    {
+        let mut word_list = "".to_string();
+        for i in 0..names.len() {
+            let comparator = if names[i].starts_with("^") { 
+                format!("lang_name like '{}%'", &names[i][1..]) 
+            }
+            else if names[i].ends_with("$") { 
+                format!("lang_name like '%{}'", &names[i][..names[i].len() - 1]) 
+            }
+            else { 
+                format!("lang_name like '%{}%'", names[i]) 
+            };
+            let comparison = format!(" {}{comparator}", if i > 0 {"or "} else {""});
+            word_list += comparison.as_str();
+        }
+        format!("and ({word_list})")
+    };
 
     let sql = if countries == "" {
         format!(r#"update rec.names
                 set der_lang = '{lang_code}'
                 where der_lang is null and name_type <> 10
-                and ({word_list});"#)
+                {name_crit};"#)
     } 
     else {
         format!(r#"update rec.names
                 set der_lang = '{lang_code}'
                 where der_lang is null and name_type <> 10
                 and country_code in ({countries})
-                and ({word_list});"#)
+                {name_crit};"#)
     };
     
     let res = sqlx::raw_sql(&sql).execute(pool)
@@ -227,6 +254,9 @@ pub async fn assign_lang_using_display_name(names: Vec<&str>, lang_code: &str, c
     for i in 0..names.len() {
         let comparator = if names[i].starts_with("^") { 
             format!("display_name like '{}%'", &names[i][1..]) 
+        }
+        else if names[i].ends_with("$") { 
+            format!("display_name like '%{}'", &names[i][..names[i].len() - 1]) 
         }
         else { 
             format!("display_name like '%{}%'", names[i]) 
@@ -270,6 +300,7 @@ pub async fn add_bd_lang_code_to_comm_orgs(pool: &Pool<Postgres>) -> Result<(), 
   
     Ok(())
 }
+
 
 
 pub async fn update_hospital_names_1(pool: &Pool<Postgres>) -> Result<(), AppError> {
@@ -588,51 +619,6 @@ pub async fn update_institute_names_2(pool: &Pool<Postgres>) -> Result<(), AppEr
     Ok(())
 }
 
-
-/*
- * GL
- -- da - grønlands, dronning 
- -- kalaallisut (ki):  pinngortitaleriffik, ilisimatusarfik, napparsimmavissua, nunatsinni, nunatta, nka
- -- perorsaanermik ilinniarfik  college of social education = ki, en
- -- rest, including upi, = en
-
-
-  FO
-
-  da -- marbejde, færøernes
-  fo -- føroya, norrønt, havstovan 
-  
-  landsbókasavnið - national library of the faroe islands = is, en
-  is - savnið, umhvørvisstovan, starfið, garráðið, us
-  ki - avannaani
-  
-  rest english, including FAMRI
-
-  IS
-
-  de - hochschule hólar
-  
-  is - ð, stofnun, kóli, spítali, veit, hjart, skógur, bók, sók, læknis, stofa, knisetur, félag
-  -- also PFS, SAk, LFÍ, LOGS, ÍSOR, PSSÍ, RANNÍS, LMFÍ, FS, RMF
-  
-  icetec - bd 
-  Matis - bd
-  Össur - bd
-  Origo - bd
-  Kerecis - bd
-  Star-Oddi - bd
-  Oculis - bd
-  deCODE Genetics - bd
-  Marel - bd
-  
-  N.B. Reykjavík Energy (Iceland) - en
-  Landsvirkjun (Iceland) - is 
-  
-  GRO, on its own, is a brand
-
-  Rest is en
-  
-*/
  
 pub async fn update_english_names_1(pool: &Pool<Postgres>) -> Result<(), AppError> {
 
@@ -1187,7 +1173,7 @@ pub async fn update_greek_names(pool: &Pool<Postgres>) -> Result<(), AppError> {
     Ok(())
 }
 
-
+*/
 pub async fn add_langs_for_nonlatin_codes (pool: &Pool<Postgres>) -> Result<(), AppError> {
     
     let mut nonlatin_names = 0;
@@ -1218,6 +1204,16 @@ pub async fn add_langs_for_nonlatin_codes (pool: &Pool<Postgres>) -> Result<(), 
     nonlatin_names += update_lang_code_by_script("hi", "('Deva')", pool).await?;
     nonlatin_names += update_lang_code_by_script("th", "('Thai')", pool).await?;
 
+    nonlatin_names += update_lang_code_by_script_and_country("ar", "('Arab')", 
+        "('AE', 'BH', 'DZ', 'EG', 'EH', 'IL', 'JO', 'KW',  'LB', 'LY', 'MA', 'OM', 'PS', 'QA', 'SA', 
+        'SD', 'SO', 'SY', 'TN', 'TR', 'YE')", pool).await?;
+    nonlatin_names += update_lang_code_by_script_and_country("fa", "('Arab')", 
+        "('IR', 'AF', 'TJ')", pool).await?;
+    nonlatin_names += update_lang_code_by_script_and_country("ku", "('Arab')", 
+        "('IQ')", pool).await?;
+    nonlatin_names += update_lang_code_by_script_and_country("ur", "('Arab')", 
+        "('PK', 'IN')", pool).await?;
+    
     // This last group are US university societies or founations
     // that use Greek letter names as  their title. The abbreviations
     // are in a Greek script, but are derived from English words in the
@@ -1260,6 +1256,21 @@ async fn update_lang_code_by_script(lang_code: &str, script_code: &str, pool: &P
         set der_lang = '{lang_code}'
         where der_lang is null 
         and der_script in {script_code} ;"#);
+
+    let res = sqlx::query(&sql).execute(pool).await
+    .map_err(|e| AppError::SqlxError(e, sql))?;
+
+    Ok(res.rows_affected())
+}
+
+
+async fn update_lang_code_by_script_and_country(lang_code: &str, script_code: &str, country_code: &str, pool: &Pool<Postgres>) -> Result<u64, AppError> {
+
+    let sql  = format!(r#"update rec.names n
+        set der_lang = '{lang_code}'
+        where der_lang is null 
+        and der_script in {script_code} 
+        and country_code in {country_code};"#);
 
     let res = sqlx::query(&sql).execute(pool).await
     .map_err(|e| AppError::SqlxError(e, sql))?;

@@ -1,5 +1,6 @@
 mod clean_names;
 mod check_langs;
+pub mod specific_langs;
 mod add_scripts;
 mod dedup_names;
 

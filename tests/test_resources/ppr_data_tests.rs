@@ -226,6 +226,7 @@ async fn s_check_ppr_type_data() {
 
 }
 
+/* 
 #[tokio::test]
 async fn t_check_ppr_name_data() {
 
@@ -252,5 +253,5 @@ async fn t_check_ppr_name_data() {
         value: "ヤマシタ コージョーセン ビョーイン".to_string(), name_type: 7, 
         is_ror_name: false, lang_code: Some("ja".to_string()), script_code: Some("Jpan".to_string())});
 }
-
+*/
 

@@ -92,6 +92,12 @@ pub async fn remove_invisible_chars (pool: &Pool<Postgres>) -> Result<(), AppErr
     replace_unicode_char("2010", 3, "non ascii hyphen", "-", pool).await?;  
     replace_unicode_char("2011", 3, "non-breaking hyphen", "-", pool).await?;  
     replace_unicode_char("2012", 3, "figure dash", "-", pool).await?;  
+
+    // spurious combining dot in Turkish (Turkish has both dotted and dotless is,
+    // but some Turkish names have a dotted i with an additional 'combining dot'.
+    // This is inconsistent, so needs to be removed.)
+    
+    replace_unicode_char("0307", 1, "combining dot", "", pool).await?;
     info!(""); 
     Ok(())
 }
@@ -173,7 +179,9 @@ pub async fn repair_typos (pool: &Pool<Postgres>) -> Result<(), AppError> {
     let sql = r#"update rec.names set display_name = replace(display_name, 'universite', 'université')
     where  display_name ~* 'universite ' or display_name ~* 'universite$'"#;
     execute_sql(sql, "mis-spelled universite repaired to université", 54, pool).await?;
-    
+
+    replace_chars("Uludağ Üniversites", "Uludağ Üniversitesi", "mis-spelled Üniversites repaired to Üniversitesi", 55, pool).await?;
+
     replace_chars("Univeristy", "University", "mis-spelled Univeristy repaired to University", 56, pool).await?;
     replace_chars("Univesity", "University", "mis-spelled Univesity repaired to University", 56, pool).await?;
     
