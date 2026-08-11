@@ -233,15 +233,16 @@ pub async fn update_turkish_names(pool: &Pool<Postgres>) -> Result<(), AppError>
     records_affected += assign_lang(vec!["institutu", "universiteti"], "az", "'TR'", pool).await?;
     records_affected += assign_lang(vec!["français", "université"], "fr", "'TR'", pool).await?;
 
-    records_affected += assign_lang(vec!["niversitesi", "akademi", "yerleşkesi̇", "hastanesi%", " ve ", 
-        "dernegi", "eği", "enstitüsü", "ığı", "iği", "kanligi", "merkezi", "okulu"],
+    records_affected += assign_lang(vec!["niversitesi", "akademi", "yerleşkesi̇", "hastanesi",  " ve ", 
+        "dernegi", "derneğ", "eği", "enstitüsü", "ığı", "ıgı", "iği", "kanligi", "merkezi", "okulu"],
         "tr", "'TR'", pool).await?;
     records_affected += assign_lang(vec!["yüksekokulu", "köğr", "ziraat", "silahli", "devlet", "teknoloji", 
-        "nobel tip", "diyanet", "sbü gülhane", "anadolu", "yayıncılık", "hakkı"], 
+        "nobel tip", "tıp", "diyanet", "sbü gülhane", "anadolu", "yayıncılık", "hakkı"], 
         "tr", "'TR'", pool).await?;
-    records_affected += assign_lang(vec!["ulusal", "belediyesi"], 
+    records_affected += assign_lang(vec!["ulusal", "belediyesi", " sarayı", "suasis", "türk", "sağlık", "adıgüzel",
+        "hastahanesi", " proje$", "çevresel"], 
         "tr", "'TR'", pool).await?;
-   // 
+   
    
     records_affected += assign_lang_using_acronym(vec!["ÇASGEM", "TTMD", "PRBL", "THD", "AYBU YEAH",
         "LÖSEV", "DKM", "ISTUN", "İSTÜN", "DAGTEM", "TÜBA", "GATA", "DEÜ", "TTGV", "AFAD", "TKASK"], 
@@ -250,26 +251,35 @@ pub async fn update_turkish_names(pool: &Pool<Postgres>) -> Result<(), AppError>
         "İZBÜ", "TAE", "İGÜ", "BTÖ", "TNKÜ", "TUSEB", "TÜSEB", "AY", "TCMB", "TKD", "EDH", "KGM"], 
         "tr", "'TR'", pool).await?;
     records_affected += assign_lang_using_acronym(vec!["GEAH", "TUG", "BBB", "MSÜ", "YÖKAK", "OBB",
-        "Adana BTU"], 
+        "Adana BTU", "UND", "YTM-MATPUM", "ODTÜ", "KTAE", "NKU", "TND", "ÇŞİDB", "MSIB", "SİÜ", "AHBV"], 
         "tr", "'TR'", pool).await?;
-    // 
-    // 
-    records_affected += assign_lang_using_acronym(vec!["FBU", "AGU", "MSU", "ABU"], 
+    
+
+    records_affected += assign_lang(vec!["itü vodafone future lab", "turkiye diyanet foundation"], 
+        "tr, en", "'TR'", pool).await?;
+    records_affected += assign_lang_using_acronym(vec!["FBU", "AGU", "MSU", "ABU", "GSU", "KLU", "BEU", "HU",
+        "TDF", "IZU", "AIU", "ESOGU", "IUC", "PAU", "TSC", "COMU", "ÇOMÜ"], 
         "tr, en", "'TR'", pool).await?;
     
     records_affected += assign_lang(vec!["nobel$", "akyüz", "humanis", "onder$", "önder$", "probel", 
-        "fibabanka", "fcr yayin", "borsa istanbul"],"bd", "'TR'", pool).await?;
-    records_affected += assign_lang_using_acronym(vec!["SUASIS", "FIBA", "BAU", "BIST", "TÜRKPATENT"], 
+        "fibabanka", "fcr yayin", "borsa istanbul", "türk telekom", "^merck ", "^msd "],"bd", "'TR'", pool).await?;
+    records_affected += assign_lang(vec!["erka group", "rovedar", "pharmactive", "sampaş"],"bd", "'TR'", pool).await?;
+
+    records_affected += assign_lang_using_acronym(vec!["FIBA", "BAU", "BIST", "TÜRKPATENT", "ALATA"], 
         "bd", "'TR'", pool).await?;
 
+
+    
     records_affected += assign_lang(vec!["university", "hospital", "college", "ministry", "association", 
         "municipality", "institute", " and ", " of ", " for "],"en", "'TR'", pool).await?;
-    records_affected += assign_lang(vec!["national", "education", "observatory"],"en", "'TR'", pool).await?;
-    // 
+    records_affected += assign_lang(vec!["national", "education", "observatory", " press", "conservation",
+        "school", "itu vodafone", "publication", "forces", "health"],"en", "'TR'", pool).await?;
+    records_affected += assign_lang(vec!["foundation", "publishing", "society", "technology", "naval ",
+        "project", "monitoring"],"en", "'TR'", pool).await?;
 
     records_affected += assign_lang_using_acronym(vec![ "EUL", "TACRC", "KVCI", "THEQC", "FSVSOD", "KOERI",
-        "Adana STU", "ASTU", "TSH" ],"en", "'TR'", pool).await?;
-    // 
+        "Adana STU", "ASTU", "TSH", "NIT", "NPI", "METU", "PAT", "MAREM", "SIU"],"en", "'TR'", pool).await?;
+    
 
     //records_affected += assign_lang(vec!["the rest"], "en", "'CY'", pool).await?;
 
@@ -282,17 +292,9 @@ pub async fn update_turkish_names(pool: &Pool<Postgres>) -> Result<(), AppError>
 
 
 /*
-"TÜBİTAK National Observatory"
-"TÜBİTAK ulusal Gözlemevi"
-"TUG"
  
  en --- "university", "hospital", "college", "ministry", "association", "municipality", "institute", " and ", " of ", " for "
- 
   
- ? erka group
- 
  eskişehir  - just a place
- 
- -- Anonim Şirket, (A.Ş.)  or joint-stock company
- --A Limited Şirket, or limited liability company, (Ltd. Şti.)
+
  */
